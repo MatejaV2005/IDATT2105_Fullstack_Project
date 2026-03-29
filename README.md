@@ -4,6 +4,10 @@ Extensive project for fullstack covering both backend and frontend
 ## Getting started
 
 Run `docker compose up -d --build` to run everything
+Run `docker compose down` to take down the app.
+
+
+Run `docker compose down --volumes` to remove all volumes (stored data).
 
 Visit `http://localhost:8080/api/health` to make sure the website works.
 
@@ -16,7 +20,7 @@ curl https://start.spring.io/starter.zip \
   -d language=java \
   -d bootVersion=4.0.5 \
   -d baseDir=backend \
-  -d groupId=com.example \
+  -d groupId=com.grimni \
   -d artifactId=backend \
   -d name=backend \
   -d packageName=com.grimni.backend \
