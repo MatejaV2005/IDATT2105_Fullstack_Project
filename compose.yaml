@@ -1,0 +1,81 @@
+services:
+  db:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: mydb
+      MYSQL_USER: myuser
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    # ! Only use port forwarding for dev
+    # ports: 
+    #   - "3306:3306"
+  
+  seaweedfs:
+    image: chrislusf/seaweedfs:3.94
+    restart: unless-stopped
+    command: >
+      server
+      -dir=/data
+      -s3
+      -s3.port=8333
+      -ip.bind=0.0.0.0
+    volumes:
+      - seaweedfs_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O- http://localhost:8333 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+    # ! Only use port forwarding for dev
+    # ports:
+    #   - "8333:8333" # Default s3 endpoint port
+    #   - "9333:9333" # Master UI
+    #   - "8888:8888" # Filer UI
+    #   - "23646:23646" # Admin UI
+
+  backend_app:
+    restart: unless-stopped
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+      seaweedfs:
+        condition: service_healthy
+    environment:
+      MYSQL_HOST: db
+      MYSQL_DATABASE: mydb
+      MYSQL_PORT: 3306
+      MYSQL_USER: myuser
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+
+      S3_ENDPOINT: http://seaweedfs:8333
+      S3_BUCKET: e-files
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+      S3_SECRET_KEY: ${S3_SECRET_KEY}
+      S3_REGION: us-east-1
+      S3_FORCE_PATH_STYLE: "true" # wtf is this?
+    # ! Only use port forwarding for dev
+    # ports:
+    #   - "8080:8080" # Default ports
+
+  frontend_app: # should be a vue project ran in production mode. Using normal vue, not some SSR framework 
+    restart: unless-stopped
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"
+
+volumes:
+  db_data:
+  seaweedfs_data:
