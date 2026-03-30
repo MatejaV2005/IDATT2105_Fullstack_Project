@@ -28,8 +28,8 @@ public class JwtUtil {
      * @return a {@link SecretKey} derived from the configured JWT secret
      */
     private SecretKey getKey() {
-        byte[] keyBytes = Decoders.BASE64.decode(secret);
-        return Keys.hmacShaKeyFor(keyBytes);
+        byte[] keyBytes = Decoders.BASE64.decode(secret); // decodes the base64 encoded secret key to an array of raw bytes
+        return Keys.hmacShaKeyFor(keyBytes); // wraps into a SecretKey object for type correspondance with JJWT API
     }
 
     @PostConstruct // tells spring to call this injection after all other are finished when creating JwtUtil bean
