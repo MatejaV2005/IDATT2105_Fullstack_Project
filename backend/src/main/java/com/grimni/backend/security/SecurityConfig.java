@@ -38,7 +38,7 @@ public class SecurityConfig {
         // to define here that our backend can take in requests from the frontend
         http.cors(cors -> cors.configurationSource(request -> {
             CorsConfiguration config = new CorsConfiguration();
-            config.setAllowedOrigins(List.of("URL OF THE FRONTEND"));
+            config.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:80"));
             config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE"));
             config.setAllowedHeaders(List.of("*"));
             return config;
