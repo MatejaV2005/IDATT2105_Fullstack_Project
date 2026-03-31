@@ -24,16 +24,12 @@ public class UserController {
 	
 	@PostMapping("/users")
 	public ResponseEntity<?> createUser(@RequestBody User user) {
-        System.out.println("posting user");
-
         user = userRepository.save(user);
-    
 		return new ResponseEntity<>(HttpStatus.CREATED);
 	}
 
     @GetMapping("/users")
     public ResponseEntity<Iterable<User>> getAllUsers() {
-        System.out.println("getting users");
         Iterable<User> allUsers = userRepository.findAll();
         return new ResponseEntity<>(allUsers, HttpStatus.OK);
 	}

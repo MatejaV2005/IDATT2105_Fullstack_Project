@@ -25,16 +25,12 @@ public class OrganizationController {
 	
 	@PostMapping("/organizations")
 	public ResponseEntity<?> createOrganization(@RequestBody Organization organization) {
-        System.out.println("posting organization");
-
         organization = organizationRepository.save(organization);
-    
 		return new ResponseEntity<>(HttpStatus.CREATED);
 	}
 
     @GetMapping("/organizations")
     public ResponseEntity<Iterable<Organization>> getAllOrganizations() {
-        System.out.println("getting organizations");
         Iterable<Organization> allOrganizations = organizationRepository.findAll();
         return new ResponseEntity<>(allOrganizations, HttpStatus.OK);
 	}
