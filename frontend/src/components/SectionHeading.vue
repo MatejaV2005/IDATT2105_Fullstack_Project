@@ -3,7 +3,7 @@ import AppIcon from './AppIcon.vue'
 
 defineProps<{
   title: string
-  icon: 'temperature' | 'clock' | 'humidity' | 'checklist' | 'alert' | 'spark'
+  icon: 'temperature' | 'clock' | 'humidity' | 'checklist' | 'alert' | 'warning' | 'spark'
   subtitle?: string
 }>()
 </script>

@@ -12,12 +12,15 @@ const now = new Date()
 const pad = (value: number) => String(value).padStart(2, '0')
 
 const formState = reactive({
+  title: '',
   routineArea: deviationOptions.routineAreas[1],
   severity: deviationOptions.severityLevels[1],
+  relatedToFood: false,
+  relatedToAlcohol: false,
   happenedDate: `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`,
   happenedTime: `${pad(now.getHours())}:${pad(now.getMinutes())}`,
-  description: 'Temperaturen i Kjøleskap 1 ble målt til 8 °C under ettermiddagskontrollen.',
-  immediateAction: 'Flyttet varer til reservekjøler og startet ekstra temperaturmåling hvert 15. minutt.',
+  description: '',
+  immediateAction: '',
 })
 
 const showInfo = ref(false)
@@ -27,7 +30,7 @@ const formattedDateTime = computed(() => `${formState.happenedDate} kl. ${formSt
 
 <template>
   <section class="page-layout">
-    <SectionHeading title="Avvik" icon="alert">
+    <SectionHeading title="Avvik" icon="warning">
       <template #actions>
         <button
           class="info-button"
@@ -49,6 +52,18 @@ const formattedDateTime = computed(() => `${formState.happenedDate} kl. ${formSt
     </article>
 
     <form class="form-grid" @submit.prevent>
+      <article class="form-card form-card--full">
+        <label class="form-label" for="deviationTitle">Tittel</label>
+        <input
+          id="deviationTitle"
+          v-model="formState.title"
+          class="field-shell__input"
+          type="text"
+          maxlength="120"
+          placeholder="For høy temperatur i kjøleskap"
+        />
+      </article>
+
       <article class="form-card">
         <label class="form-label" for="routineArea">Rutineområde</label>
         <div class="field-shell">
@@ -93,6 +108,23 @@ const formattedDateTime = computed(() => `${formState.happenedDate} kl. ${formSt
           step="60"
         />
       </article>
+      
+      <article class="form-card">
+        <p class="form-label">Relatert til</p>
+        <div class="option-checks">
+          <label class="option-check">
+            <input v-model="formState.relatedToFood" type="checkbox" />
+            <span class="option-check__box" aria-hidden="true"></span>
+            <span class="option-check__label">Mat</span>
+          </label>
+
+          <label class="option-check">
+            <input v-model="formState.relatedToAlcohol" type="checkbox" />
+            <span class="option-check__box" aria-hidden="true"></span>
+            <span class="option-check__label">Alkohol</span>
+          </label>
+        </div>
+      </article>
 
       <article class="form-card">
         <label class="form-label">Bildevedlegg</label>
@@ -109,12 +141,22 @@ const formattedDateTime = computed(() => `${formState.happenedDate} kl. ${formSt
 
       <article class="form-card form-card--full">
         <label class="form-label" for="description">* Beskrivelse av avvik</label>
-        <textarea id="description" v-model="formState.description" class="field-shell__textarea" />
+        <textarea
+          id="description"
+          v-model="formState.description"
+          class="field-shell__textarea"
+          placeholder="Temperaturen i Kjøleskap 1 ble målt til 8 °C under ettermiddagskontrollen."
+        />
       </article>
 
       <article class="form-card form-card--full">
         <label class="form-label" for="immediateAction">* Umiddelbar handling utført</label>
-        <textarea id="immediateAction" v-model="formState.immediateAction" class="field-shell__textarea" />
+        <textarea
+          id="immediateAction"
+          v-model="formState.immediateAction"
+          class="field-shell__textarea"
+          placeholder="Flyttet varer til reservekjøler og startet ekstra temperaturmåling hvert 15. minutt."
+        />
       </article>
 
       <div class="form-card--full">

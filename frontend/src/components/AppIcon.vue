@@ -7,6 +7,7 @@ defineProps<{
     | 'camera'
     | 'checklist'
     | 'alert'
+    | 'warning'
     | 'info'
     | 'upload'
     | 'chevron'
@@ -115,6 +116,25 @@ defineProps<{
     />
     <path d="M10 6.3v4.45" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
     <circle cx="10" cy="13.35" r="0.9" fill="currentColor" />
+  </svg>
+
+  <svg
+    v-else-if="name === 'warning'"
+    width="20"
+    height="20"
+    viewBox="0 0 20 20"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    aria-hidden="true"
+  >
+    <path
+      d="M10 3.1 17.05 15.3a1.1 1.1 0 0 1-.95 1.65H3.9a1.1 1.1 0 0 1-.95-1.65L10 3.1Z"
+      stroke="currentColor"
+      stroke-width="1.7"
+      stroke-linejoin="round"
+    />
+    <path d="M10 7.2v4.15" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+    <circle cx="10" cy="13.85" r="0.9" fill="currentColor" />
   </svg>
 
   <svg

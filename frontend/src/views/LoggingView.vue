@@ -8,9 +8,21 @@ import { humidityMetrics, temperatureMetrics, timedLogs } from '@/data/mockHaccp
 import type { UploadedPhoto } from '@/types/uploads'
 
 const loggingState = reactive({
-  temperatureMetrics: temperatureMetrics.map((metric) => ({ ...metric, photos: [] as UploadedPhoto[] })),
-  timedLogs: timedLogs.map((item) => ({ ...item, photos: [] as UploadedPhoto[] })),
-  humidityMetrics: humidityMetrics.map((metric) => ({ ...metric, photos: [] as UploadedPhoto[] })),
+  temperatureMetrics: temperatureMetrics.map((metric) => ({
+    ...metric,
+    value: '',
+    photos: [] as UploadedPhoto[],
+  })),
+  timedLogs: timedLogs.map((item) => ({
+    ...item,
+    durationMinutes: '',
+    photos: [] as UploadedPhoto[],
+  })),
+  humidityMetrics: humidityMetrics.map((metric) => ({
+    ...metric,
+    value: '',
+    photos: [] as UploadedPhoto[],
+  })),
 })
 </script>
 
@@ -31,7 +43,12 @@ const loggingState = reactive({
           </div>
 
           <label class="field-shell">
-            <input v-model="metric.value" class="field-shell__input" inputmode="decimal" />
+            <input
+              v-model="metric.value"
+              :placeholder="metric.exampleValue"
+              class="field-shell__input field-shell__input--with-suffix"
+              inputmode="decimal"
+            />
             <span class="field-shell__suffix">{{ metric.unit }}</span>
           </label>
         </article>
@@ -50,7 +67,12 @@ const loggingState = reactive({
 
           <div class="timed-task__controls">
             <label class="field-shell timed-task__field">
-              <input v-model="item.durationMinutes" class="field-shell__input" inputmode="numeric" />
+              <input
+                v-model="item.durationMinutes"
+                :placeholder="item.exampleDurationMinutes"
+                class="field-shell__input field-shell__input--with-suffix timed-task__input"
+                inputmode="numeric"
+              />
               <span class="field-shell__suffix timed-task__suffix">
                 min
               </span>
@@ -77,7 +99,12 @@ const loggingState = reactive({
           </div>
 
           <label class="field-shell">
-            <input v-model="metric.value" class="field-shell__input" inputmode="numeric" />
+            <input
+              v-model="metric.value"
+              :placeholder="metric.exampleValue"
+              class="field-shell__input field-shell__input--with-suffix"
+              inputmode="numeric"
+            />
             <span class="field-shell__suffix">{{ metric.unit }}</span>
           </label>
         </article>
