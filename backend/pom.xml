@@ -46,10 +46,10 @@
     		<artifactId>spring-boot-starter-data-jpa</artifactId>
 		</dependency>
 
-	<!-- <dependency> //TODO re-enable later
+		<dependency> 
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-security</artifactId>
-		</dependency> -->
+		</dependency> 
 
 		<!-- H2, serving as a mock database for testing  -->
 		<dependency>
