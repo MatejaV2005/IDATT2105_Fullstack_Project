@@ -1,5 +1,55 @@
 package com.grimni.backend.security;
 
+import java.util.List;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+
+import com.grimni.backend.util.JwtAuthFilter;
+
+@Configuration
+@EnableWebSecurity
 public class SecurityConfig {
-    
+    private final JwtAuthFilter jwtAuthFilter;
+
+    public SecurityConfig(JwtAuthFilter jwtAuthFilter) {
+        this.jwtAuthFilter = jwtAuthFilter;
+    }
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        
+        // Since we are using a Jwt token, sessions need to be turned off, since Jwt tokens don't rely on sessions like cookies
+        http.sessionManagement(session ->
+                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+
+        // expose endpoint /api/users/login as available to all, but any other requests to other endpoints require authentication
+        http.authorizeHttpRequests(auth -> auth
+                .requestMatchers("api/users/login", "api/users/register").permitAll() // for this url endpoint, all requests are permitted
+                .anyRequest().authenticated()); // to any other requests to endpoints, authentication is needed
+
+        // since SecurityConfig is initially run before Server Dispatchlet, it blocks due to CORS restriction, therefore we have
+        // to define here that our backend can take in requests from the frontend
+        http.cors(cors -> cors.configurationSource(request -> {
+            CorsConfiguration config = new CorsConfiguration();
+            config.setAllowedOrigins(List.of("URL OF THE FRONTEND"));
+            config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE"));
+            config.setAllowedHeaders(List.of("*"));
+            return config;
+        }));
+
+        // add jwtAuthFilter class before the UsernamePassword filter to authenticate the user and set it in the SecurityContextHolder
+        // in order for the UsernamePassword filter to know the user is authenticated
+        http.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+
+        http.csrf(csrf -> csrf.disable());
+        return http.build();
+    }
 }
+
