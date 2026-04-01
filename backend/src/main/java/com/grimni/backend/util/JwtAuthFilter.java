@@ -50,7 +50,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             }
             
             // Class in spring security that represents an authentication object (in this case user)
-            // TODO: in third parametre, ensure that the empty list will hold roles for authenticated user 
+            // TODO: in third parameter, ensure that the empty list will hold roles for authenticated user 
             UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(username, null, new ArrayList<>());
             
             // SecurityContextHolder is a global context storage, storing the authenticated entity for use in the filterchain
