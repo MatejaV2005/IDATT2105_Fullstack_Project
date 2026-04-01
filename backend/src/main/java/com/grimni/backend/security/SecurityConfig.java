@@ -31,7 +31,7 @@ public class SecurityConfig {
 
         // expose endpoint /api/users/login as available to all, but any other requests to other endpoints require authentication
         http.authorizeHttpRequests(auth -> auth
-                .requestMatchers("api/users/login", "api/users/register").permitAll() // for this url endpoint, all requests are permitted
+                .requestMatchers("/users/login", "/users/register", "/health").permitAll() // for this url endpoint, all requests are permitted
                 .anyRequest().authenticated()); // to any other requests to endpoints, authentication is needed
 
         // since SecurityConfig is initially run before Server Dispatchlet, it blocks due to CORS restriction, therefore we have
