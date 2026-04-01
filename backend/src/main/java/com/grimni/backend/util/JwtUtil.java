@@ -67,6 +67,11 @@ public class JwtUtil {
     
     public boolean isTokenValid(String jwtToken) {
         try {
+            
+            if (jwtToken == null || jwtToken.isEmpty()) {
+                return false;
+            }
+
             // if parsed token doesn't throw any exception when validating with secretKey, return true
             Jwts.parser().verifyWith(key).build().parseSignedClaims(jwtToken);
             logger.info("jwtToken is valid");
@@ -80,6 +85,10 @@ public class JwtUtil {
     
     public String extractUsername(String JwtToken) {
         try {
+            if (JwtToken == null || JwtToken.isEmpty()) {
+                return null;
+            }
+
             return Jwts.parser()
             .verifyWith(key)
             .build()
