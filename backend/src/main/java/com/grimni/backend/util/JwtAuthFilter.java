@@ -55,9 +55,9 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             
             // SecurityContextHolder is a global context storage, storing the authenticated entity for use in the filterchain
             SecurityContextHolder.getContext().setAuthentication(authentication);
+            logger.info("token validated, pass response and request to next filter in chain");
         }
 
-        logger.info("token validated, pass response and request to next filter in chain");
         filterChain.doFilter(request, response); //Pass this custom filter to next filter in filterchain
     }
 }
