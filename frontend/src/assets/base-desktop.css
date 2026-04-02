@@ -1,0 +1,63 @@
+:root {
+  --blue-background: #DFF1FB;
+  --white-greek: #FCFBF9;
+  
+  --blue-light: #DFF1FB;
+  --blue-light-10: rgb(223 241 251 / 0.1);
+  --blue-light-20: rgb(223 241 251 / 0.2);
+  --blue-light-40: rgb(223 241 251 / 0.4);
+  --blue-light-60: rgb(223 241 251 / 0.6);
+  --blue-light-80: rgb(223 241 251 / 0.8);
+
+  --red-cherry: #DA1A5A;
+  --red-cherry-10: rgb(218 26 90 / 0.1);
+  --red-cherry-20: rgb(218 26 90 / 0.2);
+  --red-cherry-40: rgb(218 26 90 / 0.4);
+  --red-cherry-60: rgb(218 26 90 / 0.6);
+  --red-cherry-80: rgb(218 26 90 / 0.8);
+
+  --green-light: #1CBE3A;
+  --green-light-10: rgb(28 190 58 / 0.1);
+  --green-light-20: rgb(28 190 58 / 0.2);
+  --green-light-40: rgb(28 190 58 / 0.4);
+  --green-light-60: rgb(28 190 58 / 0.6);
+  --green-light-80: rgb(28 190 58 / 0.8);
+
+  --blue-navy: #2D2D75;
+  --blue-navy-10: rgb(45 45 117 / 0.1);
+  --blue-navy-20: rgb(45 45 117 / 0.2);
+  --blue-navy-40: rgb(45 45 117 / 0.4);
+  --blue-navy-60: rgb(45 45 117 / 0.6);
+  --blue-navy-80: rgb(45 45 117 / 0.8);
+
+  --blue-decor: #0F6698;
+  --blue-decor-10: rgb(15 102 152 / 0.1);
+  --blue-decor-20: rgb(15 102 152 / 0.2);
+  --blue-decor-40: rgb(15 102 152 / 0.4);
+  --blue-decor-60: rgb(15 102 152 / 0.6);
+  --blue-decor-80: rgb(15 102 152 / 0.8);
+}
+
+body {
+  background-color: var(--blue-background);
+  min-height: 100vh;
+  line-height: 1.6;
+  margin: 0;
+  font-family:
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    Oxygen,
+    Ubuntu,
+    Cantarell,
+    'Fira Sans',
+    'Droid Sans',
+    'Helvetica Neue',
+    sans-serif;
+  font-size: 15px;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

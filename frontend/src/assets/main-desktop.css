@@ -1,0 +1,6 @@
+@import './base-desktop.css';
+@import './main.css';
+
+.transition {
+    transition: all .1s;
+}
