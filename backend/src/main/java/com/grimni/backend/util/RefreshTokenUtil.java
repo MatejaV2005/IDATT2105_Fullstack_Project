@@ -32,7 +32,7 @@ public class RefreshTokenUtil {
     }
 
     public String hashToken(String token) throws NoSuchAlgorithmException {
-        MessageDigest digest = MessageDigest.getInstance("SHA-256"); // returns a message digest object that implements the specified hash algo
+        MessageDigest digest = MessageDigest.getInstance("SHA-256"); // returns a message digest object that implements the specified hash algorithm
         byte[] hashBytes = digest.digest(token.getBytes(StandardCharsets.UTF_8)); // transforms the token into its correspondign array of bytes, and hashes w ith SHA-256
         return Base64.getUrlEncoder().withoutPadding().encodeToString(hashBytes); // encodes the bytes into base64 and returns as string
     }
