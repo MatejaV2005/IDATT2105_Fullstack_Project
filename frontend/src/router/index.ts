@@ -3,6 +3,7 @@ import MobileLayout from '@/layouts/MobileLayout.vue'
 import CreateOrgView from '@/views/desktop/CreateOrgView.vue'
 import HaccpView from '@/views/desktop/HaccpView.vue'
 import LearningView from '@/views/desktop/LearningView.vue'
+import MappingAndMeasuresView from '@/views/desktop/MappingAndMeasuresView.vue'
 import DeviationsView from '@/views/mobile/DeviationsView.vue'
 import LoggingView from '@/views/mobile/LoggingView.vue'
 import LoginView from '@/views/mobile/LoginView.vue'
@@ -26,6 +27,15 @@ const router = createRouter({
             {
               path: '',
               component: HaccpView
+            },
+          ]
+        },
+        {
+          path: 'ik-alkohol-kartlegging-og-tiltak',
+          children: [
+            {
+              path: '',
+              component: MappingAndMeasuresView
             },
           ]
         },

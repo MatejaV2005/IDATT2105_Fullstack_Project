@@ -129,7 +129,7 @@ function hasCompletedCourse(
   <SidebarPageContainer activePage="/desktop/bedrift-opplaering">
     <div class="learning-area-container">
         <h1 class="instrument-serif-regular no-margin">Opplæring</h1>
-        <span class="accent-title">Godkjenning</span>
+        <span class="navy-subtitle">Godkjenning</span>
         <div class="course-completion">
             <table>
                 <thead>
@@ -158,7 +158,7 @@ function hasCompletedCourse(
             class="navy-button-flat-top"
             />
         </div>
-        <span class="accent-title">Opplæringskrav</span>
+        <span class="navy-subtitle">Opplæringskrav</span>
         <div class="course" v-for="course in allCourses" :key="course.uniqueId">
             <div class="course-header">
                 <h2 class="no-margin">
@@ -170,7 +170,7 @@ function hasCompletedCourse(
                 />
             </div>
             <div>
-                <span class="accent-title">
+                <span class="navy-subtitle">
                     Beskrivelse:
                 </span>
                 <span>
@@ -178,7 +178,7 @@ function hasCompletedCourse(
                 </span>
             </div>
             <div>
-                <span class="accent-title">
+                <span class="navy-subtitle">
                     Ressurser:
                 </span>
                 <div class="resource-container">
@@ -229,11 +229,6 @@ function hasCompletedCourse(
         border-radius: 0.7rem;
         border-top-right-radius: 0;
         border-top-left-radius: 0;
-    }
-
-    .accent-title {
-        color: var(--blue-navy);
-        font-weight: 600;
     }
 
     .course-completion {

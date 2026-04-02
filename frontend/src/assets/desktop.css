@@ -85,3 +85,7 @@ button {
 input {
   accent-color: var(--blue-navy);
 }
+.navy-subtitle {
+  color: var(--blue-navy);
+  font-weight: 600;
+}

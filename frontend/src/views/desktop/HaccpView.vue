@@ -8,75 +8,19 @@ const router = useRouter()
 
 <template>
   <SidebarPageContainer activePage="/desktop/haccp">
-    <div>some content</div>
-    <div>some content</div>
-    <div>some content</div>
-    <div>some content</div>
-    <div>some content</div>
-    <div>some content</div>
-    <div>some content</div>
-    <div>some content</div>
-    <div>some content</div>
-    <div>some content</div>
-    <div>some content</div>
-    <div>some content</div>
-    <div>some content</div>
-    <div>some content</div>
-    <div>some content</div>
-    <div>some content</div>
-    <div>some content</div>
-    <div>some content</div>
-    <div>some content</div>
-    <div>some content</div>
-    <div>some content</div>
-    <div>some content</div>
-    <div>some content</div>
-    <div>some content</div>
-    <div>some content</div>
-    <div>some content</div>
-    <div>some content</div>
-    <div>some content</div>
-    <div>some content</div>
-    <div>some content</div>
-    <div>some content</div>
-    <div>some content</div>
-    <div>some content</div>
-    <div>some content</div>
-    <div>some content</div>
-    <div>some content</div>
-    <div>some content</div>
-    <div>some content</div>
-    <div>some content</div>
-    <div>some content</div>
-    <div>some content</div>
-    <div>some content</div>
-    <div>some content</div>
-    <div>some content</div>
-    <div>some content</div>
-    <div>some content</div>
-    <div>some content</div>
-    <div>some content</div>
-    <div>some content</div>
-    <div>some content</div>
-    <div>some content</div>
-    <div>some content</div>
-    <div>some content</div>
-    <div>some content</div>
-    <div>some content</div>
-    <div>some content</div>
-    <div>some content</div>
-    <div>some content</div>
-    <div>some content</div>
-    <div>some content</div>
-    <div>some content</div>
+    <div class="haccp-area-container">
+      <h1 class="instrument-serif-regular no-margin">HACCP</h1>
+    </div>
   </SidebarPageContainer>
 </template>
 <style scoped>
-/* main {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        flex-direction: column;
-        width: 100%;
-    } */
+  .haccp-area-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    border-radius: 1rem;
+    padding: 1rem;
+    margin-top: 2rem;
+  }
+
 </style>

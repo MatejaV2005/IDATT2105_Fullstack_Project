@@ -33,6 +33,12 @@
         color: var(--blue-navy);
         stroke: var(--blue-navy);
     }
+    .badge.badge-cherry {
+        background-color: var(--red-cherry-20);
+        border: 1px solid var(--red-cherry-40);
+        color: var(--red-cherry);
+        stroke: var(--red-cherry);
+    }
     .icon {
         width: 1rem;
         height: 1rem;
