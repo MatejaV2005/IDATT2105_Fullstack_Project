@@ -1,11 +1,11 @@
 <script setup lang="ts">
-  import { RouterView } from 'vue-router'
-  import '@/assets/main-desktop.css'
+import { RouterView } from 'vue-router'
 </script>
 
 <template>
-  <RouterView />
+  <div class="desktop-layout">
+    <RouterView />
+  </div>
 </template>
 
-<style scoped>
-</style>
+<style src="@/assets/desktop.css"></style>

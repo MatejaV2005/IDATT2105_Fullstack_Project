@@ -38,7 +38,7 @@
   --blue-decor-80: rgb(15 102 152 / 0.8);
 }
 
-body {
+.desktop-layout {
   background-color: var(--blue-background);
   min-height: 100vh;
   line-height: 1.6;
@@ -60,4 +60,8 @@ body {
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.transition {
+    transition: all .1s;
 }
