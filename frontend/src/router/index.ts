@@ -1,9 +1,12 @@
 import DesktopLayout from '@/layouts/DesktopLayout.vue'
 import MobileLayout from '@/layouts/MobileLayout.vue'
 import CreateOrgView from '@/views/desktop/CreateOrgView.vue'
+import CriticalControlPointsView from '@/views/desktop/CriticalControlPointsView.vue'
+import DangerAnalysisView from '@/views/desktop/DangerAnalysisView.vue'
 import HaccpView from '@/views/desktop/HaccpView.vue'
 import LearningView from '@/views/desktop/LearningView.vue'
 import MappingAndMeasuresView from '@/views/desktop/MappingAndMeasuresView.vue'
+import PrerequisitesView from '@/views/desktop/PrerequisitesView.vue'
 import DeviationsView from '@/views/mobile/DeviationsView.vue'
 import LoggingView from '@/views/mobile/LoggingView.vue'
 import LoginView from '@/views/mobile/LoginView.vue'
@@ -28,6 +31,19 @@ const router = createRouter({
               path: '',
               component: HaccpView
             },
+            {
+              path: 'prerequisites',
+              component: PrerequisitesView
+            },
+            {
+              path: 'danger-analysis',
+              component: DangerAnalysisView
+            },
+            {
+              path: 'ccps',
+              component: CriticalControlPointsView
+            },
+
           ]
         },
         {

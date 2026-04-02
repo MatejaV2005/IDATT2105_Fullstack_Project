@@ -21,10 +21,10 @@ function hello() {
             <div class="header-num">1</div>
             Grunnforutsetningene
           </div>
-          <UserBadge name="Only you" :user-id="-1" />
+          <UserBadge name="Kun deg" :user-id="-1" />
         </div>
-        <RouterLink class="part-bottom" to="haccp/prerequisites">
-          <NavyButton :icon="SendHorizonal" content="Change" />
+        <RouterLink class="part-bottom" to="/desktop/haccp/prerequisites">
+          <NavyButton :icon="SendHorizonal" content="Endre" />
         </RouterLink>
       </div>
       <div class="haccp-part">
@@ -41,8 +41,8 @@ function hello() {
             <vr />
           </div>
         </div>
-        <RouterLink class="part-bottom" to="haccp/danger-analysis">
-          <NavyButton :icon="SendHorizonal" content="Change" />
+        <RouterLink class="part-bottom" to="/desktop/haccp/danger-analysis">
+          <NavyButton :icon="SendHorizonal" content="Endre" />
         </RouterLink>
       </div>
       <div to="haccp/ccps" class="haccp-part">
@@ -51,10 +51,10 @@ function hello() {
             <div class="header-num">3</div>
             Kritiske punkter
           </div>
-          <UserBadge name="Only you" :user-id="-1" />
+          <UserBadge name="Kun deg" :user-id="-1" />
         </div>
-        <RouterLink class="part-bottom" to="haccp/ccps">
-          <NavyButton :icon="SendHorizonal" content="Change" />
+        <RouterLink class="part-bottom" to="/desktop/haccp/ccps">
+          <NavyButton :icon="SendHorizonal" content="Endre" />
         </RouterLink>
       </div>
     </div>
