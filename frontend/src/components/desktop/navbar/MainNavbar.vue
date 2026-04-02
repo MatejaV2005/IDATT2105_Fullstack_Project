@@ -41,6 +41,8 @@ const currentBusinessName = ref("Everest Sushi"); // We should fetch this from t
         #navbar {
             padding-left: .5rem;
             padding-right: .5rem;
+            max-height: 4rem;
+            min-height: 4rem;
         }
     }
 </style>

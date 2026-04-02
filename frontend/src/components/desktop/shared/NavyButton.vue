@@ -5,12 +5,17 @@ import type { Component } from 'vue';
         isLoading?: boolean,
         loadingText?: string,
         content: string,
-        icon: Component
+        icon: Component,
+        onClick?: () => any
     }>()
 </script>
 
 <template>
-    <button class="transition navy-button" v-bind="$attrs">
+    <button 
+    @click="onClick" 
+    class="transition navy-button" 
+    v-bind="$attrs"
+    >
         <component class="icon" v-if="!isLoading" :is="icon" />
         <span v-else class="loading-spinner"></span>
         <span class="no-margin">
