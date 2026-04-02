@@ -20,11 +20,24 @@
         justify-content: center;
         align-items: center;
         gap: 0.5rem;
-        padding: 0.5rem 2rem;
         background-color: var(--red-cherry-20);
         border-radius: 1rem;
     }
     .me-button:hover {
         background-color: var(--red-cherry-40);
+    }
+    @media (min-width: 768px) {
+        .me-button {
+            padding: 0.5rem 2rem;
+        }
+    }
+    @media (max-width: 768px) {
+        .me-button {
+            padding: .25rem;
+            width: min-content;
+            > div {
+                display: none;
+            }
+        }
     }
 </style>r

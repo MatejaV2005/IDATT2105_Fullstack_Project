@@ -1,6 +1,7 @@
 import DesktopLayout from '@/layouts/DesktopLayout.vue'
 import MobileLayout from '@/layouts/MobileLayout.vue'
 import CreateOrgView from '@/views/desktop/CreateOrgView.vue'
+import HaccpView from '@/views/desktop/HaccpView.vue'
 import DeviationsView from '@/views/mobile/DeviationsView.vue'
 import LoggingView from '@/views/mobile/LoggingView.vue'
 import LoginView from '@/views/mobile/LoginView.vue'
@@ -17,7 +18,16 @@ const router = createRouter({
         {
           path: 'create-org',
           component: CreateOrgView
-        }
+        },
+        {
+          path: 'haccp',
+          children: [
+            {
+              path: '',
+              component: HaccpView
+            }
+          ]
+        },
       ],
     },
     {

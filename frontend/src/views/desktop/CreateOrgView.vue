@@ -133,6 +133,7 @@ async function handleSubmit() {
 main {
   display: flex;
   margin-top: 5rem;
+  padding-bottom: 5rem;
   padding-left: 2rem;
   padding-right: 2rem;
   display: flex;
@@ -208,6 +209,11 @@ main {
       color: #b42318;
       margin: 0;
     }
+  }
+}
+@media (max-width: 768px) {
+  main > form {
+    width: 100%;
   }
 }
 

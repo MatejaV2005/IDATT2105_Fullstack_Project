@@ -24,11 +24,21 @@ const currentBusinessName = ref("Everest Sushi"); // We should fetch this from t
         background-color: var(--white-greek);
         border-bottom: 1px solid var(--blue-navy-40);
         align-items: center;
-        padding-left: 2rem;
-        padding-right: 2rem;
         justify-content: space-between;
         img {
             height: 2.25rem;
+        }
+    }
+    @media (min-width: 1200px) {
+        #navbar {
+            padding-left: 2rem;
+            padding-right: 2rem;
+        }
+    }
+    @media (max-width: 1200px) {
+        #navbar {
+            padding-left: .5rem;
+            padding-right: .5rem;
         }
     }
 </style>

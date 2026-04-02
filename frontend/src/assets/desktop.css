@@ -40,6 +40,7 @@
 
 .desktop-layout {
   background-color: var(--blue-background);
+  max-height: 100vh;
   min-height: 100vh;
   line-height: 1.6;
   margin: 0;
@@ -60,6 +61,8 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  display: flex;
+  flex-direction: column;
 }
 
 .transition {
