@@ -68,8 +68,8 @@ services:
       JWT_SECRET_KEY: ${JWT_SECRET_KEY} 
 
     # ! Only use port forwarding for dev
-    ports:
-      - "8081:80" # changed host port to 8081, so it doesnt conflict with frontend port
+    # ports:
+    #  - "8080:8080" # Default ports
                     
 
   frontend_app: # should be a vue project ran in production mode. Using normal vue, not some SSR framework 
