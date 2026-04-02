@@ -1,7 +1,10 @@
 <script setup lang="ts">
-import SidebarMenuOption from './SidebarMenuOption.vue';
-import { FileCheck2, ChartColumnIncreasing, PersonStanding, Brain, Settings } from '@lucide/vue';
+import SidebarMenuOption from './SidebarMenuOption.vue'
+import { FileCheck2, ChartColumnIncreasing, PersonStanding, Brain, Settings } from '@lucide/vue'
 
+defineProps<{
+  activePage?: string
+}>()
 </script>
 
 <template>
@@ -9,70 +12,64 @@ import { FileCheck2, ChartColumnIncreasing, PersonStanding, Brain, Settings } fr
     <div class="sidebar">
       <div>
         <div>
-          <span class="accent-title">
-            IK MAT
-          </span>
-          <SidebarMenuOption 
-          to="/desktop/haccp" 
-          name="HACCP" 
-          :isSelected="true" 
-          :icon="FileCheck2"
+          <span class="accent-title"> IK MAT </span>
+          <SidebarMenuOption
+            to="/desktop/haccp"
+            name="HACCP"
+            :isSelected="activePage === '/desktop/haccp'"
+            :icon="FileCheck2"
           />
-          <SidebarMenuOption 
-          to="/desktop/ik-mat-analyse"
-          name="Analyse" 
-          :isSelected="false" 
-          :icon="ChartColumnIncreasing"
+          <SidebarMenuOption
+            to="/desktop/ik-mat-analyse"
+            name="Analyse"
+            :isSelected="activePage === '/desktop/ik-mat-analyse'"
+            :icon="ChartColumnIncreasing"
           />
         </div>
         <hr class="no-margin" />
         <div>
-          <span class="accent-title">
-            IK ALKOHOL
-          </span>
-          <SidebarMenuOption 
-          to="/desktop/ik-alkohol-kartlegging-og-tiltak" 
-          name="Kartlegging & tiltak"
-          :isSelected="false" 
-          :icon="FileCheck2"
+          <span class="accent-title"> IK ALKOHOL </span>
+          <SidebarMenuOption
+            to="/desktop/ik-alkohol-kartlegging-og-tiltak"
+            name="Kartlegging & tiltak"
+            :isSelected="activePage === '/desktop/ik-alkohol-kartlegging-og-tiltak'"
+            :icon="FileCheck2"
           />
-          <SidebarMenuOption 
-          to="/desktop/ik-alkohol-analyse"
-          name="Analyse" 
-          :isSelected="false" 
-          :icon="ChartColumnIncreasing"
+          <SidebarMenuOption
+            to="/desktop/ik-alkohol-analyse"
+            name="Analyse"
+            :isSelected="activePage === '/desktop/ik-alkohol-analyse'"
+            :icon="ChartColumnIncreasing"
           />
         </div>
         <hr class="no-margin" />
         <div>
-          <span class="accent-title">
-            BEDRIFT
-          </span>
-          <SidebarMenuOption 
-          to="/desktop/bedrift-teamsammensetning" 
-          name="Teamsammensetning"
-          :isSelected="false" 
-          :icon="PersonStanding"
+          <span class="accent-title"> BEDRIFT </span>
+          <SidebarMenuOption
+            to="/desktop/bedrift-teamsammensetning"
+            name="Teamsammensetning"
+            :isSelected="activePage === '/desktop/bedrift-teamsammensetning'"
+            :icon="PersonStanding"
           />
-          <SidebarMenuOption 
-          to="/desktop/bedrift-analyse"
-          name="Analyse" 
-          :isSelected="false" 
-          :icon="ChartColumnIncreasing"
+          <SidebarMenuOption
+            to="/desktop/bedrift-analyse"
+            name="Analyse"
+            :isSelected="activePage === '/desktop/bedrift-analyse'"
+            :icon="ChartColumnIncreasing"
           />
-          <SidebarMenuOption 
-          to="/desktop/bedrift-opplaering"
-          name="Opplæring" 
-          :isSelected="false" 
-          :icon="Brain"
+          <SidebarMenuOption
+            to="/desktop/bedrift-opplaering"
+            name="Opplæring"
+            :isSelected="activePage === '/desktop/bedrift-opplaering'"
+            :icon="Brain"
           />
         </div>
       </div>
-      <SidebarMenuOption 
-      to="/desktop/bedrift-innstillinger" 
-      name="Innstillinger"
-      :isSelected="false" 
-      :icon="Settings"
+      <SidebarMenuOption
+        to="/desktop/bedrift-innstillinger"
+        name="Innstillinger"
+        :isSelected="activePage === '/desktop/bedrift-innstillinger'"
+        :icon="Settings"
       />
     </div>
     <main class="main-view">
@@ -105,7 +102,7 @@ import { FileCheck2, ChartColumnIncreasing, PersonStanding, Brain, Settings } fr
     > div {
       display: flex;
       flex-direction: column;
-      gap: .5rem;
+      gap: 0.5rem;
     }
     > hr {
       border-width: 0px;
@@ -134,28 +131,27 @@ import { FileCheck2, ChartColumnIncreasing, PersonStanding, Brain, Settings } fr
 @media (min-width: 576px) and (max-width: 768px) {
   /* Styles for devices between 576px and 768px */
   .sidebar {
-    padding-left: .5rem;
-    padding-right: .5rem;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
     > div {
-      gap: .5rem;
+      gap: 0.5rem;
     }
   }
 }
 @media (min-width: 0px) and (max-width: 576px) {
   /* Styles for devices between 0px and 576px */
   .sidebar {
-    padding-left: .25rem;
-    padding-right: .25rem;
+    padding-left: 0.25rem;
+    padding-right: 0.25rem;
     font-size: small;
     .accent-title {
-      font-weight:600;
+      font-weight: 600;
     }
     > div {
-      gap: .25rem;
+      gap: 0.25rem;
     }
   }
 }
-
 
 .main-view {
   grid-column: span 9;
