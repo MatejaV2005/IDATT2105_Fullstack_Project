@@ -1,4 +1,4 @@
-package com.grimni.backend;
+package com.grimni;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
