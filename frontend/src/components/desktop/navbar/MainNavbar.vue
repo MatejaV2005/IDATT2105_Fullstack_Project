@@ -20,7 +20,9 @@ const currentBusinessName = ref("Everest Sushi"); // We should fetch this from t
 <style scoped>
     #navbar {
         display: flex;
-        height: 6rem;
+        height: 6rem !important;
+        max-height: 6rem;
+        min-height: 6rem;
         background-color: var(--white-greek);
         border-bottom: 1px solid var(--blue-navy-40);
         align-items: center;

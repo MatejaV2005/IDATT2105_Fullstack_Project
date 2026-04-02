@@ -83,8 +83,9 @@ defineProps<{
   display: grid;
   grid-template-columns: 2rem 1fr 1rem 1fr 1rem 1fr 1rem 1fr 1rem 1fr 2rem;
   height: 100%;
-  min-height: 100%;
-  flex-grow: 1;
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
 }
 
 .sidebar {
@@ -159,7 +160,8 @@ defineProps<{
   padding-left: 1rem;
   width: 100%;
   /* background-color: blue; */
-  overflow: scroll;
+  min-height: 0;
+  overflow-y: auto;
 }
 .accent-title {
   color: var(--blue-navy);
