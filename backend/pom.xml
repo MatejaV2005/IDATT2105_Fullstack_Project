@@ -46,10 +46,10 @@
     		<artifactId>spring-boot-starter-data-jpa</artifactId>
 		</dependency>
 
-		<!-- <dependency> //TODO re-enable later
+		<dependency> 
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-security</artifactId>
-		</dependency> -->
+		</dependency> 
 
 		<!-- H2, serving as a mock database for testing  -->
 		<dependency>
@@ -84,6 +84,28 @@
 			<scope>compile</scope>
 		</dependency>
 
+	
+ 	<!--JWT dependencies-->
+
+		<dependency>
+			<groupId>io.jsonwebtoken</groupId>
+			<artifactId>jjwt-api</artifactId>
+			<version>0.12.6</version>
+		</dependency>
+
+		<dependency>
+			<groupId>io.jsonwebtoken</groupId>
+			<artifactId>jjwt-impl</artifactId>
+			<version>0.12.6</version>
+			<scope>runtime</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>io.jsonwebtoken</groupId>
+			<artifactId>jjwt-jackson</artifactId>
+			<version>0.12.6</version>
+			<scope>runtime</scope>
+		</dependency>
 	</dependencies>
 
 	<build>

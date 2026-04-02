@@ -64,9 +64,13 @@ services:
       S3_SECRET_KEY: ${S3_SECRET_KEY}
       S3_REGION: us-east-1
       S3_FORCE_PATH_STYLE: "true" # wtf is this?
+
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY} 
+
     # ! Only use port forwarding for dev
-      ports:
-        - "8081:8080" # Default ports
+    # ports:
+    #  - "8080:8080" # Default ports
+                    
 
   frontend_app: # should be a vue project ran in production mode. Using normal vue, not some SSR framework 
     restart: unless-stopped
