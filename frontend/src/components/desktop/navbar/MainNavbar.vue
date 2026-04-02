@@ -2,6 +2,10 @@
 import { RouterLink } from 'vue-router';
 import OrgSelector from './OrgSelector.vue';
 import ProfileNavbarButton from './ProfileNavbarButton.vue';
+import { ref } from 'vue';
+
+const username = ref("Jonas Ghar støre"); // We should fetch this from the server
+const currentBusinessName = ref("Everest Sushi"); // We should fetch this from the server
 
 </script>
 <template>
@@ -9,8 +13,8 @@ import ProfileNavbarButton from './ProfileNavbarButton.vue';
         <RouterLink to="/desktop" class="logo-button">
             <img src="@/assets/logo/logo-medium.png" alt="Logo" />
         </RouterLink>
-        <OrgSelector currentBusinessName="Everest Sushi"/>
-        <ProfileNavbarButton username="Jonas Ghar støre" />
+        <OrgSelector :currentBusinessName="currentBusinessName"/>
+        <ProfileNavbarButton :username="username" />
     </div>
 </template>
 <style scoped>

@@ -65,3 +65,20 @@
 .transition {
     transition: all .1s;
 }
+
+.simple-text-input {
+    border-radius: .25rem;
+    border-color: var(--blue-navy-40);
+    text-indent: .5rem;
+}
+.simple-text-input:focus {
+    border-color: var(--blue-navy);
+    outline: none;
+}
+button {
+  cursor: pointer;
+  outline: none;
+}
+input {
+  accent-color: var(--blue-navy);
+}
