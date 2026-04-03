@@ -1,9 +1,11 @@
 package com.grimni.domain;
 
-import jakarta.persistence.*;
+import java.util.List;
 
-// example POST body for testing:
-// {"username":"...", "email":"...", "password":"...", "role":"EMPLOYEE", "organization": {"id": 1}}
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+
+import jakarta.persistence.*;
 
 @Entity(name = "User")
 @Table(name = "users")
@@ -28,6 +30,14 @@ public class User {
     @Enumerated(EnumType.STRING)
     private Role role;
 
+    @OneToMany(mappedBy = "user")
+    @JsonManagedReference("user-certificates")
+    private List<Certificate> certificates;
+
+    @ManyToMany(mappedBy = "users")
+    @JsonIgnore 
+    private List<Routine> routines;
+
     public Long getUserId() {
         return userId;
     }
@@ -50,5 +60,11 @@ public class User {
 
     public Role getRole() {
         return role;
+    }
+    public List<Certificate> getCertificates() {
+        return certificates;
+    }
+    public List<Routine> getRoutines() {
+        return routines;
     }
 }
