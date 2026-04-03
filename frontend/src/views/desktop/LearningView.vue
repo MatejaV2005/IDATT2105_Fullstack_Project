@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import Badge from '@/components/desktop/shared/Badge.vue'
-import NavyButton from '@/components/desktop/shared/NavyButton.vue'
+import DesktopButton from '@/components/desktop/shared/DesktopButton.vue'
 import SidebarPageContainer from '@/components/desktop/sidebar/SidebarPageContainer.vue'
 import { Edit, Edit2, File, Link } from '@lucide/vue'
 
@@ -157,7 +157,7 @@ function hasCompletedCourse(
             </tr>
           </tbody>
         </table>
-        <NavyButton content="Rediger" :icon="Edit2" class="navy-button-flat-top" />
+        <DesktopButton content="Rediger" :icon="Edit2" class="navy-button-flat-top" />
       </div>
       <span class="navy-subtitle">Opplæringskrav</span>
       <div class="course" v-for="course in allCourses" :key="course.uniqueId">
@@ -165,7 +165,7 @@ function hasCompletedCourse(
           <h2 class="no-margin">
             {{ course.name }}
           </h2>
-          <NavyButton content="Edit" :icon="Edit2" />
+          <DesktopButton content="Edit" :icon="Edit2" />
         </div>
         <div>
           <span class="navy-subtitle"> Beskrivelse: </span>

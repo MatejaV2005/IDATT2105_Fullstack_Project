@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import Badge from '@/components/desktop/shared/Badge.vue'
-import NavyButton from '@/components/desktop/shared/NavyButton.vue'
+import DesktopButton from '@/components/desktop/shared/DesktopButton.vue'
 import SidebarPageContainer from '@/components/desktop/sidebar/SidebarPageContainer.vue'
 import { CircleAlert, Edit2, User } from '@lucide/vue'
 
@@ -70,7 +70,7 @@ const mappingPoints = [
               {{ point.title }}
             </h2>
           </div>
-          <NavyButton content="Rediger" :icon="Edit2" />
+          <DesktopButton content="Rediger" :icon="Edit2" />
         </div>
         <div class="">
           <h3 class="navy-subtitle no-margin">Utfordringer</h3>

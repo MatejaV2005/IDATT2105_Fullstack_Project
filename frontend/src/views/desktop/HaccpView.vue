@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import NavyButton from '@/components/desktop/shared/NavyButton.vue'
+import DesktopButton from '@/components/desktop/shared/DesktopButton.vue'
 import UserBadge from '@/components/desktop/shared/UserBadge.vue'
 import SidebarPageContainer from '@/components/desktop/sidebar/SidebarPageContainer.vue'
 import { Edit, Plus, SendHorizonal } from '@lucide/vue'
@@ -24,7 +24,7 @@ function hello() {
           <UserBadge name="Kun deg" :user-id="-1" />
         </div>
         <RouterLink class="part-bottom" to="/desktop/haccp/prerequisites">
-          <NavyButton :icon="SendHorizonal" content="Endre" />
+          <DesktopButton :icon="SendHorizonal" content="Endre" />
         </RouterLink>
       </div>
       <div class="haccp-part">
@@ -37,12 +37,12 @@ function hello() {
             <UserBadge name="Einar Gerherdsen" :user-id="123" />
             <UserBadge name="Kari Næss Northun" :user-id="123" />
             <div class="vertical-divider"></div>
-            <NavyButton :onClick="hello" content="Legg til medlem" :icon="Plus" />
+            <DesktopButton :onClick="hello" content="Legg til medlem" :icon="Plus" />
             <vr />
           </div>
         </div>
         <RouterLink class="part-bottom" to="/desktop/haccp/danger-analysis">
-          <NavyButton :icon="SendHorizonal" content="Endre" />
+          <DesktopButton :icon="SendHorizonal" content="Endre" />
         </RouterLink>
       </div>
       <div to="haccp/ccps" class="haccp-part">
@@ -54,7 +54,7 @@ function hello() {
           <UserBadge name="Kun deg" :user-id="-1" />
         </div>
         <RouterLink class="part-bottom" to="/desktop/haccp/ccps">
-          <NavyButton :icon="SendHorizonal" content="Endre" />
+          <DesktopButton :icon="SendHorizonal" content="Endre" />
         </RouterLink>
       </div>
     </div>
