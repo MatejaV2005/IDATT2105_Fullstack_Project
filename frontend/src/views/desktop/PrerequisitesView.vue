@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import DesktopButton from '@/components/desktop/shared/DesktopButton.vue'
+import Paginator from '@/components/desktop/shared/Paginator.vue'
 import UserBadge from '@/components/desktop/shared/UserBadge.vue'
 import { Edit2, Plus } from '@lucide/vue'
 import { ref } from 'vue'
@@ -87,6 +88,7 @@ const prerequisites = [
     <div class="con">
         <main>
             <div class="main-no-sidebar-container">
+            <Paginator />
             <h1 class="instrument-serif-regular no-margin">Grunnforutsetninger</h1>
             <hr class="navy-hr" />
             <div class="prerequisite-category" v-for="prerequisite in prerequisites">

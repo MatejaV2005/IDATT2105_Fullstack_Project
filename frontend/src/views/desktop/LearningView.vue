@@ -2,7 +2,7 @@
 import Badge from '@/components/desktop/shared/Badge.vue'
 import DesktopButton from '@/components/desktop/shared/DesktopButton.vue'
 import SidebarPageContainer from '@/components/desktop/sidebar/SidebarPageContainer.vue'
-import { Edit, Edit2, File, Link } from '@lucide/vue'
+import { Edit, Edit2, File, Link, Plus } from '@lucide/vue'
 
 const allCourses = [
   {
@@ -126,6 +126,9 @@ function hasCompletedCourse(
 ) {
   return user.courses.some((course) => course.uniqueId === courseId && course.completed)
 }
+function sayHello() {
+  alert("HELLO THERE!")
+}
 </script>
 
 <template>
@@ -186,6 +189,7 @@ function hasCompletedCourse(
           </div>
         </div>
       </div>
+      <DesktopButton :icon="Plus" content="Legg til kurs" :onClick="sayHello" />
     </div>
   </SidebarPageContainer>
 </template>
