@@ -1,4 +1,4 @@
-package com.grimni.backend.util;
+package com.grimni.util;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
@@ -11,6 +11,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+
+import com.grimni.domain.User;
 
 
 @Component
@@ -45,15 +47,19 @@ public class JwtUtil {
      * @return a signed JWT string
      */
 
-    //TODO: extend for adding subject claims that add roles to payload
-    public String generateToken(String username) {
+    public String generateToken(User user) {
         Date expiration= new Date(System.currentTimeMillis() + 15 * 60 * 1000); // 15 minute token expiry limit
         
         try {
             String jwt = Jwts.builder()
-            .subject(username)
+            .subject(user.getUsername())
+            .claim("role", user.getRole())
+            .claim("orgId", user.getOrganization().getId())
+            .claim("userId", user.getUserId())
+            .issuedAt(new Date())
             .expiration(expiration)
-            .signWith(key).compact();
+            .signWith(key)
+            .compact();
             
             logger.info("Succesfully generated jwt token");
 
@@ -83,23 +89,80 @@ public class JwtUtil {
     }
 
     
-    public String extractUsername(String JwtToken) {
+    public String extractUsername(String jwtToken) {
         try {
-            if (JwtToken == null || JwtToken.isEmpty()) {
+            if (jwtToken == null || jwtToken.isEmpty()) {
                 return null;
             }
 
             return Jwts.parser()
             .verifyWith(key)
             .build()
-            .parseSignedClaims(JwtToken)
+            .parseSignedClaims(jwtToken)
             .getPayload()
             .getSubject();
+
         } catch (JwtException error) {
             logger.error("Error parsing and extracting username: " + error);
             return null;
         }
     }
 
-    //TODO: add extractUserId, extractUserRole, and extractUserOrgId when ready to do so    
+    
+    public Long extractUserId(String jwtToken) {
+        try {
+            if (jwtToken == null || jwtToken.isEmpty()) {
+                return null;
+            }
+
+            return Jwts.parser()
+            .verifyWith(key)
+            .build()
+            .parseSignedClaims(jwtToken)
+            .getPayload()
+            .get("userId", Long.class);
+
+        } catch (JwtException error) {
+            logger.error("Error parsing and extracting user ID: " + error);
+            return null;
+        }
+    }
+
+    public String extractUserRole(String jwtToken) {
+        try {
+            if (jwtToken == null || jwtToken.isEmpty()) {
+                return null;
+            }
+
+            return Jwts.parser()
+            .verifyWith(key)
+            .build()
+            .parseSignedClaims(jwtToken)
+            .getPayload()
+            .get("role", String.class);
+
+        } catch (JwtException error) {
+            logger.error("Error parsing and extracting user role: " + error);
+            return null;
+        }
+    }
+
+    public Long extractUserOrgId(String jwtToken) {
+        try {
+            if (jwtToken == null || jwtToken.isEmpty()) {
+                return null;
+            }
+
+            return Jwts.parser()
+            .verifyWith(key)
+            .build()
+            .parseSignedClaims(jwtToken)
+            .getPayload()
+            .get("orgId", Long.class);
+
+        } catch (JwtException error) {
+            logger.error("Error parsing and extracting organization ID: " + error);
+            return null;
+        }
+    }
 }
