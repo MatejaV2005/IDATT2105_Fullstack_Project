@@ -21,15 +21,25 @@ const isLoginPage = computed(() => route.name === 'login')
       <div class="app-shell__frame">
         <header class="top-app-bar">
           <div class="top-app-bar__identity">
-            <p class="top-app-bar__brand">{{ appMeta.companyName }}</p>
+            <p class="top-app-bar__brand">
+              {{ appMeta.companyName }}
+            </p>
           </div>
 
-          <RouterLink class="avatar-button" to="/mobile/login" aria-label="Gå til logg inn">
+          <RouterLink
+            class="avatar-button"
+            to="/mobile/login"
+            aria-label="Gå til logg inn"
+          >
             <span class="avatar-button__initials">{{ appMeta.userInitials }}</span>
           </RouterLink>
         </header>
 
-        <nav v-if="showTabs" class="top-tabs" aria-label="Hovednavigasjon">
+        <nav
+          v-if="showTabs"
+          class="top-tabs"
+          aria-label="Hovednavigasjon"
+        >
           <RouterLink
             v-for="tab in tabs"
             :key="tab.name"
@@ -41,7 +51,10 @@ const isLoginPage = computed(() => route.name === 'login')
           </RouterLink>
         </nav>
 
-        <main class="app-content" :class="{ 'app-content--auth': isLoginPage }">
+        <main
+          class="app-content"
+          :class="{ 'app-content--auth': isLoginPage }"
+        >
           <RouterView />
         </main>
       </div>

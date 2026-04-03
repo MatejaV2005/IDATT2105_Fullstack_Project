@@ -13,12 +13,19 @@ defineProps<{
 
 <template>
   <button
-    @click="onClick"
     :class="'transition navy-button navy-button--' + (buttonColor || 'navy')"
     v-bind="$attrs"
+    @click="onClick"
   >
-    <component class="icon" v-if="!isLoading" :is="icon" />
-    <span v-else class="loading-spinner"></span>
+    <component
+      :is="icon"
+      v-if="!isLoading"
+      class="icon"
+    />
+    <span
+      v-else
+      class="loading-spinner"
+    />
     <span class="no-margin">
       {{ isLoading ? loadingText || 'Loading...' : content }}
     </span>

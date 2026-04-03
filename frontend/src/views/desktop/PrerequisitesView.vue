@@ -3,18 +3,6 @@ import DesktopButton from '@/components/desktop/shared/DesktopButton.vue'
 import Paginator from '@/components/desktop/shared/Paginator.vue'
 import UserBadge from '@/components/desktop/shared/UserBadge.vue'
 import { Edit2, Plus } from '@lucide/vue'
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-
-const name = ref('')
-const address = ref('')
-const orgNumber = ref('')
-const isGoingToServeAlcohol = ref(false)
-const isGoingToServeFood = ref(false)
-const isLoading = ref(false)
-const errorMessage = ref('')
-
-const router = useRouter()
 
 const prerequisites = [
         {
@@ -85,92 +73,121 @@ const prerequisites = [
 </script>
 
 <template>
-    <div class="con">
-        <main>
-            <div class="main-no-sidebar-container">
-            <Paginator />
-            <h1 class="instrument-serif-regular no-margin">Grunnforutsetninger</h1>
-            <hr class="navy-hr" />
-            <div class="prerequisite-category" v-for="prerequisite in prerequisites">
-                <div class="prerequisite-category-header">
-                    <h2 class="no-margin">
-                        {{ prerequisite.catgeoryName }}
-                    </h2>
-                    <DesktopButton
-                        :icon="Edit2"
-                        content="Rediger"
-                        :onClick="sayHello"
-                    />
-                </div>
-                <div v-if="prerequisite.points.length === 0">
-                    Oi... Her var det tomt
-                </div>
-                <div class="point-container">
-                    <div class="point" v-for="point in prerequisite.points">
-                        <div class="point-header">
-                            <div>
-                                <div v-if="point.type === 'routine'" class="point-dot-routine"></div>
-                                <div v-if="point.type === 'standard'" class="point-dot-standard"></div>
-                                <h3 class="no-margin">
-                                    {{ point.title }}
-                                </h3>
-                            </div>
-                            <div>
-                                {{ point.repeatText }}
-                                <DesktopButton
-                                    :icon="Edit2"
-                                    content="Rediger"
-                                    :onClick="sayHello"
-                                />
-                            </div>
-                        </div>
-                        <span v-if="point.type === 'routine'">
-                            Avvikstiltak: {{ point.measures }}
-                        </span>
-                        <div v-if="point.type === 'routine'">
-                            <span class="navy-subtitle">Godkjennere</span>
-                            <div class="user-parent">
-                                <UserBadge v-for="verifier in point.verifiers" :name="verifier.userName" :key="verifier.userId" :user-id="123" />
-                            </div>
-                        </div>
-                        <div v-if="point.type === 'routine'">
-                            <span class="navy-subtitle">Vikarleder</span>
-                            <div class="user-parent">
-                                <UserBadge v-for="deputy in point.deputy" :name="deputy.userName" :key="deputy.userId" :user-id="123" />
-                            </div>
-                        </div>
-                        <div v-if="point.type === 'routine'">
-                            <span class="navy-subtitle">De som skal gjøre det</span>
-                            <div class="user-parent">
-                                <UserBadge v-for="performer in point.performers" :name="performer.userName" :key="performer.userId" :user-id="123" />
-                            </div>
-                        </div>
-                        {{ point.description }}
-                    </div>
-                </div>
-                <div class="add-point-container">
-                    <DesktopButton 
-                        :icon="Plus"
-                        content="Legg til rutine"
-                        :onClick="sayHello"
-                        buttonColor="blue-decor"
-                    />
-                    <DesktopButton
-                        buttonColor="cherry"
-                        :icon="Plus"
-                        content="Legg til standard"
-                        :onClick="sayHello"
-                        />
-                    </div>
-                </div>
-            <DesktopButton 
-            :icon="Plus"
-            content="kategori"
-            :onClick="sayHello"
+  <div class="con">
+    <main>
+      <div class="main-no-sidebar-container">
+        <Paginator />
+        <h1 class="instrument-serif-regular no-margin">
+          Grunnforutsetninger
+        </h1>
+        <hr class="navy-hr">
+        <div
+          v-for="prerequisite in prerequisites"
+          class="prerequisite-category"
+        >
+          <div class="prerequisite-category-header">
+            <h2 class="no-margin">
+              {{ prerequisite.catgeoryName }}
+            </h2>
+            <DesktopButton
+              :icon="Edit2"
+              content="Rediger"
+              :on-click="sayHello"
             />
+          </div>
+          <div v-if="prerequisite.points.length === 0">
+            Oi... Her var det tomt
+          </div>
+          <div class="point-container">
+            <div
+              v-for="point in prerequisite.points"
+              class="point"
+            >
+              <div class="point-header">
+                <div>
+                  <div
+                    v-if="point.type === 'routine'"
+                    class="point-dot-routine"
+                  />
+                  <div
+                    v-if="point.type === 'standard'"
+                    class="point-dot-standard"
+                  />
+                  <h3 class="no-margin">
+                    {{ point.title }}
+                  </h3>
+                </div>
+                <div>
+                  {{ point.repeatText }}
+                  <DesktopButton
+                    :icon="Edit2"
+                    content="Rediger"
+                    :on-click="sayHello"
+                  />
+                </div>
+              </div>
+              <span v-if="point.type === 'routine'">
+                Avvikstiltak: {{ point.measures }}
+              </span>
+              <div v-if="point.type === 'routine'">
+                <span class="navy-subtitle">Godkjennere</span>
+                <div class="user-parent">
+                  <UserBadge
+                    v-for="verifier in point.verifiers"
+                    :key="verifier.userId"
+                    :name="verifier.userName"
+                    :user-id="123"
+                  />
+                </div>
+              </div>
+              <div v-if="point.type === 'routine'">
+                <span class="navy-subtitle">Vikarleder</span>
+                <div class="user-parent">
+                  <UserBadge
+                    v-for="deputy in point.deputy"
+                    :key="deputy.userId"
+                    :name="deputy.userName"
+                    :user-id="123"
+                  />
+                </div>
+              </div>
+              <div v-if="point.type === 'routine'">
+                <span class="navy-subtitle">De som skal gjøre det</span>
+                <div class="user-parent">
+                  <UserBadge
+                    v-for="performer in point.performers"
+                    :key="performer.userId"
+                    :name="performer.userName"
+                    :user-id="123"
+                  />
+                </div>
+              </div>
+              {{ point.description }}
+            </div>
+          </div>
+          <div class="add-point-container">
+            <DesktopButton 
+              :icon="Plus"
+              content="Legg til rutine"
+              :on-click="sayHello"
+              button-color="blue-decor"
+            />
+            <DesktopButton
+              button-color="cherry"
+              :icon="Plus"
+              content="Legg til standard"
+              :on-click="sayHello"
+            />
+          </div>
         </div>
-        </main>
-    </div>
+        <DesktopButton 
+          :icon="Plus"
+          content="kategori"
+          :on-click="sayHello"
+        />
+      </div>
+    </main>
+  </div>
 </template>
 <style scoped>
 

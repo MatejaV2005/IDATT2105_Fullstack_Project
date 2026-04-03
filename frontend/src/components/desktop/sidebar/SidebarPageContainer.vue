@@ -16,51 +16,51 @@ defineProps<{
           <SidebarMenuOption
             to="/desktop/haccp"
             name="HACCP"
-            :isSelected="activePage === '/desktop/haccp'"
+            :is-selected="activePage === '/desktop/haccp'"
             :icon="FileCheck2"
           />
           <SidebarMenuOption
             to="/desktop/ik-mat-analyse"
             name="Analyse"
-            :isSelected="activePage === '/desktop/ik-mat-analyse'"
+            :is-selected="activePage === '/desktop/ik-mat-analyse'"
             :icon="ChartColumnIncreasing"
           />
         </div>
-        <hr class="no-margin" />
+        <hr class="no-margin">
         <div>
           <span class="accent-title"> IK ALKOHOL </span>
           <SidebarMenuOption
             to="/desktop/ik-alkohol-kartlegging-og-tiltak"
             name="Kartlegging & tiltak"
-            :isSelected="activePage === '/desktop/ik-alkohol-kartlegging-og-tiltak'"
+            :is-selected="activePage === '/desktop/ik-alkohol-kartlegging-og-tiltak'"
             :icon="FileCheck2"
           />
           <SidebarMenuOption
             to="/desktop/ik-alkohol-analyse"
             name="Analyse"
-            :isSelected="activePage === '/desktop/ik-alkohol-analyse'"
+            :is-selected="activePage === '/desktop/ik-alkohol-analyse'"
             :icon="ChartColumnIncreasing"
           />
         </div>
-        <hr class="no-margin" />
+        <hr class="no-margin">
         <div>
           <span class="accent-title"> BEDRIFT </span>
           <SidebarMenuOption
             to="/desktop/bedrift-teamsammensetning"
             name="Teamsammensetning"
-            :isSelected="activePage === '/desktop/bedrift-teamsammensetning'"
+            :is-selected="activePage === '/desktop/bedrift-teamsammensetning'"
             :icon="PersonStanding"
           />
           <SidebarMenuOption
             to="/desktop/bedrift-analyse"
             name="Analyse"
-            :isSelected="activePage === '/desktop/bedrift-analyse'"
+            :is-selected="activePage === '/desktop/bedrift-analyse'"
             :icon="ChartColumnIncreasing"
           />
           <SidebarMenuOption
             to="/desktop/bedrift-opplaering"
             name="Opplæring"
-            :isSelected="activePage === '/desktop/bedrift-opplaering'"
+            :is-selected="activePage === '/desktop/bedrift-opplaering'"
             :icon="Brain"
           />
         </div>
@@ -68,12 +68,12 @@ defineProps<{
       <SidebarMenuOption
         to="/desktop/bedrift-innstillinger"
         name="Innstillinger"
-        :isSelected="activePage === '/desktop/bedrift-innstillinger'"
+        :is-selected="activePage === '/desktop/bedrift-innstillinger'"
         :icon="Settings"
       />
     </div>
     <main class="main-view">
-      <slot></slot>
+      <slot />
     </main>
   </div>
 </template>

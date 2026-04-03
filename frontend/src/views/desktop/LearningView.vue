@@ -2,13 +2,13 @@
 import Badge from '@/components/desktop/shared/Badge.vue'
 import DesktopButton from '@/components/desktop/shared/DesktopButton.vue'
 import SidebarPageContainer from '@/components/desktop/sidebar/SidebarPageContainer.vue'
-import { Edit, Edit2, File, Link, Plus } from '@lucide/vue'
+import { Edit2, File, Link, Plus } from '@lucide/vue'
 
 const allCourses = [
   {
     name: 'Serveringskurs',
     description:
-      'Dere må lese here pdf’en & skrive en oppsummering. Dere må også gjøre alle oppgaver i NDLA sitt kurs og levere det inn til oss.',
+      'Dere må lese here pdf\'en & skrive en oppsummering. Dere må også gjøre alle oppgaver i NDLA sitt kurs og levere det inn til oss.',
     resources: [
       {
         name: 'www.ndla.no/random_stuff',
@@ -25,7 +25,7 @@ const allCourses = [
   {
     name: 'Drikkekurs',
     description:
-      'Dere må lese here pdf’en & skrive en oppsummering. Dere må også gjøre alle oppgaver i NDLA sitt kurs og levere det inn til oss.',
+      'Dere må lese here pdf\'en & skrive en oppsummering. Dere må også gjøre alle oppgaver i NDLA sitt kurs og levere det inn til oss.',
     resources: [
       {
         name: 'www.ndla.no/random_stuff',
@@ -42,7 +42,7 @@ const allCourses = [
   {
     name: 'Drikkekurs',
     description:
-      'Dere må lese here pdf’en & skrive en oppsummering. Dere må også gjøre alle oppgaver i NDLA sitt kurs og levere det inn til oss.',
+      'Dere må lese here pdf\'en & skrive en oppsummering. Dere må også gjøre alle oppgaver i NDLA sitt kurs og levere det inn til oss.',
     resources: [
       {
         name: 'www.ndla.no/random_stuff',
@@ -132,22 +132,35 @@ function sayHello() {
 </script>
 
 <template>
-  <SidebarPageContainer activePage="/desktop/bedrift-opplaering">
+  <SidebarPageContainer active-page="/desktop/bedrift-opplaering">
     <div class="learning-area-container">
-      <h1 class="instrument-serif-regular no-margin">Opplæring</h1>
+      <h1 class="instrument-serif-regular no-margin">
+        Opplæring
+      </h1>
       <span class="navy-subtitle">Godkjenning</span>
       <div class="course-completion">
         <table>
           <thead>
             <tr>
               <th>Bruker</th>
-              <th v-for="course in allCourses" :key="course.uniqueId">{{ course.name }}</th>
+              <th
+                v-for="course in allCourses"
+                :key="course.uniqueId"
+              >
+                {{ course.name }}
+              </th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="user in userProgress" :key="user.name">
+            <tr
+              v-for="user in userProgress"
+              :key="user.name"
+            >
               <td>{{ user.name }}</td>
-              <td v-for="course in allCourses" :key="`${user.name}-${course}`">
+              <td
+                v-for="course in allCourses"
+                :key="`${user.name}-${course}`"
+              >
                 <span
                   class="completion-chip"
                   :class="
@@ -160,15 +173,26 @@ function sayHello() {
             </tr>
           </tbody>
         </table>
-        <DesktopButton content="Rediger" :icon="Edit2" class="navy-button-flat-top" />
+        <DesktopButton
+          content="Rediger"
+          :icon="Edit2"
+          class="navy-button-flat-top"
+        />
       </div>
       <span class="navy-subtitle">Opplæringskrav</span>
-      <div class="course" v-for="course in allCourses" :key="course.uniqueId">
+      <div
+        v-for="course in allCourses"
+        :key="course.uniqueId"
+        class="course"
+      >
         <div class="course-header">
           <h2 class="no-margin">
             {{ course.name }}
           </h2>
-          <DesktopButton content="Edit" :icon="Edit2" />
+          <DesktopButton
+            content="Edit"
+            :icon="Edit2"
+          />
         </div>
         <div>
           <span class="navy-subtitle"> Beskrivelse: </span>
@@ -180,16 +204,20 @@ function sayHello() {
           <span class="navy-subtitle"> Ressurser: </span>
           <div class="resource-container">
             <Badge
+              v-for="resource in course.resources"
               badge-color="navy"
               :icon="resource.type === 'link' ? Link : File"
-              v-for="resource in course.resources"
             >
               {{ resource.name }}
             </Badge>
           </div>
         </div>
       </div>
-      <DesktopButton :icon="Plus" content="Legg til kurs" :onClick="sayHello" />
+      <DesktopButton
+        :icon="Plus"
+        content="Legg til kurs"
+        :on-click="sayHello"
+      />
     </div>
   </SidebarPageContainer>
 </template>

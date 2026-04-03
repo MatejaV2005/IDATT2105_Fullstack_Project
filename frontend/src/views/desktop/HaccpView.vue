@@ -12,49 +12,94 @@ function hello() {
 </script>
 
 <template>
-  <SidebarPageContainer activePage="/desktop/haccp">
+  <SidebarPageContainer active-page="/desktop/haccp">
     <div class="haccp-area-container">
-      <h1 class="instrument-serif-regular no-margin">HACCP</h1>
+      <h1 class="instrument-serif-regular no-margin">
+        HACCP
+      </h1>
       <div class="haccp-part">
         <div class="part-header">
           <div class="header-first">
-            <div class="header-num">1</div>
+            <div class="header-num">
+              1
+            </div>
             Grunnforutsetningene
           </div>
-          <UserBadge name="Kun deg" :user-id="-1" />
+          <UserBadge
+            name="Kun deg"
+            :user-id="-1"
+          />
         </div>
-        <RouterLink class="part-bottom" to="/desktop/haccp/prerequisites">
-          <DesktopButton :icon="SendHorizonal" content="Endre" />
+        <RouterLink
+          class="part-bottom"
+          to="/desktop/haccp/prerequisites"
+        >
+          <DesktopButton
+            :icon="SendHorizonal"
+            content="Endre"
+          />
         </RouterLink>
       </div>
       <div class="haccp-part">
         <div class="part-header">
           <div class="header-first">
-            <div class="header-num">2</div>
+            <div class="header-num">
+              2
+            </div>
             Fareanalyse
           </div>
           <div class="user-container">
-            <UserBadge name="Einar Gerherdsen" :user-id="123" />
-            <UserBadge name="Kari Næss Northun" :user-id="123" />
-            <div class="vertical-divider"></div>
-            <DesktopButton :onClick="hello" content="Legg til medlem" :icon="Plus" />
+            <UserBadge
+              name="Einar Gerherdsen"
+              :user-id="123"
+            />
+            <UserBadge
+              name="Kari Næss Northun"
+              :user-id="123"
+            />
+            <div class="vertical-divider" />
+            <DesktopButton
+              :on-click="hello"
+              content="Legg til medlem"
+              :icon="Plus"
+            />
             <vr />
           </div>
         </div>
-        <RouterLink class="part-bottom" to="/desktop/haccp/danger-analysis">
-          <DesktopButton :icon="SendHorizonal" content="Endre" />
+        <RouterLink
+          class="part-bottom"
+          to="/desktop/haccp/danger-analysis"
+        >
+          <DesktopButton
+            :icon="SendHorizonal"
+            content="Endre"
+          />
         </RouterLink>
       </div>
-      <div to="haccp/ccps" class="haccp-part">
+      <div
+        to="haccp/ccps"
+        class="haccp-part"
+      >
         <div class="part-header">
           <div class="header-first">
-            <div class="header-num">3</div>
+            <div class="header-num">
+              3
+            </div>
             Kritiske punkter
           </div>
-          <UserBadge name="Kun deg" :user-id="-1" />
+          <UserBadge
+            name="Kun deg"
+            :user-id="-1"
+          />
         </div>
-        <RouterLink class="part-bottom" to="/desktop/haccp/ccps">
-          <DesktopButton :icon="SendHorizonal" content="Endre" />
+        <RouterLink
+          class="part-bottom"
+          to="/desktop/haccp/ccps"
+        >
+          <DesktopButton
+            :icon="SendHorizonal"
+            content="Endre"
+          />
         </RouterLink>
       </div>
     </div>

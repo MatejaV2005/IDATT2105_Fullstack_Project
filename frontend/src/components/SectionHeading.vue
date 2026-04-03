@@ -15,11 +15,21 @@ defineProps<{
         <AppIcon :name="icon" />
       </div>
       <div class="section-heading__content">
-        <h2 class="section-heading__title">{{ title }}</h2>
-        <p v-if="subtitle" class="section-heading__subtitle">{{ subtitle }}</p>
+        <h2 class="section-heading__title">
+          {{ title }}
+        </h2>
+        <p
+          v-if="subtitle"
+          class="section-heading__subtitle"
+        >
+          {{ subtitle }}
+        </p>
       </div>
     </div>
-    <div v-if="$slots.actions" class="section-heading__actions">
+    <div
+      v-if="$slots.actions"
+      class="section-heading__actions"
+    >
       <slot name="actions" />
     </div>
   </div>

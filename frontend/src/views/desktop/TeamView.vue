@@ -112,26 +112,41 @@ function goToUser(userId: number) {
 </script>
 
 <template>
-  <SidebarPageContainer activePage="/desktop/bedrift-teamsammensetning">
+  <SidebarPageContainer active-page="/desktop/bedrift-teamsammensetning">
     <div class="team-area-container">
-      <h1 class="instrument-serif-regular no-margin">Teamsammensettning</h1>
-      <div class="team-user" v-for="user in users" :key="user.userId">
+      <h1 class="instrument-serif-regular no-margin">
+        Teamsammensettning
+      </h1>
+      <div
+        v-for="user in users"
+        :key="user.userId"
+        class="team-user"
+      >
         <div class="user-header">
           <div>
-            <RouterLink class="user-link" :to="`/desktop/users/${user.userId}`">
-              <h2 class="no-margin">{{ user.legalName }}</h2>
-              <Badge badgeColor="navy">{{ user.orgRole }}</Badge>
+            <RouterLink
+              class="user-link"
+              :to="`/desktop/users/${user.userId}`"
+            >
+              <h2 class="no-margin">
+                {{ user.legalName }}
+              </h2>
+              <Badge badge-color="navy">
+                {{ user.orgRole }}
+              </Badge>
             </RouterLink>
           </div>
-          <DesktopButton :icon="Edit2" content="Rediger" :onClick="() => goToUser(user.userId)" />
+          <DesktopButton
+            :icon="Edit2"
+            content="Rediger"
+            :on-click="() => goToUser(user.userId)"
+          />
         </div>
 
         <div class="user-info-grid">
           <div class="user-info-item">
             <span class="navy-subtitle">Opplæring</span>
-            <span
-              >Fullført: {{ user.courseProgress.completed }} / {{ user.courseProgress.total }}</span
-            >
+            <span>Fullført: {{ user.courseProgress.completed }} / {{ user.courseProgress.total }}</span>
           </div>
           <div class="user-info-item">
             <span class="navy-subtitle">CCP roller</span>

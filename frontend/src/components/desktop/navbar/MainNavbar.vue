@@ -9,13 +9,19 @@ const currentBusinessName = ref("Everest Sushi"); // We should fetch this from t
 
 </script>
 <template>
-    <div id="navbar">
-        <RouterLink to="/desktop" class="logo-button">
-            <img src="@/assets/logo/logo-medium.png" alt="Logo" />
-        </RouterLink>
-        <OrgSelector :currentBusinessName="currentBusinessName"/>
-        <ProfileNavbarButton :username="username" />
-    </div>
+  <div id="navbar">
+    <RouterLink
+      to="/desktop"
+      class="logo-button"
+    >
+      <img
+        src="@/assets/logo/logo-medium.png"
+        alt="Logo"
+      >
+    </RouterLink>
+    <OrgSelector :current-business-name="currentBusinessName" />
+    <ProfileNavbarButton :username="username" />
+  </div>
 </template>
 <style scoped>
     #navbar {

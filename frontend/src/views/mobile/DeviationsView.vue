@@ -30,7 +30,10 @@ const formattedDateTime = computed(() => `${formState.happenedDate} kl. ${formSt
 
 <template>
   <section class="page-layout">
-    <SectionHeading title="Avvik" icon="warning">
+    <SectionHeading
+      title="Avvik"
+      icon="warning"
+    >
       <template #actions>
         <button
           class="info-button"
@@ -43,17 +46,30 @@ const formattedDateTime = computed(() => `${formState.happenedDate} kl. ${formSt
       </template>
     </SectionHeading>
 
-    <article v-if="showInfo" class="info-popover">
-      <p class="info-popover__title">Om avvik</p>
+    <article
+      v-if="showInfo"
+      class="info-popover"
+    >
+      <p class="info-popover__title">
+        Om avvik
+      </p>
       <p class="card-copy">
         Bruk skjemaet når en kontroll ikke er utført som planlagt eller en måling havner utenfor ønsket verdi.
       </p>
-      <p class="helper-text">Valgt tidspunkt: {{ formattedDateTime }}</p>
+      <p class="helper-text">
+        Valgt tidspunkt: {{ formattedDateTime }}
+      </p>
     </article>
 
-    <form class="form-grid" @submit.prevent>
+    <form
+      class="form-grid"
+      @submit.prevent
+    >
       <article class="form-card form-card--full">
-        <label class="form-label" for="deviationTitle">Tittel</label>
+        <label
+          class="form-label"
+          for="deviationTitle"
+        >Tittel</label>
         <input
           id="deviationTitle"
           v-model="formState.title"
@@ -61,14 +77,27 @@ const formattedDateTime = computed(() => `${formState.happenedDate} kl. ${formSt
           type="text"
           maxlength="120"
           placeholder="For høy temperatur i kjøleskap"
-        />
+        >
       </article>
 
       <article class="form-card">
-        <label class="form-label" for="routineArea">Rutineområde</label>
+        <label
+          class="form-label"
+          for="routineArea"
+        >Rutineområde</label>
         <div class="field-shell">
-          <select id="routineArea" v-model="formState.routineArea" class="field-shell__select">
-            <option v-for="area in deviationOptions.routineAreas" :key="area" :value="area">{{ area }}</option>
+          <select
+            id="routineArea"
+            v-model="formState.routineArea"
+            class="field-shell__select"
+          >
+            <option
+              v-for="area in deviationOptions.routineAreas"
+              :key="area"
+              :value="area"
+            >
+              {{ area }}
+            </option>
           </select>
           <span class="field-shell__caret">
             <AppIcon name="chevron" />
@@ -77,10 +106,23 @@ const formattedDateTime = computed(() => `${formState.happenedDate} kl. ${formSt
       </article>
 
       <article class="form-card">
-        <label class="form-label" for="severity">Alvorlighetsgrad</label>
+        <label
+          class="form-label"
+          for="severity"
+        >Alvorlighetsgrad</label>
         <div class="field-shell">
-          <select id="severity" v-model="formState.severity" class="field-shell__select">
-            <option v-for="level in deviationOptions.severityLevels" :key="level" :value="level">{{ level }}</option>
+          <select
+            id="severity"
+            v-model="formState.severity"
+            class="field-shell__select"
+          >
+            <option
+              v-for="level in deviationOptions.severityLevels"
+              :key="level"
+              :value="level"
+            >
+              {{ level }}
+            </option>
           </select>
           <span class="field-shell__caret">
             <AppIcon name="chevron" />
@@ -89,38 +131,58 @@ const formattedDateTime = computed(() => `${formState.happenedDate} kl. ${formSt
       </article>
 
       <article class="form-card">
-        <label class="form-label" for="happenedDate">Dato oppdaget</label>
+        <label
+          class="form-label"
+          for="happenedDate"
+        >Dato oppdaget</label>
         <input
           id="happenedDate"
           v-model="formState.happenedDate"
           class="field-shell__input field-shell__input--date"
           type="date"
-        />
+        >
       </article>
 
       <article class="form-card">
-        <label class="form-label" for="happenedTime">Tid oppdaget</label>
+        <label
+          class="form-label"
+          for="happenedTime"
+        >Tid oppdaget</label>
         <input
           id="happenedTime"
           v-model="formState.happenedTime"
           class="field-shell__input field-shell__input--time"
           type="time"
           step="60"
-        />
+        >
       </article>
       
       <article class="form-card">
-        <p class="form-label">Relatert til</p>
+        <p class="form-label">
+          Relatert til
+        </p>
         <div class="option-checks">
           <label class="option-check">
-            <input v-model="formState.relatedToFood" type="checkbox" />
-            <span class="option-check__box" aria-hidden="true"></span>
+            <input
+              v-model="formState.relatedToFood"
+              type="checkbox"
+            >
+            <span
+              class="option-check__box"
+              aria-hidden="true"
+            />
             <span class="option-check__label">Mat</span>
           </label>
 
           <label class="option-check">
-            <input v-model="formState.relatedToAlcohol" type="checkbox" />
-            <span class="option-check__box" aria-hidden="true"></span>
+            <input
+              v-model="formState.relatedToAlcohol"
+              type="checkbox"
+            >
+            <span
+              class="option-check__box"
+              aria-hidden="true"
+            />
             <span class="option-check__label">Alkohol</span>
           </label>
         </div>
@@ -140,7 +202,10 @@ const formattedDateTime = computed(() => `${formState.happenedDate} kl. ${formSt
       </article>
 
       <article class="form-card form-card--full">
-        <label class="form-label" for="description">* Beskrivelse av avvik</label>
+        <label
+          class="form-label"
+          for="description"
+        >* Beskrivelse av avvik</label>
         <textarea
           id="description"
           v-model="formState.description"
@@ -150,7 +215,10 @@ const formattedDateTime = computed(() => `${formState.happenedDate} kl. ${formSt
       </article>
 
       <article class="form-card form-card--full">
-        <label class="form-label" for="immediateAction">* Umiddelbar handling utført</label>
+        <label
+          class="form-label"
+          for="immediateAction"
+        >* Umiddelbar handling utført</label>
         <textarea
           id="immediateAction"
           v-model="formState.immediateAction"
@@ -160,8 +228,13 @@ const formattedDateTime = computed(() => `${formState.happenedDate} kl. ${formSt
       </article>
 
       <div class="form-card--full">
-        <PrimaryActionButton label="Send inn avvik" type="submit" />
-        <p class="caption-note">Alle felt med * må fylles ut før innsending.</p>
+        <PrimaryActionButton
+          label="Send inn avvik"
+          type="submit"
+        />
+        <p class="caption-note">
+          Alle felt med * må fylles ut før innsending.
+        </p>
       </div>
     </form>
   </section>

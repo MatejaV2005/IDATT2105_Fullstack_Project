@@ -9,12 +9,18 @@
 </script>
 
 <template>
-    <RouterLink :to="String(to)" :class="'transition sidebar-option ' + (isSelected ? 'is-selected' : '')">
-        <component class="icon" :is="icon" />
-        <span>
-            {{ name }}
-        </span>
-    </RouterLink>
+  <RouterLink
+    :to="String(to)"
+    :class="'transition sidebar-option ' + (isSelected ? 'is-selected' : '')"
+  >
+    <component
+      :is="icon"
+      class="icon"
+    />
+    <span>
+      {{ name }}
+    </span>
+  </RouterLink>
 </template>
 
 <style scoped>

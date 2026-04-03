@@ -61,49 +61,67 @@ async function handleSubmit() {
 <template>
   <main>
     <form @submit.prevent="handleSubmit">
-      <h1 class="instrument-serif-regular no-margin">Legg til organisasjon</h1>
-      <hr class="no-margin" />
+      <h1 class="instrument-serif-regular no-margin">
+        Legg til organisasjon
+      </h1>
+      <hr class="no-margin">
       <label>
-        *Navn<br />
+        *Navn<br>
         <input
+          v-model="name"
           required
           class="simple-text-input"
-          v-model="name"
           placeholder="Per & Pål bolleklubb"
           :disabled="isLoading"
-        />
+        >
       </label>
       <label>
-        *Addresse<br />
+        *Addresse<br>
         <input
+          v-model="address"
           required
           class="simple-text-input"
-          v-model="address"
           placeholder="Bolleveien 7, 0912 Oslo Norge"
           :disabled="isLoading"
-        />
+        >
       </label>
       <label>
-        *Org nummer<br />
+        *Org nummer<br>
         <input
+          v-model="orgNumber"
           required
           class="simple-text-input"
-          v-model="orgNumber"
           placeholder="123456789"
           type="number"
           :disabled="isLoading"
-        />
+        >
       </label>
       <label>
-        <input type="checkbox" v-model="isGoingToServeAlcohol" :disabled="isLoading" />
+        <input
+          v-model="isGoingToServeAlcohol"
+          type="checkbox"
+          :disabled="isLoading"
+        >
         Vi kommer til å servere alkohol
       </label>
       <label>
-        <input type="checkbox" v-model="isGoingToServeFood" :disabled="isLoading" />
+        <input
+          v-model="isGoingToServeFood"
+          type="checkbox"
+          :disabled="isLoading"
+        >
         Vi kommer til å servere mat
       </label>
-      <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
-      <button class="transition" type="submit">
+      <p
+        v-if="errorMessage"
+        class="error-message"
+      >
+        {{ errorMessage }}
+      </p>
+      <button
+        class="transition"
+        type="submit"
+      >
         <span class="no-margin">
           {{ isLoading ? 'Lager organisasjon...' : 'Lag organisasjon' }}
         </span>
@@ -124,7 +142,10 @@ async function handleSubmit() {
           />
           <path d="M6 12h16" />
         </svg>
-        <span v-else class="loading-spinner"></span>
+        <span
+          v-else
+          class="loading-spinner"
+        />
       </button>
     </form>
   </main>

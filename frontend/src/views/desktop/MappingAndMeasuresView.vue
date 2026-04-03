@@ -56,34 +56,57 @@ const mappingPoints = [
 </script>
 
 <template>
-  <SidebarPageContainer activePage="/desktop/ik-alkohol-kartlegging-og-tiltak">
+  <SidebarPageContainer active-page="/desktop/ik-alkohol-kartlegging-og-tiltak">
     <div class="mapping-area-container">
-      <h1 class="instrument-serif-regular no-margin">Kartlegging & tiltak</h1>
-      <div v-for="point in mappingPoints" class="mapping-point">
+      <h1 class="instrument-serif-regular no-margin">
+        Kartlegging & tiltak
+      </h1>
+      <div
+        v-for="point in mappingPoints"
+        class="mapping-point"
+      >
         <div class="point-header">
           <div>
-            <Badge badgeColor="navy">
+            <Badge badge-color="navy">
               {{ point.law }}
             </Badge>
-            <Badge badgeColor="cherry" :icon="CircleAlert"> {{ point.dots }} Prikker </Badge>
+            <Badge
+              badge-color="cherry"
+              :icon="CircleAlert"
+            >
+              {{ point.dots }} Prikker
+            </Badge>
             <h2 class="no-margin">
               {{ point.title }}
             </h2>
           </div>
-          <DesktopButton content="Rediger" :icon="Edit2" />
+          <DesktopButton
+            content="Rediger"
+            :icon="Edit2"
+          />
         </div>
         <div class="">
-          <h3 class="navy-subtitle no-margin">Utfordringer</h3>
+          <h3 class="navy-subtitle no-margin">
+            Utfordringer
+          </h3>
           {{ point.challenges }}
         </div>
         <div class="">
-          <h3 class="navy-subtitle no-margin">Tiltak / Rutiner</h3>
+          <h3 class="navy-subtitle no-margin">
+            Tiltak / Rutiner
+          </h3>
           {{ point.measures }}
         </div>
         <div>
-          <h3 class="navy-subtitle no-margin">Ansvarlige</h3>
+          <h3 class="navy-subtitle no-margin">
+            Ansvarlige
+          </h3>
           <div class="responsible-parent">
-            <Badge badgeColor="navy" :icon="User" v-for="user in point.responsible">
+            <Badge
+              v-for="user in point.responsible"
+              badge-color="navy"
+              :icon="User"
+            >
               {{ user }}
             </Badge>
           </div>

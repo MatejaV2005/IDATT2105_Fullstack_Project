@@ -40,17 +40,37 @@ const pathItems = computed(() => {
 </script>
 
 <template>
-  <nav class="paginator" aria-label="Breadcrumb">
-    <RouterLink v-if="!rootItem.isCurrent" class="pagination-item" :to="rootItem.to">
+  <nav
+    class="paginator"
+    aria-label="Breadcrumb"
+  >
+    <RouterLink
+      v-if="!rootItem.isCurrent"
+      class="pagination-item"
+      :to="rootItem.to"
+    >
       {{ rootItem.label }}
     </RouterLink>
-    <span v-else class="pagination-item is-current">{{ rootItem.label }}</span>
-    <template v-for="(item, index) in pathItems" :key="item.to">
+    <span
+      v-else
+      class="pagination-item is-current"
+    >{{ rootItem.label }}</span>
+    <template
+      v-for="(item, index) in pathItems"
+      :key="item.to"
+    >
       <ChevronRight class="chevron" />
-      <RouterLink v-if="index !== pathItems.length - 1" class="pagination-item" :to="item.to">
+      <RouterLink
+        v-if="index !== pathItems.length - 1"
+        class="pagination-item"
+        :to="item.to"
+      >
         {{ item.label }}
       </RouterLink>
-      <span v-else class="pagination-item is-current">{{ item.label }}</span>
+      <span
+        v-else
+        class="pagination-item is-current"
+      >{{ item.label }}</span>
     </template>
   </nav>
 </template>

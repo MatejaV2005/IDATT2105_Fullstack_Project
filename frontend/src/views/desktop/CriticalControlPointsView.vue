@@ -190,32 +190,52 @@ function sayHello() {
     <main>
       <div class="main-no-sidebar-container">
         <Paginator />
-        <h1 class="instrument-serif-regular no-margin">Kritiske punkter</h1>
-        <hr class="navy-hr" />
+        <h1 class="instrument-serif-regular no-margin">
+          Kritiske punkter
+        </h1>
+        <hr class="navy-hr">
 
-        <div class="ccp" v-for="(ccp, index) in ccps" :key="`${ccp.name}-${index}`">
+        <div
+          v-for="(ccp, index) in ccps"
+          :key="`${ccp.name}-${index}`"
+          class="ccp"
+        >
           <div class="ccp-header">
             <div>
-              <h2 class="no-margin">{{ ccp.name }}</h2>
+              <h2 class="no-margin">
+                {{ ccp.name }}
+              </h2>
             </div>
-            <DesktopButton :icon="Edit2" content="Rediger" :onClick="sayHello" />
+            <DesktopButton
+              :icon="Edit2"
+              content="Rediger"
+              :on-click="sayHello"
+            />
           </div>
 
           <div class="ccp-grid">
             <div class="info-card">
-              <h3 class="no-margin">Hvordan overvakes det</h3>
+              <h3 class="no-margin">
+                Hvordan overvakes det
+              </h3>
               <span>{{ ccp.how }}</span>
             </div>
             <div class="info-card">
-              <h3 class="no-margin">Utstyr</h3>
+              <h3 class="no-margin">
+                Utstyr
+              </h3>
               <span>{{ ccp.equipment }}</span>
             </div>
             <div class="info-card">
-              <h3 class="no-margin">Instruks og kalibrering</h3>
+              <h3 class="no-margin">
+                Instruks og kalibrering
+              </h3>
               <span>{{ ccp.instructionsAndCalibration }}</span>
             </div>
             <div class="info-card">
-              <h3 class="no-margin">Umiddelbart avvikstiltak</h3>
+              <h3 class="no-margin">
+                Umiddelbart avvikstiltak
+              </h3>
               <span>{{ ccp.immediateCorrectiveAction }}</span>
             </div>
           </div>
@@ -225,8 +245,13 @@ function sayHello() {
             <span>{{ ccp.criticalMin }} - {{ ccp.criticalMax }} {{ ccp.unit }}</span>
           </div>
 
-          <div v-if="ccp.monitoredDescription" class="info-card">
-            <h3 class="no-margin">Hva overvakes</h3>
+          <div
+            v-if="ccp.monitoredDescription"
+            class="info-card"
+          >
+            <h3 class="no-margin">
+              Hva overvakes
+            </h3>
             <span>{{ ccp.monitoredDescription }}</span>
           </div>
 
@@ -236,8 +261,8 @@ function sayHello() {
               <div class="user-parent">
                 <UserBadge
                   v-for="verifier in ccp.verifiers"
-                  :name="verifier.userName"
                   :key="verifier.userId"
+                  :name="verifier.userName"
                   :user-id="verifier.userId"
                 />
               </div>
@@ -247,8 +272,8 @@ function sayHello() {
               <div class="user-parent">
                 <UserBadge
                   v-for="deviationReciever in ccp.deviationRecievers"
-                  :name="deviationReciever.userName"
                   :key="deviationReciever.userId"
+                  :name="deviationReciever.userName"
                   :user-id="deviationReciever.userId"
                 />
               </div>
@@ -258,8 +283,8 @@ function sayHello() {
               <div class="user-parent">
                 <UserBadge
                   v-for="performer in ccp.performers"
-                  :name="performer.userName"
                   :key="performer.userId"
+                  :name="performer.userName"
                   :user-id="performer.userId"
                 />
               </div>
@@ -269,8 +294,8 @@ function sayHello() {
               <div class="user-parent">
                 <UserBadge
                   v-for="deputy in ccp.deputy"
-                  :name="deputy.userName"
                   :key="deputy.userId"
+                  :name="deputy.userName"
                   :user-id="deputy.userId"
                 />
               </div>
@@ -281,11 +306,13 @@ function sayHello() {
             <span class="navy-subtitle">Korrigerende tiltak</span>
             <div class="measure-container">
               <div
-                class="measure-card"
                 v-for="(measure, measureIndex) in ccp.ccpCorrectiveMeasure"
                 :key="`${measure.productName}-${measureIndex}`"
+                class="measure-card"
               >
-                <h3 class="no-margin">{{ measure.productName }}</h3>
+                <h3 class="no-margin">
+                  {{ measure.productName }}
+                </h3>
                 <span>{{
                   getMeasureDescription(index, measureIndex, measure.measureDescription)
                 }}</span>
@@ -304,7 +331,11 @@ function sayHello() {
           </div>
         </div>
 
-        <DesktopButton :icon="Plus" content="Legg til CCP" :onClick="sayHello" />
+        <DesktopButton
+          :icon="Plus"
+          content="Legg til CCP"
+          :on-click="sayHello"
+        />
       </div>
     </main>
   </div>

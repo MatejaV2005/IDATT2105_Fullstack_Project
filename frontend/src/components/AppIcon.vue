@@ -32,9 +32,24 @@ defineProps<{
       stroke-linecap="round"
       stroke-linejoin="round"
     />
-    <path d="M10 12.25v2.25" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
-    <path d="M13.75 5.5H16.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
-    <path d="M13.75 9H15.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+    <path
+      d="M10 12.25v2.25"
+      stroke="currentColor"
+      stroke-width="1.7"
+      stroke-linecap="round"
+    />
+    <path
+      d="M13.75 5.5H16.5"
+      stroke="currentColor"
+      stroke-width="1.7"
+      stroke-linecap="round"
+    />
+    <path
+      d="M13.75 9H15.5"
+      stroke="currentColor"
+      stroke-width="1.7"
+      stroke-linecap="round"
+    />
   </svg>
 
   <svg
@@ -46,8 +61,20 @@ defineProps<{
     xmlns="http://www.w3.org/2000/svg"
     aria-hidden="true"
   >
-    <circle cx="10" cy="10" r="7" stroke="currentColor" stroke-width="1.7" />
-    <path d="M10 6.5v3.9l2.8 1.6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
+    <circle
+      cx="10"
+      cy="10"
+      r="7"
+      stroke="currentColor"
+      stroke-width="1.7"
+    />
+    <path
+      d="M10 6.5v3.9l2.8 1.6"
+      stroke="currentColor"
+      stroke-width="1.7"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
   </svg>
 
   <svg
@@ -65,7 +92,12 @@ defineProps<{
       stroke-width="1.7"
       stroke-linejoin="round"
     />
-    <path d="M6.4 13.5c.5 1.4 1.7 2.2 3.1 2.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+    <path
+      d="M6.4 13.5c.5 1.4 1.7 2.2 3.1 2.4"
+      stroke="currentColor"
+      stroke-width="1.7"
+      stroke-linecap="round"
+    />
   </svg>
 
   <svg
@@ -83,7 +115,13 @@ defineProps<{
       stroke-width="1.7"
       stroke-linejoin="round"
     />
-    <circle cx="10" cy="10.5" r="3.25" stroke="currentColor" stroke-width="1.7" />
+    <circle
+      cx="10"
+      cy="10.5"
+      r="3.25"
+      stroke="currentColor"
+      stroke-width="1.7"
+    />
   </svg>
 
   <svg
@@ -95,9 +133,26 @@ defineProps<{
     xmlns="http://www.w3.org/2000/svg"
     aria-hidden="true"
   >
-    <path d="M7.5 3.5h8v13h-11v-8" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" />
-    <path d="m3.5 6.5 1.5 1.5 3-3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
-    <path d="m3.5 11 1.5 1.5 3-3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
+    <path
+      d="M7.5 3.5h8v13h-11v-8"
+      stroke="currentColor"
+      stroke-width="1.7"
+      stroke-linejoin="round"
+    />
+    <path
+      d="m3.5 6.5 1.5 1.5 3-3"
+      stroke="currentColor"
+      stroke-width="1.7"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+    <path
+      d="m3.5 11 1.5 1.5 3-3"
+      stroke="currentColor"
+      stroke-width="1.7"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
   </svg>
 
   <svg
@@ -114,8 +169,18 @@ defineProps<{
       stroke="currentColor"
       stroke-width="1.7"
     />
-    <path d="M10 6.3v4.45" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
-    <circle cx="10" cy="13.35" r="0.9" fill="currentColor" />
+    <path
+      d="M10 6.3v4.45"
+      stroke="currentColor"
+      stroke-width="1.7"
+      stroke-linecap="round"
+    />
+    <circle
+      cx="10"
+      cy="13.35"
+      r="0.9"
+      fill="currentColor"
+    />
   </svg>
 
   <svg
@@ -133,8 +198,18 @@ defineProps<{
       stroke-width="1.7"
       stroke-linejoin="round"
     />
-    <path d="M10 7.2v4.15" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
-    <circle cx="10" cy="13.85" r="0.9" fill="currentColor" />
+    <path
+      d="M10 7.2v4.15"
+      stroke="currentColor"
+      stroke-width="1.7"
+      stroke-linecap="round"
+    />
+    <circle
+      cx="10"
+      cy="13.85"
+      r="0.9"
+      fill="currentColor"
+    />
   </svg>
 
   <svg
@@ -146,9 +221,25 @@ defineProps<{
     xmlns="http://www.w3.org/2000/svg"
     aria-hidden="true"
   >
-    <circle cx="9" cy="9" r="7.15" stroke="currentColor" stroke-width="1.7" />
-    <path d="M9 7.45v4.1" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
-    <circle cx="9" cy="5.2" r="0.85" fill="currentColor" />
+    <circle
+      cx="9"
+      cy="9"
+      r="7.15"
+      stroke="currentColor"
+      stroke-width="1.7"
+    />
+    <path
+      d="M9 7.45v4.1"
+      stroke="currentColor"
+      stroke-width="1.7"
+      stroke-linecap="round"
+    />
+    <circle
+      cx="9"
+      cy="5.2"
+      r="0.85"
+      fill="currentColor"
+    />
   </svg>
 
   <svg
@@ -160,9 +251,25 @@ defineProps<{
     xmlns="http://www.w3.org/2000/svg"
     aria-hidden="true"
   >
-    <path d="M10 13.75v-8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
-    <path d="m6.75 8.5 3.25-3.25L13.25 8.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
-    <path d="M4 15.5h12" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+    <path
+      d="M10 13.75v-8"
+      stroke="currentColor"
+      stroke-width="1.7"
+      stroke-linecap="round"
+    />
+    <path
+      d="m6.75 8.5 3.25-3.25L13.25 8.5"
+      stroke="currentColor"
+      stroke-width="1.7"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+    <path
+      d="M4 15.5h12"
+      stroke="currentColor"
+      stroke-width="1.7"
+      stroke-linecap="round"
+    />
   </svg>
 
   <svg
@@ -174,7 +281,12 @@ defineProps<{
     xmlns="http://www.w3.org/2000/svg"
     aria-hidden="true"
   >
-    <path d="M10 2.75 11.8 7.2 16.25 9l-4.45 1.8L10 15.25l-1.8-4.45L3.75 9 8.2 7.2 10 2.75Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" />
+    <path
+      d="M10 2.75 11.8 7.2 16.25 9l-4.45 1.8L10 15.25l-1.8-4.45L3.75 9 8.2 7.2 10 2.75Z"
+      stroke="currentColor"
+      stroke-width="1.7"
+      stroke-linejoin="round"
+    />
   </svg>
 
   <svg
@@ -186,6 +298,12 @@ defineProps<{
     xmlns="http://www.w3.org/2000/svg"
     aria-hidden="true"
   >
-    <path d="m4 6 4 4 4-4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
+    <path
+      d="m4 6 4 4 4-4"
+      stroke="currentColor"
+      stroke-width="1.7"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
   </svg>
 </template>

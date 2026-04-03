@@ -8,10 +8,17 @@
 </script>
 
 <template>
-    <div :class="'transition badge badge-' + badgeColor" v-bind="$attrs">
-        <component :v-if="!!icon" class="icon" :is="icon" />
-        <slot></slot>
-    </div>
+  <div
+    :class="'transition badge badge-' + badgeColor"
+    v-bind="$attrs"
+  >
+    <component
+      :is="icon"
+      :v-if="!!icon"
+      class="icon"
+    />
+    <slot />
+  </div>
 </template>
 <style scoped>
     .badge {

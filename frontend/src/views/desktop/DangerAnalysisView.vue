@@ -3,8 +3,12 @@ import SidebarPageContainer from '@/components/desktop/sidebar/SidebarPageContai
 </script>
 
 <template>
-    <h1 class="instrument-serif-regular no-margin">Fareanalyse HEI</h1>
-    <p class="instrument-serif-regular no-margin lefty">Fareanalyse HEI</p>
+  <h1 class="instrument-serif-regular no-margin">
+    Fareanalyse HEI
+  </h1>
+  <p class="instrument-serif-regular no-margin lefty">
+    Fareanalyse HEI
+  </p>
 </template>
 <style scoped>
 </style>
