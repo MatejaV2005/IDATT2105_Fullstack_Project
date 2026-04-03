@@ -1,7 +1,5 @@
 package com.grimni.backend.token;
 
-import com.grimni.backend.util.JwtAuthFilter;
-import com.grimni.backend.util.JwtUtil;
 import jakarta.servlet.FilterChain;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -13,6 +11,9 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
+
+import com.grimni.util.JwtAuthFilter;
+import com.grimni.util.JwtUtil;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
