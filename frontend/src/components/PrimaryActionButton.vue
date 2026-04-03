@@ -11,7 +11,10 @@ withDefaults(
 </script>
 
 <template>
-  <button class="primary-action" :type="type">
+  <button
+    class="primary-action"
+    :type="type"
+  >
     {{ label }}
   </button>
 </template>

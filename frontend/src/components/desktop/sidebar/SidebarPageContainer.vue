@@ -1,0 +1,169 @@
+<script setup lang="ts">
+import SidebarMenuOption from './SidebarMenuOption.vue'
+import { FileCheck2, ChartColumnIncreasing, PersonStanding, Brain, Settings } from '@lucide/vue'
+
+defineProps<{
+  activePage?: string
+}>()
+</script>
+
+<template>
+  <div class="sidebar-page-container">
+    <div class="sidebar">
+      <div>
+        <div>
+          <span class="accent-title"> IK MAT </span>
+          <SidebarMenuOption
+            to="/desktop/haccp"
+            name="HACCP"
+            :is-selected="activePage === '/desktop/haccp'"
+            :icon="FileCheck2"
+          />
+          <SidebarMenuOption
+            to="/desktop/ik-mat-analyse"
+            name="Analyse"
+            :is-selected="activePage === '/desktop/ik-mat-analyse'"
+            :icon="ChartColumnIncreasing"
+          />
+        </div>
+        <hr class="no-margin">
+        <div>
+          <span class="accent-title"> IK ALKOHOL </span>
+          <SidebarMenuOption
+            to="/desktop/ik-alkohol-kartlegging-og-tiltak"
+            name="Kartlegging & tiltak"
+            :is-selected="activePage === '/desktop/ik-alkohol-kartlegging-og-tiltak'"
+            :icon="FileCheck2"
+          />
+          <SidebarMenuOption
+            to="/desktop/ik-alkohol-analyse"
+            name="Analyse"
+            :is-selected="activePage === '/desktop/ik-alkohol-analyse'"
+            :icon="ChartColumnIncreasing"
+          />
+        </div>
+        <hr class="no-margin">
+        <div>
+          <span class="accent-title"> BEDRIFT </span>
+          <SidebarMenuOption
+            to="/desktop/bedrift-teamsammensetning"
+            name="Teamsammensetning"
+            :is-selected="activePage === '/desktop/bedrift-teamsammensetning'"
+            :icon="PersonStanding"
+          />
+          <SidebarMenuOption
+            to="/desktop/bedrift-analyse"
+            name="Analyse"
+            :is-selected="activePage === '/desktop/bedrift-analyse'"
+            :icon="ChartColumnIncreasing"
+          />
+          <SidebarMenuOption
+            to="/desktop/bedrift-opplaering"
+            name="Opplæring"
+            :is-selected="activePage === '/desktop/bedrift-opplaering'"
+            :icon="Brain"
+          />
+        </div>
+      </div>
+      <SidebarMenuOption
+        to="/desktop/bedrift-innstillinger"
+        name="Innstillinger"
+        :is-selected="activePage === '/desktop/bedrift-innstillinger'"
+        :icon="Settings"
+      />
+    </div>
+    <main class="main-view">
+      <slot />
+    </main>
+  </div>
+</template>
+
+<style scoped>
+.sidebar-page-container {
+  display: grid;
+  grid-template-columns: 2rem 1fr 1rem 1fr 1rem 1fr 1rem 1fr 1rem 1fr 2rem;
+  height: 100%;
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
+.sidebar {
+  grid-column: span 2;
+  width: 100%;
+  background-color: var(--white-greek);
+  border-right: 1px solid var(--blue-navy-40);
+  display: flex;
+  /* align-items: center; */
+  justify-content: space-between;
+  flex-direction: column;
+  > div {
+    display: flex;
+    flex-direction: column;
+    > div {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    > hr {
+      border-width: 0px;
+      border-top: 1px solid var(--blue-navy-40);
+    }
+  }
+}
+@media (min-width: 1200px) {
+  /* Styles for devices larger than 1200px */
+  .sidebar {
+    padding: 4rem 2rem;
+    > div {
+      gap: 1rem;
+    }
+  }
+}
+@media (min-width: 768px) and (max-width: 1200px) {
+  /* Styles for devices between 768px and 1200px */
+  .sidebar {
+    padding: 2rem 1rem;
+    > div {
+      gap: 1rem;
+    }
+  }
+}
+@media (min-width: 576px) and (max-width: 768px) {
+  /* Styles for devices between 576px and 768px */
+  .sidebar {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+    > div {
+      gap: 0.5rem;
+    }
+  }
+}
+@media (min-width: 0px) and (max-width: 576px) {
+  /* Styles for devices between 0px and 576px */
+  .sidebar {
+    padding-left: 0.25rem;
+    padding-right: 0.25rem;
+    font-size: small;
+    .accent-title {
+      font-weight: 600;
+    }
+    > div {
+      gap: 0.25rem;
+    }
+  }
+}
+
+.main-view {
+  grid-column: span 9;
+  padding-right: 2rem;
+  padding-left: 1rem;
+  width: 100%;
+  /* background-color: blue; */
+  min-height: 0;
+  overflow-y: auto;
+}
+.accent-title {
+  color: var(--blue-navy);
+}
+</style>
