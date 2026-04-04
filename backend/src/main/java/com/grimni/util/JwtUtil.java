@@ -75,6 +75,7 @@ public class JwtUtil {
         try {
             
             if (jwtToken == null || jwtToken.isEmpty()) {
+                logger.error("Error: JWT token is null or empty");
                 return false;
             }
 
@@ -92,6 +93,7 @@ public class JwtUtil {
     public String extractUsername(String jwtToken) {
         try {
             if (jwtToken == null || jwtToken.isEmpty()) {
+                logger.error("Error: JWT token is null or empty");
                 return null;
             }
 
@@ -112,6 +114,7 @@ public class JwtUtil {
     public Long extractUserId(String jwtToken) {
         try {
             if (jwtToken == null || jwtToken.isEmpty()) {
+                logger.error("Error: JWT token is null or empty");
                 return null;
             }
 
@@ -131,6 +134,7 @@ public class JwtUtil {
     public String extractUserRole(String jwtToken) {
         try {
             if (jwtToken == null || jwtToken.isEmpty()) {
+                logger.error("Error: JWT token is null or empty");
                 return null;
             }
 
@@ -150,6 +154,7 @@ public class JwtUtil {
     public Long extractUserOrgId(String jwtToken) {
         try {
             if (jwtToken == null || jwtToken.isEmpty()) {
+                logger.error("Error: JWT token is null or empty");
                 return null;
             }
 
