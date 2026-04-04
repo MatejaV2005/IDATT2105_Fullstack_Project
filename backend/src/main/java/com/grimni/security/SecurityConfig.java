@@ -1,4 +1,4 @@
-package com.grimni.backend.security;
+package com.grimni.security;
 
 import java.util.List;
 
@@ -11,7 +11,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 
-import com.grimni.backend.util.JwtAuthFilter;
+import com.grimni.util.JwtAuthFilter;
 
 @Configuration
 @EnableWebSecurity
@@ -29,9 +29,12 @@ public class SecurityConfig {
         http.sessionManagement(session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
-        // expose endpoint /api/users/login as available to all, but any other requests to other endpoints require authentication
+        // expose endpoint /auth/login - /auth/register - /auth/refresh - /health, as available to all, but any other requests to other endpoints require authentication
         http.authorizeHttpRequests(auth -> auth
-                .requestMatchers("/users/login", "/users/register", "/health").permitAll() // for this url endpoint, all requests are permitted
+                .requestMatchers("/auth/login", "/auth/register", "/auth/refresh", "/health").permitAll() // for this url endpoint, all requests are permitted
+                .requestMatchers("/admin/**").hasAuthority("ADMIN") // allow /admin endpoints for users with role admin
+                .requestMatchers("/manager/**").hasAuthority("MANAGER")
+                .requestMatchers("/employee/**").hasAuthority("EMPLOYEE")
                 .anyRequest().authenticated()); // to any other requests to endpoints, authentication is needed
 
         // since SecurityConfig is initially run before Server Dispatchlet, it blocks due to CORS restriction, therefore we have
