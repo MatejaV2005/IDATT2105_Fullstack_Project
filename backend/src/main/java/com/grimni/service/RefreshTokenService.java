@@ -1,7 +1,6 @@
 package com.grimni.service;
 
 import java.util.Date;
-import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -75,6 +74,9 @@ public class RefreshTokenService {
      * @return a ResponseCookie containing the plaintext refresh token, scoped to /api/auth
     */
     public ResponseCookie createAndStoreRefreshToken(User user) {
+        if (user == null) {
+            throw new IllegalArgumentException("User cannot be null");
+        }
         logger.info("Creating and storing refresh token for user: {}", user.getUsername());
         // generate a random 32-byte token from RandomSecure, and hash the token
         String plaintext = util.generateRefreshToken();
