@@ -13,7 +13,8 @@ public class User {
     
     public enum Role {
         EMPLOYEE,
-        MANAGER
+        MANAGER,
+        ADMIN
     }
 
     @Id
@@ -62,5 +63,29 @@ public class User {
 
     public List<RefreshToken> getRefreshTokens() {
         return tokens;
+    }
+
+    public void setUserId(Long userId) {
+        this.userId = userId;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public void setOrganization(Organization organization) {
+        this.organization = organization;
+    }
+
+    public void setRole(Role role) {
+        this.role = role;
     }
 }
