@@ -2,6 +2,8 @@ package com.grimni.controller;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import java.time.Duration;
+
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
@@ -51,6 +53,31 @@ public class AuthController {
             } catch(Exception error) {
                 return ResponseEntity.status(401).body(error.getMessage());
         }
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<?> logoutUser(@CookieValue(value = "refresh_token", required = false) String cookie) {
+        logger.info("Logout request received");
+        try {
+            if (cookie != null) {
+                // removes the cookie from the database for the user upon logout
+                User user = refService.getUserByRefreshToken(cookie);
+                userService.logout(user);
+            }
+        } catch (Exception error) {
+            logger.warn("Logout token lookup failed, clearing cookie anyway: {}", error.getMessage());
+        }
+
+        // sends a new RefreshToken cookie to the browser with 0 duration to clear the existing one in browser
+        ResponseCookie expired = ResponseCookie.from("refresh_token", "")
+                .httpOnly(true)
+                .secure(true)
+                .path("/api/auth")
+                .maxAge(Duration.ZERO)
+                .sameSite("Strict")
+                .build();
+
+        return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, expired.toString()).build();
     }
 
     @PostMapping("/login")

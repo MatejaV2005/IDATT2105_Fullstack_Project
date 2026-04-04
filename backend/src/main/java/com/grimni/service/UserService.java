@@ -12,10 +12,12 @@ import com.grimni.repository.UserRepository;
 public class UserService {
     private static final Logger logger = LoggerFactory.getLogger(UserService.class);
     private final UserRepository userRepository;
+    private final RefreshTokenService refreshTokenService;
     private final BCryptPasswordEncoder passwordEncoder;
 
-    public UserService(UserRepository userRepository) {
+    public UserService(UserRepository userRepository, RefreshTokenService refreshTokenService) {
         this.userRepository = userRepository;
+        this.refreshTokenService = refreshTokenService;
         this.passwordEncoder = new BCryptPasswordEncoder();
     }
 
@@ -52,6 +54,15 @@ public class UserService {
 
         logger.info("User '{}' logged in successfully", username);
         return user;
+    }
+
+    public void logout(User user) {
+        if (user == null) {
+            throw new IllegalArgumentException("User cannot be null");
+        }
+        logger.info("Logging out user: {}", user.getUsername());
+        refreshTokenService.revokeAllTokens(user);
+        logger.info("User '{}' logged out successfully", user.getUsername());
     }
 
     public User findUserById(Long id) {

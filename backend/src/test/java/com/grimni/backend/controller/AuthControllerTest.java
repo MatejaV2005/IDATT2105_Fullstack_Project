@@ -417,4 +417,94 @@ public class AuthControllerTest {
             verify(jwtUtil, never()).generateToken(any());
         }
     }
+
+    // -------------------------------------------------------------------------
+    // POST /auth/logout
+    // -------------------------------------------------------------------------
+    @Nested
+    @DisplayName("POST /auth/logout")
+    class LogoutTests {
+
+        @Test
+        @DisplayName("returns HTTP 200 when a valid refresh_token cookie is present")
+        void logout_validCookie_returns200() throws Exception {
+            // Happy path: cookie resolves to a user, tokens get revoked, cookie cleared
+            when(refService.getUserByRefreshToken("good-token")).thenReturn(testUser);
+
+            mockMvc.perform(post("/auth/logout")
+                            .cookie(new Cookie("refresh_token", "good-token")))
+                    .andDo(print())
+                    .andExpect(status().isOk());
+        }
+
+        @Test
+        @DisplayName("returns HTTP 200 even when no refresh_token cookie is present")
+        void logout_noCookie_returns200() throws Exception {
+            // Logout must be idempotent — missing cookie still succeeds (no-op server side)
+            mockMvc.perform(post("/auth/logout"))
+                    .andExpect(status().isOk());
+        }
+
+        @Test
+        @DisplayName("returns HTTP 200 even when the refresh_token cookie is invalid")
+        void logout_invalidCookie_returns200() throws Exception {
+            // Invalid/expired token shouldn't fail logout — client still gets cookie cleared
+            when(refService.getUserByRefreshToken("bad-token"))
+                    .thenThrow(new IllegalArgumentException("Invalid refresh token"));
+
+            mockMvc.perform(post("/auth/logout")
+                            .cookie(new Cookie("refresh_token", "bad-token")))
+                    .andExpect(status().isOk());
+        }
+
+        @Test
+        @DisplayName("response headers contain an expired Set-Cookie clearing refresh_token")
+        void logout_responseContainsExpiredCookie() throws Exception {
+            // The response must carry a Set-Cookie with Max-Age=0 to clear the browser cookie
+            when(refService.getUserByRefreshToken("good-token")).thenReturn(testUser);
+
+            mockMvc.perform(post("/auth/logout")
+                            .cookie(new Cookie("refresh_token", "good-token")))
+                    .andExpect(header().exists("Set-Cookie"))
+                    .andExpect(header().string("Set-Cookie", containsString("refresh_token")))
+                    .andExpect(header().string("Set-Cookie", containsString("Max-Age=0")));
+        }
+
+        @Test
+        @DisplayName("userService.logout() is called with the user resolved from the cookie")
+        void logout_verifiesUserServiceLogoutCalled() throws Exception {
+            // Ensures the controller resolves the user and delegates revocation to UserService
+            when(refService.getUserByRefreshToken("good-token")).thenReturn(testUser);
+
+            mockMvc.perform(post("/auth/logout")
+                            .cookie(new Cookie("refresh_token", "good-token")))
+                    .andExpect(status().isOk());
+
+            verify(userService).logout(testUser);
+        }
+
+        @Test
+        @DisplayName("userService.logout() is never called when no cookie is present")
+        void logout_noCookie_userServiceNeverCalled() throws Exception {
+            // Without a cookie there is no user to revoke — logout must short-circuit
+            mockMvc.perform(post("/auth/logout"))
+                    .andExpect(status().isOk());
+
+            verify(userService, never()).logout(any());
+        }
+
+        @Test
+        @DisplayName("userService.logout() is never called when cookie lookup fails")
+        void logout_invalidCookie_userServiceNeverCalled() throws Exception {
+            // If the token cannot be resolved to a user, revocation must not proceed
+            when(refService.getUserByRefreshToken("bad-token"))
+                    .thenThrow(new IllegalArgumentException("Invalid refresh token"));
+
+            mockMvc.perform(post("/auth/logout")
+                            .cookie(new Cookie("refresh_token", "bad-token")))
+                    .andExpect(status().isOk());
+
+            verify(userService, never()).logout(any());
+        }
+    }
 }
