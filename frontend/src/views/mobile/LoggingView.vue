@@ -29,7 +29,10 @@ const loggingState = reactive({
 <template>
   <section class="page-layout page-layout--logging">
     <div class="section-stack">
-      <SectionHeading title="Temperatur" icon="temperature" />
+      <SectionHeading
+        title="Temperatur"
+        icon="temperature"
+      />
 
       <div class="metric-grid metric-grid--single">
         <article
@@ -38,8 +41,13 @@ const loggingState = reactive({
           class="metric-card"
         >
           <div class="metric-card__header">
-            <p class="eyebrow">{{ metric.label }}</p>
-            <PhotoUploadControl v-model="metric.photos" :label="`Legg ved bilde for ${metric.label}`" />
+            <p class="eyebrow">
+              {{ metric.label }}
+            </p>
+            <PhotoUploadControl
+              v-model="metric.photos"
+              :label="`Legg ved bilde for ${metric.label}`"
+            />
           </div>
 
           <label class="field-shell">
@@ -48,7 +56,7 @@ const loggingState = reactive({
               :placeholder="metric.exampleValue"
               class="field-shell__input field-shell__input--with-suffix"
               inputmode="decimal"
-            />
+            >
             <span class="field-shell__suffix">{{ metric.unit }}</span>
           </label>
         </article>
@@ -56,13 +64,24 @@ const loggingState = reactive({
     </div>
 
     <div class="section-stack">
-      <SectionHeading title="Tid" icon="clock" />
+      <SectionHeading
+        title="Tid"
+        icon="clock"
+      />
 
       <article class="surface-card">
-        <div v-for="item in loggingState.timedLogs" :key="item.id" class="timed-task">
+        <div
+          v-for="item in loggingState.timedLogs"
+          :key="item.id"
+          class="timed-task"
+        >
           <div class="timed-task__copy">
-            <h3 class="timed-task__title">{{ item.title }}</h3>
-            <p class="timed-task__meta">{{ item.description }}</p>
+            <h3 class="timed-task__title">
+              {{ item.title }}
+            </h3>
+            <p class="timed-task__meta">
+              {{ item.description }}
+            </p>
           </div>
 
           <div class="timed-task__controls">
@@ -72,20 +91,26 @@ const loggingState = reactive({
                 :placeholder="item.exampleDurationMinutes"
                 class="field-shell__input field-shell__input--with-suffix timed-task__input"
                 inputmode="numeric"
-              />
+              >
               <span class="field-shell__suffix timed-task__suffix">
                 min
               </span>
             </label>
 
-            <PhotoUploadControl v-model="item.photos" :label="`Legg ved bilde for ${item.title}`" />
+            <PhotoUploadControl
+              v-model="item.photos"
+              :label="`Legg ved bilde for ${item.title}`"
+            />
           </div>
         </div>
       </article>
     </div>
 
     <div class="section-stack">
-      <SectionHeading title="Luftfuktighet" icon="humidity" />
+      <SectionHeading
+        title="Luftfuktighet"
+        icon="humidity"
+      />
 
       <div class="metric-grid">
         <article
@@ -94,8 +119,13 @@ const loggingState = reactive({
           class="metric-card"
         >
           <div class="metric-card__header">
-            <p class="eyebrow">{{ metric.label }}</p>
-            <PhotoUploadControl v-model="metric.photos" :label="`Legg ved bilde for ${metric.label}`" />
+            <p class="eyebrow">
+              {{ metric.label }}
+            </p>
+            <PhotoUploadControl
+              v-model="metric.photos"
+              :label="`Legg ved bilde for ${metric.label}`"
+            />
           </div>
 
           <label class="field-shell">
@@ -104,7 +134,7 @@ const loggingState = reactive({
               :placeholder="metric.exampleValue"
               class="field-shell__input field-shell__input--with-suffix"
               inputmode="numeric"
-            />
+            >
             <span class="field-shell__suffix">{{ metric.unit }}</span>
           </label>
         </article>

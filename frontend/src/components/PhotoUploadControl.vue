@@ -191,7 +191,10 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="photo-upload" :class="[`photo-upload--${variant}`]">
+  <div
+    class="photo-upload"
+    :class="[`photo-upload--${variant}`]"
+  >
     <div class="photo-upload__trigger-wrap">
       <button
         ref="triggerButton"
@@ -205,22 +208,66 @@ onBeforeUnmount(() => {
     </div>
 
     <Teleport to="body">
-      <div v-if="showOptions" ref="menuElement" class="photo-upload__menu" :style="menuStyle">
-        <button class="photo-upload__option" type="button" @click="openCamera">Ta bilde</button>
-        <button class="photo-upload__option" type="button" @click="openLibrary">Velg fra album</button>
+      <div
+        v-if="showOptions"
+        ref="menuElement"
+        class="photo-upload__menu"
+        :style="menuStyle"
+      >
+        <button
+          class="photo-upload__option"
+          type="button"
+          @click="openCamera"
+        >
+          Ta bilde
+        </button>
+        <button
+          class="photo-upload__option"
+          type="button"
+          @click="openLibrary"
+        >
+          Velg fra album
+        </button>
       </div>
     </Teleport>
 
-    <div v-if="variant === 'panel'" class="photo-upload__copy">
-      <p class="card-title upload-card__title">{{ label }}</p>
-      <p v-if="description" class="muted-copy">{{ description }}</p>
+    <div
+      v-if="variant === 'panel'"
+      class="photo-upload__copy"
+    >
+      <p class="card-title upload-card__title">
+        {{ label }}
+      </p>
+      <p
+        v-if="description"
+        class="muted-copy"
+      >
+        {{ description }}
+      </p>
     </div>
 
-    <p v-if="variant === 'icon'" class="photo-upload__status">{{ previewLabel }}</p>
+    <p
+      v-if="variant === 'icon'"
+      class="photo-upload__status"
+    >
+      {{ previewLabel }}
+    </p>
 
-    <div v-if="photos.length" class="photo-upload__preview-grid" :class="{ 'photo-upload__preview-grid--compact': variant === 'icon' }">
-      <figure v-for="photo in photos" :key="photo.id" class="photo-upload__preview">
-        <img :src="photo.previewUrl" :alt="photo.name" class="photo-upload__image" />
+    <div
+      v-if="photos.length"
+      class="photo-upload__preview-grid"
+      :class="{ 'photo-upload__preview-grid--compact': variant === 'icon' }"
+    >
+      <figure
+        v-for="photo in photos"
+        :key="photo.id"
+        class="photo-upload__preview"
+      >
+        <img
+          :src="photo.previewUrl"
+          :alt="photo.name"
+          class="photo-upload__image"
+        >
         <button
           class="photo-upload__remove"
           type="button"
@@ -232,7 +279,10 @@ onBeforeUnmount(() => {
       </figure>
     </div>
 
-    <p v-if="variant === 'panel'" class="helper-text">
+    <p
+      v-if="variant === 'panel'"
+      class="helper-text"
+    >
       {{ helperText || previewLabel }}
     </p>
 
@@ -243,7 +293,7 @@ onBeforeUnmount(() => {
       accept="image/*"
       :multiple="multiple"
       @change="onLibraryChange"
-    />
+    >
     <input
       ref="cameraInput"
       class="visually-hidden"
@@ -252,6 +302,6 @@ onBeforeUnmount(() => {
       capture="environment"
       :multiple="multiple"
       @change="onCameraChange"
-    />
+    >
   </div>
 </template>
