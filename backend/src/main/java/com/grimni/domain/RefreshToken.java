@@ -16,4 +16,27 @@ public class RefreshToken extends CreatedAtEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private User user;
+
+    public RefreshToken() {} // no-args constructor
+
+    public Long getId() {
+        return this.id;
+    }
+    public String getRefreshToken() {
+        return this.refreshToken;
+    }
+    public User getUser() {
+        return this.user;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+    public void setRefreshToken(String refreshToken) {
+        this.refreshToken = refreshToken;
+    }
+    public void setUser(User user) {
+        this.user = user;
+    }
+
 }
