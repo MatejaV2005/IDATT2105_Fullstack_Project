@@ -1,70 +1,72 @@
 package com.grimni.domain;
 
+import java.util.ArrayList;
 import java.util.List;
-
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
-
 import jakarta.persistence.*;
 
-@Entity(name = "User")
+@Entity
 @Table(name = "users")
-public class User {
-    
-    public enum Role {
-        EMPLOYEE,
-        MANAGER
-    }
+public class User extends CreatedAtEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long userId;
+    private Long id;
 
-    private String username;
-    private String email;
-    private String password;
-    @ManyToOne
-    @JoinColumn(name = "orgId")
-    private Organization organization;
+    @Column(name = "password_hash", nullable = false, columnDefinition = "TEXT")
+    private String passwordHash;
 
-    @Enumerated(EnumType.STRING)
-    private Role role;
+    @Lob
+    @Column(name = "salt", nullable = false)
+    private byte[] salt;
+
+    @Column(name = "legal_name", nullable = false, columnDefinition = "TEXT")
+    private String legalName;
 
     @OneToMany(mappedBy = "user")
-    @JsonManagedReference("user-certificates")
-    private List<Certificate> certificates;
+    private List<RefreshToken> refreshTokens = new ArrayList<>();
 
-    @ManyToMany(mappedBy = "users")
-    @JsonIgnore 
-    private List<Routine> routines;
+    @OneToMany(mappedBy = "assignedTo")
+    private List<Todo> assignedTodos = new ArrayList<>();
 
-    public Long getUserId() {
-        return userId;
-    }
+    @OneToMany(mappedBy = "uploadedBy")
+    private List<FileObject> uploadedFiles = new ArrayList<>();
 
-    public String getUsername() {
-        return username;
-    }
+    @OneToMany(mappedBy = "user")
+    private List<OrgUserBridge> organizations = new ArrayList<>();
 
-    public String getEmail() {
-        return email;
-    }
+    @OneToMany(mappedBy = "user")
+    private List<OrgDangerAnalysisCollaborator> dangerAnalysisOrganizations = new ArrayList<>();
 
-    public String getPassword() {
-        return password;
-    }
+    @OneToMany(mappedBy = "user")
+    private List<CourseUserProgress> courseProgresses = new ArrayList<>();
 
-    public Organization getOrganization() {
-        return organization;
-    }
+    @OneToMany(mappedBy = "user")
+    private List<CourseResponsibleUser> responsibleCourses = new ArrayList<>();
 
-    public Role getRole() {
-        return role;
-    }
-    public List<Certificate> getCertificates() {
-        return certificates;
-    }
-    public List<Routine> getRoutines() {
-        return routines;
-    }
+    @OneToMany(mappedBy = "user")
+    private List<MappingPointResponsibleUser> mappingPointResponsibilities = new ArrayList<>();
+
+    @OneToMany(mappedBy = "user")
+    private List<RoutineUserBridge> routineRoles = new ArrayList<>();
+
+    @OneToMany(mappedBy = "user")
+    private List<CcpUserBridge> ccpRoles = new ArrayList<>();
+
+    @OneToMany(mappedBy = "lastVerifier")
+    private List<CcpRecord> verifiedCcpRecords = new ArrayList<>();
+
+    @OneToMany(mappedBy = "performedBy")
+    private List<CcpRecord> performedCcpRecords = new ArrayList<>();
+
+    @OneToMany(mappedBy = "performedBy")
+    private List<PrerequisiteRoutineRecord> performedRoutineRecords = new ArrayList<>();
+
+    @OneToMany(mappedBy = "lastVerifier")
+    private List<PrerequisiteRoutineRecord> verifiedRoutineRecords = new ArrayList<>();
+
+    @OneToMany(mappedBy = "reportedBy")
+    private List<Deviation> reportedDeviations = new ArrayList<>();
+
+    @OneToMany(mappedBy = "reviewedBy")
+    private List<Deviation> reviewedDeviations = new ArrayList<>();
 }

@@ -11,15 +11,15 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.grimni.domain.Routine;
-import com.grimni.repository.RoutineRepository;
+import com.grimni.repository.PrerequisiteRoutineRepository;
 
 @RestController
 @CrossOrigin
 public class RoutineController {
-    private RoutineRepository routineRepository;
+    private PrerequisiteRoutineRepository routineRepository;
 
     @Autowired
-    public RoutineController(RoutineRepository routineRepository) {
+    public RoutineController(PrerequisiteRoutineRepository routineRepository) {
         this.routineRepository = routineRepository;
     }
 

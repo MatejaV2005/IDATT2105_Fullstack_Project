@@ -1,43 +1,36 @@
 package com.grimni.domain;
 
+import java.util.ArrayList;
 import java.util.List;
-
-import com.fasterxml.jackson.annotation.JsonManagedReference;
-
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "courses")
-public class Course {
+@Table(name = "course")
+public class Course extends CreatedAtEntity {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long courseId;
+    private Long id;
 
-    @ManyToOne
-    @JoinColumn(name = "orgId")
-    private Organization organization;
-
+    @Column(name = "title", nullable = false, columnDefinition = "TEXT")
     private String title;
 
-    private String description;
+    @Column(name = "course_description", nullable = false, columnDefinition = "TEXT")
+    private String courseDescription;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "org_id")
+    private Organization organization;
 
     @OneToMany(mappedBy = "course")
-    @JsonManagedReference("course-certificates") 
-    private List<Certificate> certificates;
+    private List<CourseUserProgress> userProgresses = new ArrayList<>();
 
-    public Long getCourseId() {
-        return courseId;
-    }
-    public Organization getOrganization() {
-        return organization;
-    }
-    public String getTitle() {
-        return title;
-    }
-    public String getDescription() {
-        return description;
-    }
-    public List<Certificate> getCertificates() {
-        return certificates;
-    }
+    @OneToMany(mappedBy = "course")
+    private List<CourseResponsibleUser> responsibleUsers = new ArrayList<>();
+
+    @OneToMany(mappedBy = "course")
+    private List<CourseLink> links = new ArrayList<>();
+
+    @OneToMany(mappedBy = "course")
+    private List<FileCourseBridge> files = new ArrayList<>();
 }
