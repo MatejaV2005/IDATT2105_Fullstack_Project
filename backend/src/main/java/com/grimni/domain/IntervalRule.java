@@ -23,4 +23,48 @@ public class IntervalRule extends CreatedAtEntity {
 
     @OneToMany(mappedBy = "intervalRule")
     private List<PrerequisiteRoutine> prerequisiteRoutines = new ArrayList<>();
+    
+    public IntervalRule() {
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public Long getIntervalStart() {
+        return intervalStart;
+    }
+
+    public void setIntervalStart(Long intervalStart) {
+        this.intervalStart = intervalStart;
+    }
+
+    public Long getIntervalRepeatTime() {
+        return intervalRepeatTime;
+    }
+
+    public void setIntervalRepeatTime(Long intervalRepeatTime) {
+        this.intervalRepeatTime = intervalRepeatTime;
+    }
+
+    public List<Ccp> getCcps() {
+        return ccps;
+    }
+
+    public void setCcps(List<Ccp> ccps) {
+        this.ccps = ccps;
+    }
+
+    public List<PrerequisiteRoutine> getPrerequisiteRoutines() {
+        return prerequisiteRoutines;
+    }
+
+    public void setPrerequisiteRoutines(List<PrerequisiteRoutine> prerequisiteRoutines) {
+        this.prerequisiteRoutines = prerequisiteRoutines;
+    }
+
 }

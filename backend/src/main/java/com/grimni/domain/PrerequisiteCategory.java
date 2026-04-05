@@ -24,4 +24,48 @@ public class PrerequisiteCategory extends CreatedAtEntity {
 
     @OneToMany(mappedBy = "prerequisiteCategory")
     private List<PrerequisiteRoutine> routines = new ArrayList<>();
+    
+    public PrerequisiteCategory() {
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getCategoryName() {
+        return categoryName;
+    }
+
+    public void setCategoryName(String categoryName) {
+        this.categoryName = categoryName;
+    }
+
+    public Organization getOrganization() {
+        return organization;
+    }
+
+    public void setOrganization(Organization organization) {
+        this.organization = organization;
+    }
+
+    public List<PrerequisiteStandard> getStandards() {
+        return standards;
+    }
+
+    public void setStandards(List<PrerequisiteStandard> standards) {
+        this.standards = standards;
+    }
+
+    public List<PrerequisiteRoutine> getRoutines() {
+        return routines;
+    }
+
+    public void setRoutines(List<PrerequisiteRoutine> routines) {
+        this.routines = routines;
+    }
+
 }

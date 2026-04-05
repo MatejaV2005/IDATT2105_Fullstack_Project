@@ -54,4 +54,112 @@ public class Deviation extends CreatedAtEntity {
 
     @Column(name = "preventative_measure_actually_taken", nullable = false, columnDefinition = "TEXT")
     private String preventativeMeasureActuallyTaken;
+    
+    public Deviation() {
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public CcpRecord getCcpRecord() {
+        return ccpRecord;
+    }
+
+    public void setCcpRecord(CcpRecord ccpRecord) {
+        this.ccpRecord = ccpRecord;
+    }
+
+    public PrerequisiteRoutineRecord getRoutineRecord() {
+        return routineRecord;
+    }
+
+    public void setRoutineRecord(PrerequisiteRoutineRecord routineRecord) {
+        this.routineRecord = routineRecord;
+    }
+
+    public Organization getOrganization() {
+        return organization;
+    }
+
+    public void setOrganization(Organization organization) {
+        this.organization = organization;
+    }
+
+    public User getReportedBy() {
+        return reportedBy;
+    }
+
+    public void setReportedBy(User reportedBy) {
+        this.reportedBy = reportedBy;
+    }
+
+    public User getReviewedBy() {
+        return reviewedBy;
+    }
+
+    public void setReviewedBy(User reviewedBy) {
+        this.reviewedBy = reviewedBy;
+    }
+
+    public ReviewStatus getReviewStatus() {
+        return reviewStatus;
+    }
+
+    public void setReviewStatus(ReviewStatus reviewStatus) {
+        this.reviewStatus = reviewStatus;
+    }
+
+    public LocalDateTime getReviewedAt() {
+        return reviewedAt;
+    }
+
+    public void setReviewedAt(LocalDateTime reviewedAt) {
+        this.reviewedAt = reviewedAt;
+    }
+
+    public String getWhatWentWrong() {
+        return whatWentWrong;
+    }
+
+    public void setWhatWentWrong(String whatWentWrong) {
+        this.whatWentWrong = whatWentWrong;
+    }
+
+    public String getImmediateActionTaken() {
+        return immediateActionTaken;
+    }
+
+    public void setImmediateActionTaken(String immediateActionTaken) {
+        this.immediateActionTaken = immediateActionTaken;
+    }
+
+    public String getPotentialCause() {
+        return potentialCause;
+    }
+
+    public void setPotentialCause(String potentialCause) {
+        this.potentialCause = potentialCause;
+    }
+
+    public String getPotentialPreventativeMeasure() {
+        return potentialPreventativeMeasure;
+    }
+
+    public void setPotentialPreventativeMeasure(String potentialPreventativeMeasure) {
+        this.potentialPreventativeMeasure = potentialPreventativeMeasure;
+    }
+
+    public String getPreventativeMeasureActuallyTaken() {
+        return preventativeMeasureActuallyTaken;
+    }
+
+    public void setPreventativeMeasureActuallyTaken(String preventativeMeasureActuallyTaken) {
+        this.preventativeMeasureActuallyTaken = preventativeMeasureActuallyTaken;
+    }
+
 }

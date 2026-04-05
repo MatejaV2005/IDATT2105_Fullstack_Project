@@ -16,4 +16,32 @@ public class CourseLink extends CreatedAtEntity {
 
     @Column(name = "link", nullable = false, columnDefinition = "TEXT")
     private String link;
+    
+    public CourseLink() {
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public Course getCourse() {
+        return course;
+    }
+
+    public void setCourse(Course course) {
+        this.course = course;
+    }
+
+    public String getLink() {
+        return link;
+    }
+
+    public void setLink(String link) {
+        this.link = link;
+    }
+
 }

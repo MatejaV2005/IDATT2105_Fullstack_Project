@@ -24,4 +24,40 @@ public class CcpUserBridge extends CreatedAtEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "user_role", nullable = false, insertable = false, updatable = false)
     private RoutineUserRole userRole;
+    
+    public CcpUserBridge() {
+    }
+
+    public CcpUserBridgeId getId() {
+        return id;
+    }
+
+    public void setId(CcpUserBridgeId id) {
+        this.id = id;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
+
+    public Ccp getCcp() {
+        return ccp;
+    }
+
+    public void setCcp(Ccp ccp) {
+        this.ccp = ccp;
+    }
+
+    public RoutineUserRole getUserRole() {
+        return userRole;
+    }
+
+    public void setUserRole(RoutineUserRole userRole) {
+        this.userRole = userRole;
+    }
+
 }

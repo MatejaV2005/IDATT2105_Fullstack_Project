@@ -33,4 +33,72 @@ public class Course extends CreatedAtEntity {
 
     @OneToMany(mappedBy = "course")
     private List<FileCourseBridge> files = new ArrayList<>();
+    
+    public Course() {
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public void setTitle(String title) {
+        this.title = title;
+    }
+
+    public String getCourseDescription() {
+        return courseDescription;
+    }
+
+    public void setCourseDescription(String courseDescription) {
+        this.courseDescription = courseDescription;
+    }
+
+    public Organization getOrganization() {
+        return organization;
+    }
+
+    public void setOrganization(Organization organization) {
+        this.organization = organization;
+    }
+
+    public List<CourseUserProgress> getUserProgresses() {
+        return userProgresses;
+    }
+
+    public void setUserProgresses(List<CourseUserProgress> userProgresses) {
+        this.userProgresses = userProgresses;
+    }
+
+    public List<CourseResponsibleUser> getResponsibleUsers() {
+        return responsibleUsers;
+    }
+
+    public void setResponsibleUsers(List<CourseResponsibleUser> responsibleUsers) {
+        this.responsibleUsers = responsibleUsers;
+    }
+
+    public List<CourseLink> getLinks() {
+        return links;
+    }
+
+    public void setLinks(List<CourseLink> links) {
+        this.links = links;
+    }
+
+    public List<FileCourseBridge> getFiles() {
+        return files;
+    }
+
+    public void setFiles(List<FileCourseBridge> files) {
+        this.files = files;
+    }
+
 }

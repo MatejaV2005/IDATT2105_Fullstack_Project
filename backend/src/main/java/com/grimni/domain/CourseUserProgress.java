@@ -27,4 +27,48 @@ public class CourseUserProgress extends CreatedAtEntity {
 
     @Column(name = "last_updated", nullable = false, insertable = false, updatable = false)
     private LocalDateTime lastUpdated;
+    
+    public CourseUserProgress() {
+    }
+
+    public CourseUserProgressId getId() {
+        return id;
+    }
+
+    public void setId(CourseUserProgressId id) {
+        this.id = id;
+    }
+
+    public Course getCourse() {
+        return course;
+    }
+
+    public void setCourse(Course course) {
+        this.course = course;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
+
+    public Boolean getIsCompleted() {
+        return isCompleted;
+    }
+
+    public void setIsCompleted(Boolean isCompleted) {
+        this.isCompleted = isCompleted;
+    }
+
+    public LocalDateTime getLastUpdated() {
+        return lastUpdated;
+    }
+
+    public void setLastUpdated(LocalDateTime lastUpdated) {
+        this.lastUpdated = lastUpdated;
+    }
+
 }

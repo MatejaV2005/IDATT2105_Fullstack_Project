@@ -27,4 +27,56 @@ public class ProductCategory extends CreatedAtEntity {
 
     @OneToMany(mappedBy = "productCategory")
     private List<CcpCorrectiveMeasure> correctiveMeasures = new ArrayList<>();
+    
+    public ProductCategory() {
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getProductDescription() {
+        return productDescription;
+    }
+
+    public void setProductDescription(String productDescription) {
+        this.productDescription = productDescription;
+    }
+
+    public Organization getOrganization() {
+        return organization;
+    }
+
+    public void setOrganization(Organization organization) {
+        this.organization = organization;
+    }
+
+    public String getFlowchart() {
+        return flowchart;
+    }
+
+    public void setFlowchart(String flowchart) {
+        this.flowchart = flowchart;
+    }
+
+    public List<DangerRiskCombo> getDangerRiskCombos() {
+        return dangerRiskCombos;
+    }
+
+    public void setDangerRiskCombos(List<DangerRiskCombo> dangerRiskCombos) {
+        this.dangerRiskCombos = dangerRiskCombos;
+    }
+
+    public List<CcpCorrectiveMeasure> getCorrectiveMeasures() {
+        return correctiveMeasures;
+    }
+
+    public void setCorrectiveMeasures(List<CcpCorrectiveMeasure> correctiveMeasures) {
+        this.correctiveMeasures = correctiveMeasures;
+    }
+
 }

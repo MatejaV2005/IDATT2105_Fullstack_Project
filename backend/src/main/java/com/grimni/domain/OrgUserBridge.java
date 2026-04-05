@@ -24,4 +24,40 @@ public class OrgUserBridge extends CreatedAtEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "user_role", nullable = false)
     private OrgUserRole userRole;
+    
+    public OrgUserBridge() {
+    }
+
+    public OrgUserBridgeId getId() {
+        return id;
+    }
+
+    public void setId(OrgUserBridgeId id) {
+        this.id = id;
+    }
+
+    public Organization getOrganization() {
+        return organization;
+    }
+
+    public void setOrganization(Organization organization) {
+        this.organization = organization;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
+
+    public OrgUserRole getUserRole() {
+        return userRole;
+    }
+
+    public void setUserRole(OrgUserRole userRole) {
+        this.userRole = userRole;
+    }
+
 }

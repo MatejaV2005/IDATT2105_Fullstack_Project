@@ -19,4 +19,32 @@ public class MappingPointResponsibleUser extends CreatedAtEntity {
     @MapsId("mappingPointId")
     @JoinColumn(name = "mapping_point_id")
     private MappingPoint mappingPoint;
+    
+    public MappingPointResponsibleUser() {
+    }
+
+    public MappingPointResponsibleUserId getId() {
+        return id;
+    }
+
+    public void setId(MappingPointResponsibleUserId id) {
+        this.id = id;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
+
+    public MappingPoint getMappingPoint() {
+        return mappingPoint;
+    }
+
+    public void setMappingPoint(MappingPoint mappingPoint) {
+        this.mappingPoint = mappingPoint;
+    }
+
 }

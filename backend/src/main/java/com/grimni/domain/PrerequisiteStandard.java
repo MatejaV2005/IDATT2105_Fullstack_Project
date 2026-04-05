@@ -19,4 +19,40 @@ public class PrerequisiteStandard extends CreatedAtEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "prerequisite_category_id")
     private PrerequisiteCategory prerequisiteCategory;
+    
+    public PrerequisiteStandard() {
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getStandardName() {
+        return standardName;
+    }
+
+    public void setStandardName(String standardName) {
+        this.standardName = standardName;
+    }
+
+    public String getStandardDescription() {
+        return standardDescription;
+    }
+
+    public void setStandardDescription(String standardDescription) {
+        this.standardDescription = standardDescription;
+    }
+
+    public PrerequisiteCategory getPrerequisiteCategory() {
+        return prerequisiteCategory;
+    }
+
+    public void setPrerequisiteCategory(PrerequisiteCategory prerequisiteCategory) {
+        this.prerequisiteCategory = prerequisiteCategory;
+    }
+
 }

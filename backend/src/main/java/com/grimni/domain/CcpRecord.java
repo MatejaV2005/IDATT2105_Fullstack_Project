@@ -54,4 +54,112 @@ public class CcpRecord extends CreatedAtEntity {
 
     @Column(name = "ccp_name", nullable = false, columnDefinition = "TEXT")
     private String ccpName;
+    
+    public CcpRecord() {
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public Organization getOrganization() {
+        return organization;
+    }
+
+    public void setOrganization(Organization organization) {
+        this.organization = organization;
+    }
+
+    public Ccp getCcp() {
+        return ccp;
+    }
+
+    public void setCcp(Ccp ccp) {
+        this.ccp = ccp;
+    }
+
+    public User getLastVerifier() {
+        return lastVerifier;
+    }
+
+    public void setLastVerifier(User lastVerifier) {
+        this.lastVerifier = lastVerifier;
+    }
+
+    public VerificationStatus getVerificationStatus() {
+        return verificationStatus;
+    }
+
+    public void setVerificationStatus(VerificationStatus verificationStatus) {
+        this.verificationStatus = verificationStatus;
+    }
+
+    public LocalDateTime getVerifiedAt() {
+        return verifiedAt;
+    }
+
+    public void setVerifiedAt(LocalDateTime verifiedAt) {
+        this.verifiedAt = verifiedAt;
+    }
+
+    public User getPerformedBy() {
+        return performedBy;
+    }
+
+    public void setPerformedBy(User performedBy) {
+        this.performedBy = performedBy;
+    }
+
+    public String getComment() {
+        return comment;
+    }
+
+    public void setComment(String comment) {
+        this.comment = comment;
+    }
+
+    public BigDecimal getMeasuredValue() {
+        return measuredValue;
+    }
+
+    public void setMeasuredValue(BigDecimal measuredValue) {
+        this.measuredValue = measuredValue;
+    }
+
+    public BigDecimal getCriticalMin() {
+        return criticalMin;
+    }
+
+    public void setCriticalMin(BigDecimal criticalMin) {
+        this.criticalMin = criticalMin;
+    }
+
+    public BigDecimal getCriticalMax() {
+        return criticalMax;
+    }
+
+    public void setCriticalMax(BigDecimal criticalMax) {
+        this.criticalMax = criticalMax;
+    }
+
+    public String getUnit() {
+        return unit;
+    }
+
+    public void setUnit(String unit) {
+        this.unit = unit;
+    }
+
+    public String getCcpName() {
+        return ccpName;
+    }
+
+    public void setCcpName(String ccpName) {
+        this.ccpName = ccpName;
+    }
+
 }

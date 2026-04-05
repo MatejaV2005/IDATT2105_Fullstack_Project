@@ -65,4 +65,160 @@ public class Organization extends CreatedAtEntity {
 
     @OneToMany(mappedBy = "organization")
     private List<Deviation> deviations = new ArrayList<>();
+    
+    public Organization() {
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getOrgAddress() {
+        return orgAddress;
+    }
+
+    public void setOrgAddress(String orgAddress) {
+        this.orgAddress = orgAddress;
+    }
+
+    public String getOrgName() {
+        return orgName;
+    }
+
+    public void setOrgName(String orgName) {
+        this.orgName = orgName;
+    }
+
+    public Boolean getAlcoholEnabled() {
+        return alcoholEnabled;
+    }
+
+    public void setAlcoholEnabled(Boolean alcoholEnabled) {
+        this.alcoholEnabled = alcoholEnabled;
+    }
+
+    public Boolean getFoodEnabled() {
+        return foodEnabled;
+    }
+
+    public void setFoodEnabled(Boolean foodEnabled) {
+        this.foodEnabled = foodEnabled;
+    }
+
+    public Integer getOrgNumber() {
+        return orgNumber;
+    }
+
+    public void setOrgNumber(Integer orgNumber) {
+        this.orgNumber = orgNumber;
+    }
+
+    public List<Todo> getTodos() {
+        return todos;
+    }
+
+    public void setTodos(List<Todo> todos) {
+        this.todos = todos;
+    }
+
+    public List<OrgUserBridge> getMembers() {
+        return members;
+    }
+
+    public void setMembers(List<OrgUserBridge> members) {
+        this.members = members;
+    }
+
+    public List<OrgDangerAnalysisCollaborator> getDangerAnalysisCollaborators() {
+        return dangerAnalysisCollaborators;
+    }
+
+    public void setDangerAnalysisCollaborators(List<OrgDangerAnalysisCollaborator> dangerAnalysisCollaborators) {
+        this.dangerAnalysisCollaborators = dangerAnalysisCollaborators;
+    }
+
+    public List<ProductCategory> getProductCategories() {
+        return productCategories;
+    }
+
+    public void setProductCategories(List<ProductCategory> productCategories) {
+        this.productCategories = productCategories;
+    }
+
+    public List<FileObject> getFiles() {
+        return files;
+    }
+
+    public void setFiles(List<FileObject> files) {
+        this.files = files;
+    }
+
+    public List<Course> getCourses() {
+        return courses;
+    }
+
+    public void setCourses(List<Course> courses) {
+        this.courses = courses;
+    }
+
+    public List<MappingPoint> getMappingPoints() {
+        return mappingPoints;
+    }
+
+    public void setMappingPoints(List<MappingPoint> mappingPoints) {
+        this.mappingPoints = mappingPoints;
+    }
+
+    public List<Ccp> getCcps() {
+        return ccps;
+    }
+
+    public void setCcps(List<Ccp> ccps) {
+        this.ccps = ccps;
+    }
+
+    public List<PrerequisiteCategory> getPrerequisiteCategories() {
+        return prerequisiteCategories;
+    }
+
+    public void setPrerequisiteCategories(List<PrerequisiteCategory> prerequisiteCategories) {
+        this.prerequisiteCategories = prerequisiteCategories;
+    }
+
+    public List<PrerequisiteRoutine> getPrerequisiteRoutines() {
+        return prerequisiteRoutines;
+    }
+
+    public void setPrerequisiteRoutines(List<PrerequisiteRoutine> prerequisiteRoutines) {
+        this.prerequisiteRoutines = prerequisiteRoutines;
+    }
+
+    public List<CcpRecord> getCcpRecords() {
+        return ccpRecords;
+    }
+
+    public void setCcpRecords(List<CcpRecord> ccpRecords) {
+        this.ccpRecords = ccpRecords;
+    }
+
+    public List<PrerequisiteRoutineRecord> getPrerequisiteRoutineRecords() {
+        return prerequisiteRoutineRecords;
+    }
+
+    public void setPrerequisiteRoutineRecords(List<PrerequisiteRoutineRecord> prerequisiteRoutineRecords) {
+        this.prerequisiteRoutineRecords = prerequisiteRoutineRecords;
+    }
+
+    public List<Deviation> getDeviations() {
+        return deviations;
+    }
+
+    public void setDeviations(List<Deviation> deviations) {
+        this.deviations = deviations;
+    }
+
 }

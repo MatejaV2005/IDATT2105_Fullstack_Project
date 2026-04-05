@@ -24,4 +24,40 @@ public class RoutineUserBridge extends CreatedAtEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "user_role", nullable = false, insertable = false, updatable = false)
     private RoutineUserRole userRole;
+    
+    public RoutineUserBridge() {
+    }
+
+    public RoutineUserBridgeId getId() {
+        return id;
+    }
+
+    public void setId(RoutineUserBridgeId id) {
+        this.id = id;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
+
+    public PrerequisiteRoutine getRoutine() {
+        return routine;
+    }
+
+    public void setRoutine(PrerequisiteRoutine routine) {
+        this.routine = routine;
+    }
+
+    public RoutineUserRole getUserRole() {
+        return userRole;
+    }
+
+    public void setUserRole(RoutineUserRole userRole) {
+        this.userRole = userRole;
+    }
+
 }

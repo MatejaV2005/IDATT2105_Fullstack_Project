@@ -56,4 +56,127 @@ public class Ccp extends CreatedAtEntity {
 
     @OneToMany(mappedBy = "ccp")
     private List<CcpRecord> records = new ArrayList<>();
+
+    public Ccp() {
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getHow() {
+        return how;
+    }
+
+    public void setHow(String how) {
+        this.how = how;
+    }
+
+    public String getEquipment() {
+        return equipment;
+    }
+
+    public void setEquipment(String equipment) {
+        this.equipment = equipment;
+    }
+
+    public String getInstructionsAndCalibration() {
+        return instructionsAndCalibration;
+    }
+
+    public void setInstructionsAndCalibration(String instructionsAndCalibration) {
+        this.instructionsAndCalibration = instructionsAndCalibration;
+    }
+
+    public String getImmediateCorrectiveAction() {
+        return immediateCorrectiveAction;
+    }
+
+    public void setImmediateCorrectiveAction(String immediateCorrectiveAction) {
+        this.immediateCorrectiveAction = immediateCorrectiveAction;
+    }
+
+    public BigDecimal getCriticalMin() {
+        return criticalMin;
+    }
+
+    public void setCriticalMin(BigDecimal criticalMin) {
+        this.criticalMin = criticalMin;
+    }
+
+    public BigDecimal getCriticalMax() {
+        return criticalMax;
+    }
+
+    public void setCriticalMax(BigDecimal criticalMax) {
+        this.criticalMax = criticalMax;
+    }
+
+    public String getUnit() {
+        return unit;
+    }
+
+    public void setUnit(String unit) {
+        this.unit = unit;
+    }
+
+    public String getCcpName() {
+        return ccpName;
+    }
+
+    public void setCcpName(String ccpName) {
+        this.ccpName = ccpName;
+    }
+
+    public String getMonitoredDescription() {
+        return monitoredDescription;
+    }
+
+    public void setMonitoredDescription(String monitoredDescription) {
+        this.monitoredDescription = monitoredDescription;
+    }
+
+    public Organization getOrganization() {
+        return organization;
+    }
+
+    public void setOrganization(Organization organization) {
+        this.organization = organization;
+    }
+
+    public IntervalRule getIntervalRule() {
+        return intervalRule;
+    }
+
+    public void setIntervalRule(IntervalRule intervalRule) {
+        this.intervalRule = intervalRule;
+    }
+
+    public List<CcpUserBridge> getUserRoles() {
+        return userRoles;
+    }
+
+    public void setUserRoles(List<CcpUserBridge> userRoles) {
+        this.userRoles = userRoles;
+    }
+
+    public List<CcpCorrectiveMeasure> getCorrectiveMeasures() {
+        return correctiveMeasures;
+    }
+
+    public void setCorrectiveMeasures(List<CcpCorrectiveMeasure> correctiveMeasures) {
+        this.correctiveMeasures = correctiveMeasures;
+    }
+
+    public List<CcpRecord> getRecords() {
+        return records;
+    }
+
+    public void setRecords(List<CcpRecord> records) {
+        this.records = records;
+    }
 }

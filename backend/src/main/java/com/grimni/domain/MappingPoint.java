@@ -33,4 +33,72 @@ public class MappingPoint extends CreatedAtEntity {
 
     @OneToMany(mappedBy = "mappingPoint")
     private List<MappingPointResponsibleUser> responsibleUsers = new ArrayList<>();
+    
+    public MappingPoint() {
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public void setTitle(String title) {
+        this.title = title;
+    }
+
+    public String getChallenges() {
+        return challenges;
+    }
+
+    public void setChallenges(String challenges) {
+        this.challenges = challenges;
+    }
+
+    public String getMeasures() {
+        return measures;
+    }
+
+    public void setMeasures(String measures) {
+        this.measures = measures;
+    }
+
+    public String getLaw() {
+        return law;
+    }
+
+    public void setLaw(String law) {
+        this.law = law;
+    }
+
+    public Short getSeverityDots() {
+        return severityDots;
+    }
+
+    public void setSeverityDots(Short severityDots) {
+        this.severityDots = severityDots;
+    }
+
+    public Organization getOrganization() {
+        return organization;
+    }
+
+    public void setOrganization(Organization organization) {
+        this.organization = organization;
+    }
+
+    public List<MappingPointResponsibleUser> getResponsibleUsers() {
+        return responsibleUsers;
+    }
+
+    public void setResponsibleUsers(List<MappingPointResponsibleUser> responsibleUsers) {
+        this.responsibleUsers = responsibleUsers;
+    }
+
 }
