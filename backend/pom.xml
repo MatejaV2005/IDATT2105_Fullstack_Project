@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>4.0.5</version>
+		<version>3.5.13</version> <!-- Downgraded from 4.0.5 to meet requirement spec (Spring 3.x) -->
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.grimni</groupId>
@@ -30,15 +30,10 @@
 		<java.version>21</java.version>
 	</properties>
 	<dependencies>
+		<!-- Renamed from spring-boot-starter-webmvc (4.x) to spring-boot-starter-web (3.x) -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-webmvc</artifactId>
-		</dependency>
-
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-webmvc-test</artifactId>
-			<scope>test</scope>
+			<artifactId>spring-boot-starter-web</artifactId>
 		</dependency>
 
 		<dependency>
@@ -70,21 +65,13 @@
 			<scope>test</scope>
 		</dependency>
 
+		<!-- Changed from spring-boot-starter-security-test (4.x) to spring-security-test (3.x) -->
 		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-security-test</artifactId>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-test</artifactId>
 			<scope>test</scope>
 		</dependency>
 
-		<!-- Source: https://mvnrepository.com/artifact/org.jacoco/jacoco-maven-plugin -->
-		<dependency>
-			<groupId>org.jacoco</groupId>
-			<artifactId>jacoco-maven-plugin</artifactId>
-			<version>0.8.14</version>
-			<scope>compile</scope>
-		</dependency>
-
-	
  	<!--JWT dependencies-->
 
 		<dependency>

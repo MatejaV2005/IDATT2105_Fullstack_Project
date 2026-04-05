@@ -1,19 +1,20 @@
-package com.grimni.backend.util;
+package com.grimni.util;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-import org.jspecify.annotations.NonNull;
+import org.springframework.lang.NonNull;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.List;
 
 // OncePerRequestFilter guarantees that this filter is executed exactly once per HTTP request
 @Component
@@ -42,6 +43,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             }
 
             String username = jwtUtil.extractUsername(jwtToken);
+            String role = jwtUtil.extractUserRole(jwtToken);
 
             if (username == null) {
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
@@ -50,8 +52,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             }
             
             // Class in spring security that represents an authentication object (in this case user)
-            // TODO: in third parameter, ensure that the empty list will hold roles for authenticated user 
-            UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(username, null, new ArrayList<>());
+            UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(username, null, List.of(new SimpleGrantedAuthority(role))/* SimpleGrantedAuth wraps the role string so that it can be subsequently used in SecurityConfig as .hasRole() */);
             
             // SecurityContextHolder is a global context storage, storing the authenticated entity for use in the filterchain
             SecurityContextHolder.getContext().setAuthentication(authentication);

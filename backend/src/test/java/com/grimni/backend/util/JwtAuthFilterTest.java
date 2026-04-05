@@ -1,7 +1,5 @@
-package com.grimni.backend.token;
+package com.grimni.backend.util;
 
-import com.grimni.backend.util.JwtAuthFilter;
-import com.grimni.backend.util.JwtUtil;
 import jakarta.servlet.FilterChain;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -13,6 +11,9 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
+
+import com.grimni.util.JwtAuthFilter;
+import com.grimni.util.JwtUtil;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -45,7 +46,7 @@ public class JwtAuthFilterTest {
         @Test
         void jwtAuthFilter_extendsOncePerRequestFilter() {
             // JwtAuthFilter extends OncePerRequestFilter, which guarantees it executes
-            // exactly once per request — required for a pre-auth filter sitting before
+            // exactly once per request, required for a pre-auth filter sitting before
             // UsernamePasswordAuthenticationFilter in the chain
             assertInstanceOf(OncePerRequestFilter.class, jwtAuthFilter,
                     "JwtAuthFilter must extend OncePerRequestFilter");
@@ -182,6 +183,7 @@ public class JwtAuthFilterTest {
         void validToken_returns200() throws Exception {
             when(jwtUtil.isTokenValid(any())).thenReturn(true);
             when(jwtUtil.extractUsername(any())).thenReturn("alice");
+            when(jwtUtil.extractUserRole(any())).thenReturn("MANAGER");
 
             MockHttpServletRequest request = new MockHttpServletRequest();
             request.addHeader("Authorization", "Bearer valid.token.here");
@@ -197,6 +199,7 @@ public class JwtAuthFilterTest {
         void validToken_filterChainContinues() throws Exception {
             when(jwtUtil.isTokenValid(any())).thenReturn(true);
             when(jwtUtil.extractUsername(any())).thenReturn("alice");
+            when(jwtUtil.extractUserRole(any())).thenReturn("MANAGER");
 
             MockHttpServletRequest request = new MockHttpServletRequest();
             request.addHeader("Authorization", "Bearer valid.token.here");
@@ -212,6 +215,7 @@ public class JwtAuthFilterTest {
         void validToken_securityContextHolderIsPopulated() throws Exception {
             when(jwtUtil.isTokenValid(any())).thenReturn(true);
             when(jwtUtil.extractUsername(any())).thenReturn("alice");
+            when(jwtUtil.extractUserRole(any())).thenReturn("MANAGER");
 
             MockHttpServletRequest request = new MockHttpServletRequest();
             request.addHeader("Authorization", "Bearer valid.token.here");
@@ -229,6 +233,7 @@ public class JwtAuthFilterTest {
         void validToken_securityContextHolderContainsCorrectUsername() throws Exception {
             when(jwtUtil.isTokenValid(any())).thenReturn(true);
             when(jwtUtil.extractUsername(any())).thenReturn("alice");
+            when(jwtUtil.extractUserRole(any())).thenReturn("MANAGER");
 
             MockHttpServletRequest request = new MockHttpServletRequest();
             request.addHeader("Authorization", "Bearer valid.token.here");
@@ -246,6 +251,7 @@ public class JwtAuthFilterTest {
         void validToken_authenticationIsMarkedAsAuthenticated() throws Exception {
             when(jwtUtil.isTokenValid(any())).thenReturn(true);
             when(jwtUtil.extractUsername(any())).thenReturn("alice");
+            when(jwtUtil.extractUserRole(any())).thenReturn("MANAGER");
 
             MockHttpServletRequest request = new MockHttpServletRequest();
             request.addHeader("Authorization", "Bearer valid.token.here");
