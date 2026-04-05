@@ -11,9 +11,10 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import com.grimni.domain.OrgUserBridge;
 import com.grimni.domain.Organization;
 import com.grimni.domain.User;
-import com.grimni.domain.User.Role;
+import com.grimni.domain.enums.OrgUserRole;
 import com.grimni.util.JwtUtil;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -26,21 +27,29 @@ public class JwtUtilTest {
             "dGhpcyBpcyBhIHRlc3Qgc2VjcmV0IGtleSBmb3IgdW5pdCB0ZXN0aW5n";
 
     /**
-     * Builds a User entity for testing via ReflectionTestUtils.
-     * Since User is a JPA entity with no setters, we use reflection to set
-     * private fields directly — this is the standard approach for testing
-     * entities without exposing setters in the domain model.
+     * Builds a User entity for testing. User.id is set via ReflectionTestUtils
+     * because it's assigned by the DB (GenerationType.IDENTITY) and has no setter.
      */
-    private static User createTestUser(String username, Long userId, Role role, Long orgId) {
+    private static User createTestUser(String username, Long userId) {
+        User user = new User();
+        ReflectionTestUtils.setField(user, "id", userId);
+        user.setUsername(username);
+        return user;
+    }
+
+    /**
+     * Builds the OrgUserBridge that represents the user's membership in a specific
+     * organization with a specific role. This is what gets passed to generateToken
+     * alongside the user — the bridge determines the orgId + role claims.
+     */
+    private static OrgUserBridge createTestBridge(OrgUserRole role, Long orgId) {
         Organization org = new Organization();
         org.setId(orgId);
 
-        User user = new User();
-        ReflectionTestUtils.setField(user, "username", username);
-        ReflectionTestUtils.setField(user, "userId", userId);
-        ReflectionTestUtils.setField(user, "role", role);
-        ReflectionTestUtils.setField(user, "organization", org);
-        return user;
+        OrgUserBridge bridge = new OrgUserBridge();
+        bridge.setOrganization(org);
+        bridge.setUserRole(role);
+        return bridge;
     }
 
     // -------------------------------------------------------------------------
@@ -67,8 +76,9 @@ public class JwtUtilTest {
         @Test
         void jwtUtilBeanInitialisesWithInjectedSecret() {
             assertNotNull(jwtUtil);
-            User user = createTestUser("testuser", 1L, Role.EMPLOYEE, 10L);
-            String token = jwtUtil.generateToken(user);
+            User user = createTestUser("testuser", 1L);
+            OrgUserBridge bridge = createTestBridge(OrgUserRole.WORKER, 10L);
+            String token = jwtUtil.generateToken(user, bridge);
             assertNotNull(token, "JwtUtil bean should be fully functional with the injected secret");
         }
     }
@@ -81,6 +91,7 @@ public class JwtUtilTest {
 
         private JwtUtil jwtUtil;
         private User testUser;
+        private OrgUserBridge testBridge;
 
         @BeforeEach
         void setUp() {
@@ -88,27 +99,29 @@ public class JwtUtilTest {
             ReflectionTestUtils.setField(jwtUtil, "secret", TEST_SECRET);
             ReflectionTestUtils.invokeMethod(jwtUtil, "init");
 
-            testUser = createTestUser("alice", 42L, Role.MANAGER, 7L);
+            testUser = createTestUser("alice", 42L);
+            testBridge = createTestBridge(OrgUserRole.MANAGER, 7L);
         }
 
         // --- generateToken ---------------------------------------------------
 
         @Test
         void generateToken_returnsNonNullToken() {
-            assertNotNull(jwtUtil.generateToken(testUser));
+            assertNotNull(jwtUtil.generateToken(testUser, testBridge));
         }
 
         @Test
         void generateToken_tokenHasThreeParts() {
-            String token = jwtUtil.generateToken(testUser);
+            String token = jwtUtil.generateToken(testUser, testBridge);
             assertEquals(3, token.split("\\.").length);
         }
 
         @Test
         void generateToken_differentUsers_produceDifferentTokens() {
-            User bob = createTestUser("bob", 99L, Role.EMPLOYEE, 3L);
-            String token1 = jwtUtil.generateToken(testUser);
-            String token2 = jwtUtil.generateToken(bob);
+            User bob = createTestUser("bob", 99L);
+            OrgUserBridge bobBridge = createTestBridge(OrgUserRole.WORKER, 3L);
+            String token1 = jwtUtil.generateToken(testUser, testBridge);
+            String token2 = jwtUtil.generateToken(bob, bobBridge);
             assertNotEquals(token1, token2);
         }
 
@@ -116,13 +129,13 @@ public class JwtUtilTest {
 
         @Test
         void isTokenValid_freshToken_returnsTrue() {
-            String token = jwtUtil.generateToken(testUser);
+            String token = jwtUtil.generateToken(testUser, testBridge);
             assertTrue(jwtUtil.isTokenValid(token));
         }
 
         @Test
         void isTokenValid_tamperedSignature_returnsFalse() {
-            String token = jwtUtil.generateToken(testUser);
+            String token = jwtUtil.generateToken(testUser, testBridge);
             String tampered = token.substring(0, token.length() - 4) + "xxxx";
             assertFalse(jwtUtil.isTokenValid(tampered));
         }
@@ -134,7 +147,7 @@ public class JwtUtilTest {
                     "YW5vdGhlclRlc3RTZWNyZXRLZXlGb3JVbml0VGVzdGluZ09ubHkxMjM=");
             ReflectionTestUtils.invokeMethod(otherUtil, "init");
 
-            String foreignToken = otherUtil.generateToken(testUser);
+            String foreignToken = otherUtil.generateToken(testUser, testBridge);
             assertFalse(jwtUtil.isTokenValid(foreignToken));
         }
 
@@ -152,13 +165,13 @@ public class JwtUtilTest {
 
         @Test
         void extractUsername_validToken_returnsCorrectUsername() {
-            String token = jwtUtil.generateToken(testUser);
+            String token = jwtUtil.generateToken(testUser, testBridge);
             assertEquals("alice", jwtUtil.extractUsername(token));
         }
 
         @Test
         void extractUsername_validToken_doesNotReturnWrongUsername() {
-            String token = jwtUtil.generateToken(testUser);
+            String token = jwtUtil.generateToken(testUser, testBridge);
             assertNotEquals("bob", jwtUtil.extractUsername(token));
         }
 
@@ -174,16 +187,17 @@ public class JwtUtilTest {
                     "YW5vdGhlclRlc3RTZWNyZXRLZXlGb3JVbml0VGVzdGluZ09ubHkxMjM=");
             ReflectionTestUtils.invokeMethod(otherUtil, "init");
 
-            String foreignToken = otherUtil.generateToken(testUser);
+            String foreignToken = otherUtil.generateToken(testUser, testBridge);
             assertNull(jwtUtil.extractUsername(foreignToken));
         }
 
         // --- extractUserId ---------------------------------------------------
+        // sub claim now holds user.getId().toString(), so extractUserId returns a String
 
         @Test
         void extractUserId_validToken_returnsCorrectId() {
-            String token = jwtUtil.generateToken(testUser);
-            assertEquals(42L, jwtUtil.extractUserId(token));
+            String token = jwtUtil.generateToken(testUser, testBridge);
+            assertEquals("42", jwtUtil.extractUserId(token));
         }
 
         @Test
@@ -195,15 +209,16 @@ public class JwtUtilTest {
 
         @Test
         void extractUserRole_validToken_returnsCorrectRole() {
-            String token = jwtUtil.generateToken(testUser);
+            String token = jwtUtil.generateToken(testUser, testBridge);
             assertEquals("MANAGER", jwtUtil.extractUserRole(token));
         }
 
         @Test
-        void extractUserRole_employeeRole_returnsEmployee() {
-            User employee = createTestUser("bob", 2L, Role.EMPLOYEE, 1L);
-            String token = jwtUtil.generateToken(employee);
-            assertEquals("EMPLOYEE", jwtUtil.extractUserRole(token));
+        void extractUserRole_workerRole_returnsWorker() {
+            User worker = createTestUser("bob", 2L);
+            OrgUserBridge workerBridge = createTestBridge(OrgUserRole.WORKER, 1L);
+            String token = jwtUtil.generateToken(worker, workerBridge);
+            assertEquals("WORKER", jwtUtil.extractUserRole(token));
         }
 
         @Test
@@ -215,7 +230,7 @@ public class JwtUtilTest {
 
         @Test
         void extractUserOrgId_validToken_returnsCorrectOrgId() {
-            String token = jwtUtil.generateToken(testUser);
+            String token = jwtUtil.generateToken(testUser, testBridge);
             assertEquals(7L, jwtUtil.extractUserOrgId(token));
         }
 

@@ -2,7 +2,10 @@ package com.grimni.backend.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.grimni.controller.AuthController;
+import com.grimni.domain.OrgUserBridge;
+import com.grimni.domain.Organization;
 import com.grimni.domain.User;
+import com.grimni.domain.enums.OrgUserRole;
 import com.grimni.dto.LoginRequest;
 import com.grimni.service.RefreshTokenService;
 import com.grimni.service.UserService;
@@ -18,14 +21,17 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseCookie;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 
 import jakarta.servlet.http.Cookie;
 
 import java.time.Duration;
+import java.util.List;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -49,14 +55,27 @@ public class AuthControllerTest {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+    private static final Long TEST_ORG_ID = 10L;
+
     private User testUser;
     private ResponseCookie testCookie;
 
     @BeforeEach
     void setUp() {
         testUser = new User();
-        testUser.setUserId(1L);
+        // User.id is DB-assigned (GenerationType.IDENTITY), no setter — use reflection
+        ReflectionTestUtils.setField(testUser, "id", 1L);
         testUser.setUsername("alice");
+
+        // AuthController.resolveBridge() filters user.getOrganizations() by orgId, so
+        // testUser needs at least one OrgUserBridge with matching orgId for the
+        // login/refresh flows to find a bridge and generate a token.
+        Organization testOrg = new Organization();
+        testOrg.setId(TEST_ORG_ID);
+        OrgUserBridge testBridge = new OrgUserBridge();
+        testBridge.setOrganization(testOrg);
+        testBridge.setUserRole(OrgUserRole.MANAGER);
+        testUser.setOrganizations(List.of(testBridge));
 
         testCookie = ResponseCookie.from("refresh_token", "cookie-plaintext")
                 .httpOnly(true)
@@ -79,10 +98,10 @@ public class AuthControllerTest {
         void login_validCredentials_returns200() throws Exception {
             // Verifies the happy path returns 200 OK when all services succeed
             when(userService.login("alice", "correctpass")).thenReturn(testUser);
-            when(jwtUtil.generateToken(testUser)).thenReturn("jwt-token-abc");
+            when(jwtUtil.generateToken(eq(testUser), any(OrgUserBridge.class))).thenReturn("jwt-token-abc");
             when(refService.createAndStoreRefreshToken(testUser)).thenReturn(testCookie);
 
-            LoginRequest request = new LoginRequest("alice", "correctpass");
+            LoginRequest request = new LoginRequest("alice", "correctpass", TEST_ORG_ID);
 
             mockMvc.perform(post("/auth/login")
                             .contentType(MediaType.APPLICATION_JSON)
@@ -96,10 +115,10 @@ public class AuthControllerTest {
         void login_responseBodyContainsJwt() throws Exception {
             // The JWT is returned in the response body so the frontend can store it in memory
             when(userService.login("alice", "correctpass")).thenReturn(testUser);
-            when(jwtUtil.generateToken(testUser)).thenReturn("jwt-token-abc");
+            when(jwtUtil.generateToken(eq(testUser), any(OrgUserBridge.class))).thenReturn("jwt-token-abc");
             when(refService.createAndStoreRefreshToken(testUser)).thenReturn(testCookie);
 
-            LoginRequest request = new LoginRequest("alice", "correctpass");
+            LoginRequest request = new LoginRequest("alice", "correctpass", TEST_ORG_ID);
 
             mockMvc.perform(post("/auth/login")
                             .contentType(MediaType.APPLICATION_JSON)
@@ -112,10 +131,10 @@ public class AuthControllerTest {
         void login_responseContainsSetCookieHeader() throws Exception {
             // The refresh token is sent as an httpOnly cookie, not in the body
             when(userService.login("alice", "correctpass")).thenReturn(testUser);
-            when(jwtUtil.generateToken(testUser)).thenReturn("jwt-token-abc");
+            when(jwtUtil.generateToken(eq(testUser), any(OrgUserBridge.class))).thenReturn("jwt-token-abc");
             when(refService.createAndStoreRefreshToken(testUser)).thenReturn(testCookie);
 
-            LoginRequest request = new LoginRequest("alice", "correctpass");
+            LoginRequest request = new LoginRequest("alice", "correctpass", TEST_ORG_ID);
 
             mockMvc.perform(post("/auth/login")
                             .contentType(MediaType.APPLICATION_JSON)
@@ -129,10 +148,10 @@ public class AuthControllerTest {
         void login_verifiesUserServiceCalled() throws Exception {
             // Ensures the controller passes request fields to the service correctly
             when(userService.login("alice", "correctpass")).thenReturn(testUser);
-            when(jwtUtil.generateToken(testUser)).thenReturn("jwt-token-abc");
+            when(jwtUtil.generateToken(eq(testUser), any(OrgUserBridge.class))).thenReturn("jwt-token-abc");
             when(refService.createAndStoreRefreshToken(testUser)).thenReturn(testCookie);
 
-            LoginRequest request = new LoginRequest("alice", "correctpass");
+            LoginRequest request = new LoginRequest("alice", "correctpass", TEST_ORG_ID);
 
             mockMvc.perform(post("/auth/login")
                             .contentType(MediaType.APPLICATION_JSON)
@@ -147,10 +166,10 @@ public class AuthControllerTest {
         void login_verifiesRefServiceCalled() throws Exception {
             // Ensures a refresh token is created and stored for the authenticated user
             when(userService.login("alice", "correctpass")).thenReturn(testUser);
-            when(jwtUtil.generateToken(testUser)).thenReturn("jwt-token-abc");
+            when(jwtUtil.generateToken(eq(testUser), any(OrgUserBridge.class))).thenReturn("jwt-token-abc");
             when(refService.createAndStoreRefreshToken(testUser)).thenReturn(testCookie);
 
-            LoginRequest request = new LoginRequest("alice", "correctpass");
+            LoginRequest request = new LoginRequest("alice", "correctpass", TEST_ORG_ID);
 
             mockMvc.perform(post("/auth/login")
                             .contentType(MediaType.APPLICATION_JSON)
@@ -165,17 +184,17 @@ public class AuthControllerTest {
         void login_verifiesJwtUtilCalled() throws Exception {
             // Ensures a JWT is generated for the correct user, not a stale or default one
             when(userService.login("alice", "correctpass")).thenReturn(testUser);
-            when(jwtUtil.generateToken(testUser)).thenReturn("jwt-token-abc");
+            when(jwtUtil.generateToken(eq(testUser), any(OrgUserBridge.class))).thenReturn("jwt-token-abc");
             when(refService.createAndStoreRefreshToken(testUser)).thenReturn(testCookie);
 
-            LoginRequest request = new LoginRequest("alice", "correctpass");
+            LoginRequest request = new LoginRequest("alice", "correctpass", TEST_ORG_ID);
 
             mockMvc.perform(post("/auth/login")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isOk());
 
-            verify(jwtUtil).generateToken(testUser);
+            verify(jwtUtil).generateToken(eq(testUser), any(OrgUserBridge.class));
         }
     }
 
@@ -193,7 +212,7 @@ public class AuthControllerTest {
             when(userService.login("ghost", "pass"))
                     .thenThrow(new IllegalArgumentException("User not found"));
 
-            LoginRequest request = new LoginRequest("ghost", "pass");
+            LoginRequest request = new LoginRequest("ghost", "pass", TEST_ORG_ID);
 
             mockMvc.perform(post("/auth/login")
                             .contentType(MediaType.APPLICATION_JSON)
@@ -208,7 +227,7 @@ public class AuthControllerTest {
             when(userService.login("alice", "wrongpass"))
                     .thenThrow(new IllegalArgumentException("Invalid password"));
 
-            LoginRequest request = new LoginRequest("alice", "wrongpass");
+            LoginRequest request = new LoginRequest("alice", "wrongpass", TEST_ORG_ID);
 
             mockMvc.perform(post("/auth/login")
                             .contentType(MediaType.APPLICATION_JSON)
@@ -223,7 +242,7 @@ public class AuthControllerTest {
             when(userService.login("alice", "wrongpass"))
                     .thenThrow(new IllegalArgumentException("Invalid password"));
 
-            LoginRequest request = new LoginRequest("alice", "wrongpass");
+            LoginRequest request = new LoginRequest("alice", "wrongpass", TEST_ORG_ID);
 
             mockMvc.perform(post("/auth/login")
                             .contentType(MediaType.APPLICATION_JSON)
@@ -238,7 +257,7 @@ public class AuthControllerTest {
             when(userService.login("alice", "wrongpass"))
                     .thenThrow(new IllegalArgumentException("Invalid password"));
 
-            LoginRequest request = new LoginRequest("alice", "wrongpass");
+            LoginRequest request = new LoginRequest("alice", "wrongpass", TEST_ORG_ID);
 
             mockMvc.perform(post("/auth/login")
                             .contentType(MediaType.APPLICATION_JSON)
@@ -255,14 +274,14 @@ public class AuthControllerTest {
             when(userService.login("alice", "wrongpass"))
                     .thenThrow(new IllegalArgumentException("Invalid password"));
 
-            LoginRequest request = new LoginRequest("alice", "wrongpass");
+            LoginRequest request = new LoginRequest("alice", "wrongpass", TEST_ORG_ID);
 
             mockMvc.perform(post("/auth/login")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isUnauthorized());
 
-            verify(jwtUtil, never()).generateToken(any());
+            verify(jwtUtil, never()).generateToken(any(), any());
         }
     }
 
@@ -279,10 +298,12 @@ public class AuthControllerTest {
             // Happy path: valid cookie triggers token rotation and new JWT issuance
             when(refService.getUserByRefreshToken("old-token")).thenReturn(testUser);
             when(refService.rotateRefreshToken(testUser, "old-token")).thenReturn(testCookie);
-            when(jwtUtil.generateToken(testUser)).thenReturn("new-jwt");
+            when(jwtUtil.generateToken(eq(testUser), any(OrgUserBridge.class))).thenReturn("new-jwt");
 
             mockMvc.perform(post("/auth/refresh")
-                            .cookie(new Cookie("refresh_token", "old-token")))
+                            .cookie(new Cookie("refresh_token", "old-token"))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("10"))
                     .andDo(print())
                     .andExpect(status().isOk());
         }
@@ -293,10 +314,12 @@ public class AuthControllerTest {
             // The rotated JWT is returned in the body for the frontend to store
             when(refService.getUserByRefreshToken("old-token")).thenReturn(testUser);
             when(refService.rotateRefreshToken(testUser, "old-token")).thenReturn(testCookie);
-            when(jwtUtil.generateToken(testUser)).thenReturn("new-jwt");
+            when(jwtUtil.generateToken(eq(testUser), any(OrgUserBridge.class))).thenReturn("new-jwt");
 
             mockMvc.perform(post("/auth/refresh")
-                            .cookie(new Cookie("refresh_token", "old-token")))
+                            .cookie(new Cookie("refresh_token", "old-token"))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("10"))
                     .andExpect(content().string("new-jwt"));
         }
 
@@ -306,10 +329,12 @@ public class AuthControllerTest {
             // The old refresh token is replaced; new one is sent via Set-Cookie
             when(refService.getUserByRefreshToken("old-token")).thenReturn(testUser);
             when(refService.rotateRefreshToken(testUser, "old-token")).thenReturn(testCookie);
-            when(jwtUtil.generateToken(testUser)).thenReturn("new-jwt");
+            when(jwtUtil.generateToken(eq(testUser), any(OrgUserBridge.class))).thenReturn("new-jwt");
 
             mockMvc.perform(post("/auth/refresh")
-                            .cookie(new Cookie("refresh_token", "old-token")))
+                            .cookie(new Cookie("refresh_token", "old-token"))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("10"))
                     .andExpect(header().exists("Set-Cookie"))
                     .andExpect(header().string("Set-Cookie", containsString("refresh_token")));
         }
@@ -320,10 +345,12 @@ public class AuthControllerTest {
             // Ensures the controller passes the raw cookie value to the service for lookup
             when(refService.getUserByRefreshToken("old-token")).thenReturn(testUser);
             when(refService.rotateRefreshToken(testUser, "old-token")).thenReturn(testCookie);
-            when(jwtUtil.generateToken(testUser)).thenReturn("new-jwt");
+            when(jwtUtil.generateToken(eq(testUser), any(OrgUserBridge.class))).thenReturn("new-jwt");
 
             mockMvc.perform(post("/auth/refresh")
-                            .cookie(new Cookie("refresh_token", "old-token")))
+                            .cookie(new Cookie("refresh_token", "old-token"))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("10"))
                     .andExpect(status().isOk());
 
             verify(refService).getUserByRefreshToken("old-token");
@@ -335,10 +362,12 @@ public class AuthControllerTest {
             // Rotation must receive both the user and the original cookie for delete + create
             when(refService.getUserByRefreshToken("old-token")).thenReturn(testUser);
             when(refService.rotateRefreshToken(testUser, "old-token")).thenReturn(testCookie);
-            when(jwtUtil.generateToken(testUser)).thenReturn("new-jwt");
+            when(jwtUtil.generateToken(eq(testUser), any(OrgUserBridge.class))).thenReturn("new-jwt");
 
             mockMvc.perform(post("/auth/refresh")
-                            .cookie(new Cookie("refresh_token", "old-token")))
+                            .cookie(new Cookie("refresh_token", "old-token"))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("10"))
                     .andExpect(status().isOk());
 
             verify(refService).rotateRefreshToken(testUser, "old-token");
@@ -350,13 +379,15 @@ public class AuthControllerTest {
             // The new JWT must be issued for the user who owns the refresh token
             when(refService.getUserByRefreshToken("old-token")).thenReturn(testUser);
             when(refService.rotateRefreshToken(testUser, "old-token")).thenReturn(testCookie);
-            when(jwtUtil.generateToken(testUser)).thenReturn("new-jwt");
+            when(jwtUtil.generateToken(eq(testUser), any(OrgUserBridge.class))).thenReturn("new-jwt");
 
             mockMvc.perform(post("/auth/refresh")
-                            .cookie(new Cookie("refresh_token", "old-token")))
+                            .cookie(new Cookie("refresh_token", "old-token"))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("10"))
                     .andExpect(status().isOk());
 
-            verify(jwtUtil).generateToken(testUser);
+            verify(jwtUtil).generateToken(eq(testUser), any(OrgUserBridge.class));
         }
     }
 
@@ -375,7 +406,9 @@ public class AuthControllerTest {
                     .thenThrow(new IllegalArgumentException("Invalid refresh token"));
 
             mockMvc.perform(post("/auth/refresh")
-                            .cookie(new Cookie("refresh_token", "bad-token")))
+                            .cookie(new Cookie("refresh_token", "bad-token"))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("10"))
                     .andExpect(status().isUnauthorized())
                     .andExpect(content().string("Invalid refresh token"));
         }
@@ -385,7 +418,9 @@ public class AuthControllerTest {
         void refresh_noCookie_returns400() throws Exception {
             // Spring throws MissingRequestCookieException before the controller runs,
             // resulting in a 400 Bad Request — no cookie means the request is malformed
-            mockMvc.perform(post("/auth/refresh"))
+            mockMvc.perform(post("/auth/refresh")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("10"))
                     .andExpect(status().isBadRequest());
         }
 
@@ -397,7 +432,9 @@ public class AuthControllerTest {
                     .thenThrow(new IllegalArgumentException("Invalid refresh token"));
 
             mockMvc.perform(post("/auth/refresh")
-                            .cookie(new Cookie("refresh_token", "bad-token")))
+                            .cookie(new Cookie("refresh_token", "bad-token"))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("10"))
                     .andExpect(status().isUnauthorized());
 
             verify(refService, never()).rotateRefreshToken(any(), any());
@@ -411,10 +448,12 @@ public class AuthControllerTest {
                     .thenThrow(new IllegalArgumentException("Invalid refresh token"));
 
             mockMvc.perform(post("/auth/refresh")
-                            .cookie(new Cookie("refresh_token", "bad-token")))
+                            .cookie(new Cookie("refresh_token", "bad-token"))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("10"))
                     .andExpect(status().isUnauthorized());
 
-            verify(jwtUtil, never()).generateToken(any());
+            verify(jwtUtil, never()).generateToken(any(), any());
         }
     }
 

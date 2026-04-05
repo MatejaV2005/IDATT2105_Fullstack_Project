@@ -157,9 +157,10 @@ public class JwtAuthFilterTest {
         }
 
         @Test
-        void validTokenButNullUsername_returns401() throws Exception {
+        void validTokenButNullUserId_returns401() throws Exception {
             when(jwtUtil.isTokenValid(any())).thenReturn(true);
-            when(jwtUtil.extractUsername(any())).thenReturn(null);
+            when(jwtUtil.extractUserId(any())).thenReturn(null);
+            when(jwtUtil.extractUserRole(any())).thenReturn("MANAGER");
 
             MockHttpServletRequest request = new MockHttpServletRequest();
             request.addHeader("Authorization", "Bearer some.valid.token");
@@ -182,7 +183,7 @@ public class JwtAuthFilterTest {
         @Test
         void validToken_returns200() throws Exception {
             when(jwtUtil.isTokenValid(any())).thenReturn(true);
-            when(jwtUtil.extractUsername(any())).thenReturn("alice");
+            when(jwtUtil.extractUserId(any())).thenReturn("1");
             when(jwtUtil.extractUserRole(any())).thenReturn("MANAGER");
 
             MockHttpServletRequest request = new MockHttpServletRequest();
@@ -198,7 +199,7 @@ public class JwtAuthFilterTest {
         @Test
         void validToken_filterChainContinues() throws Exception {
             when(jwtUtil.isTokenValid(any())).thenReturn(true);
-            when(jwtUtil.extractUsername(any())).thenReturn("alice");
+            when(jwtUtil.extractUserId(any())).thenReturn("1");
             when(jwtUtil.extractUserRole(any())).thenReturn("MANAGER");
 
             MockHttpServletRequest request = new MockHttpServletRequest();
@@ -214,7 +215,7 @@ public class JwtAuthFilterTest {
         @Test
         void validToken_securityContextHolderIsPopulated() throws Exception {
             when(jwtUtil.isTokenValid(any())).thenReturn(true);
-            when(jwtUtil.extractUsername(any())).thenReturn("alice");
+            when(jwtUtil.extractUserId(any())).thenReturn("1");
             when(jwtUtil.extractUserRole(any())).thenReturn("MANAGER");
 
             MockHttpServletRequest request = new MockHttpServletRequest();
@@ -230,9 +231,9 @@ public class JwtAuthFilterTest {
         }
 
         @Test
-        void validToken_securityContextHolderContainsCorrectUsername() throws Exception {
+        void validToken_securityContextHolderContainsCorrectUserId() throws Exception {
             when(jwtUtil.isTokenValid(any())).thenReturn(true);
-            when(jwtUtil.extractUsername(any())).thenReturn("alice");
+            when(jwtUtil.extractUserId(any())).thenReturn("1");
             when(jwtUtil.extractUserRole(any())).thenReturn("MANAGER");
 
             MockHttpServletRequest request = new MockHttpServletRequest();
@@ -243,14 +244,14 @@ public class JwtAuthFilterTest {
             jwtAuthFilter.doFilter(request, response, chain);
 
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-            assertEquals("alice", auth.getPrincipal(),
-                    "SecurityContextHolder principal should match the username extracted from the token");
+            assertEquals("1", auth.getPrincipal(),
+                    "SecurityContextHolder principal should match the user ID extracted from the token");
         }
 
         @Test
         void validToken_authenticationIsMarkedAsAuthenticated() throws Exception {
             when(jwtUtil.isTokenValid(any())).thenReturn(true);
-            when(jwtUtil.extractUsername(any())).thenReturn("alice");
+            when(jwtUtil.extractUserId(any())).thenReturn("1");
             when(jwtUtil.extractUserRole(any())).thenReturn("MANAGER");
 
             MockHttpServletRequest request = new MockHttpServletRequest();

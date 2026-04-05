@@ -42,17 +42,17 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 return;
             }
 
-            String username = jwtUtil.extractUsername(jwtToken);
+            String userId = jwtUtil.extractUserId(jwtToken);
             String role = jwtUtil.extractUserRole(jwtToken);
 
-            if (username == null) {
+            if (userId == null || role == null) {
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                logger.error("Could not extract username from token");
+                logger.error("Could not extract user ID or role from token");
                 return;
             }
             
             // Class in spring security that represents an authentication object (in this case user)
-            UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(username, null, List.of(new SimpleGrantedAuthority(role))/* SimpleGrantedAuth wraps the role string so that it can be subsequently used in SecurityConfig as .hasRole() */);
+            UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(userId, null, List.of(new SimpleGrantedAuthority(role))/* SimpleGrantedAuth wraps the role string so that it can be subsequently used in SecurityConfig as .hasRole() */);
             
             // SecurityContextHolder is a global context storage, storing the authenticated entity for use in the filterchain
             SecurityContextHolder.getContext().setAuthentication(authentication);

@@ -14,9 +14,11 @@ public class User extends CreatedAtEntity {
     @Column(name = "password_hash", nullable = false, columnDefinition = "TEXT")
     private String passwordHash;
 
-    @Lob
-    @Column(name = "salt", nullable = false)
-    private byte[] salt;
+    @Column(name = "email", nullable = false, unique = true, columnDefinition = "TEXT")
+    private String email;
+
+    @Column(name = "username", nullable = false, unique = true, columnDefinition = "TEXT")
+    private String username;
 
     @Column(name = "legal_name", nullable = false, columnDefinition = "TEXT")
     private String legalName;
@@ -90,12 +92,20 @@ public class User extends CreatedAtEntity {
         this.passwordHash = passwordHash;
     }
 
-    public byte[] getSalt() {
-        return salt;
+    public String getEmail() {
+        return email;
     }
 
-    public void setSalt(byte[] salt) {
-        this.salt = salt;
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
     }
 
     public String getLegalName() {
