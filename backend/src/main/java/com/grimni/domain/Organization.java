@@ -3,7 +3,7 @@ package com.grimni.domain;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "organizations")
+@Table(name = "organization")
 public class Organization {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

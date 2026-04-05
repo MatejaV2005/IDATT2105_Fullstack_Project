@@ -27,11 +27,10 @@ public class User {
 
     @ManyToOne
     @JoinColumn(name = "orgId")
-
     private Organization organization;
 
     // TODO: Potentially unnecesarry, but can be neet as we can call user.getRefreshTokens() easily
-    @OneToMany(mappedBy = "userId")
+    @OneToMany(mappedBy = "user")
     List<RefreshToken> tokens;
 
     @Enumerated(EnumType.STRING)
