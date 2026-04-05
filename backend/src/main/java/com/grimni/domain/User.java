@@ -69,8 +69,6 @@ public class User extends CreatedAtEntity {
     @OneToMany(mappedBy = "reviewedBy")
     private List<Deviation> reviewedDeviations = new ArrayList<>();
 
-
-
     
 
     public User() {

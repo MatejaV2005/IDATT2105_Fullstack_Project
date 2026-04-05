@@ -6,8 +6,8 @@ import jakarta.persistence.*;
 
 @Entity
 @Table(name = "organization")
-public class Organization extends CreatedAtEntity {
 
+public class Organization extends CreatedAtEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
