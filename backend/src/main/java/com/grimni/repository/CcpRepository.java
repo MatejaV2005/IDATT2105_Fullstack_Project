@@ -2,8 +2,8 @@ package com.grimni.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import com.grimni.domain.Todo;
+import com.grimni.domain.Ccp;
 
-public interface TodoRepository extends JpaRepository<Todo, Long> {
+public interface CcpRepository extends JpaRepository<Ccp, Long> {
 
 }

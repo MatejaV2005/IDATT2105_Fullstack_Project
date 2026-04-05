@@ -1,8 +1,9 @@
 package com.grimni.repository;
 
-import org.springframework.data.repository.CrudRepository;
+
+import org.springframework.data.jpa.repository.JpaRepository;
 
 import com.grimni.domain.PrerequisiteRoutine;
 
-public interface PrerequisiteRoutineRepository extends CrudRepository<PrerequisiteRoutine, Long> {
+public interface PrerequisiteRoutineRepository extends JpaRepository<PrerequisiteRoutine, Long> {
 }

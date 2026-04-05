@@ -1,8 +1,8 @@
 package com.grimni.repository;
 
-import org.springframework.data.repository.CrudRepository;
+import org.springframework.data.jpa.repository.JpaRepository;
 
 import com.grimni.domain.Course;
 
-public interface CourseRepository extends CrudRepository<Course, Long> {
+public interface CourseRepository extends JpaRepository<Course, Long> {
 }

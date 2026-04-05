@@ -1,9 +1,9 @@
 package com.grimni.repository;
 
-import org.springframework.data.repository.CrudRepository;
+import org.springframework.data.jpa.repository.JpaRepository;
 
-import com.grimni.domain.Todo;
+import com.grimni.domain.RefreshToken;
 
-public interface RefreshTokenRepository extends CrudRepository<Todo, Long> {
+public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long> {
 
 }

@@ -1,9 +1,9 @@
 package com.grimni.repository;
 
-import org.springframework.data.repository.CrudRepository;
+import org.springframework.data.jpa.repository.JpaRepository;
 
-import com.grimni.domain.Todo;
+import com.grimni.domain.ProductCategory;
 
-public interface ProductCategoryRepository extends CrudRepository<Todo, Long> {
+public interface ProductCategoryRepository extends JpaRepository<ProductCategory, Long> {
 
 }
