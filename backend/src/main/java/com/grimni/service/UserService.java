@@ -33,7 +33,7 @@ public class UserService {
         }
 
         // Bcrypt automatically generates salt for password, stores salt together in the same string with the hashed password+salt
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
+        user.setPasswordHash(passwordEncoder.encode(user.getPasswordHash()));
         User saved = userRepository.save(user);
         logger.info("User '{}' registered successfully", saved.getUsername());
         return saved;
@@ -47,7 +47,7 @@ public class UserService {
                     return new IllegalArgumentException("User not found");
                 });
 
-        if (!passwordEncoder.matches(password, user.getPassword())) {
+        if (!passwordEncoder.matches(password, user.getPasswordHash())) {
             logger.warn("Login failed: invalid password for user '{}'", username);
             throw new IllegalArgumentException("Invalid password");
         }

@@ -17,6 +17,8 @@ import com.grimni.repository.RefreshTokenRepository;
 import com.grimni.service.RefreshTokenService;
 import com.grimni.util.RefreshTokenUtil;
 
+import org.springframework.test.util.ReflectionTestUtils;
+
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -41,7 +43,8 @@ public class RefreshTokenServiceTest {
     void setUp() {
         testUser = new User();
         testUser.setUsername("alice");
-        testUser.setUserId(1L);
+        // User.id is DB-assigned (GenerationType.IDENTITY), no setter — use reflection
+        ReflectionTestUtils.setField(testUser, "id", 1L);
     }
 
     // -------------------------------------------------------------------------
@@ -58,12 +61,12 @@ public class RefreshTokenServiceTest {
             String hashed = "hashed-token";
             RefreshToken existing = new RefreshToken();
             existing.setUser(testUser);
-            existing.setTokenValue(hashed);
+            existing.setRefreshToken(hashed);
 
             ResponseCookie expectedCookie = ResponseCookie.from("refresh_token", "new-plaintext").build();
 
             when(util.hashToken(incoming)).thenReturn(hashed);
-            when(repository.findByTokenValue(hashed)).thenReturn(Optional.of(existing));
+            when(repository.findByRefreshToken(hashed)).thenReturn(Optional.of(existing));
             when(util.generateRefreshToken()).thenReturn("new-plaintext");
             when(util.hashToken("new-plaintext")).thenReturn("new-hashed");
             when(repository.save(any(RefreshToken.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -73,7 +76,7 @@ public class RefreshTokenServiceTest {
 
             assertNotNull(result);
             verify(util).hashToken(incoming);
-            verify(repository).findByTokenValue(hashed);
+            verify(repository).findByRefreshToken(hashed);
             verify(repository).delete(existing);
             verify(repository).save(any(RefreshToken.class));
         }
@@ -82,7 +85,7 @@ public class RefreshTokenServiceTest {
         @DisplayName("throws IllegalArgumentException when token does not exist in database")
         void rotateRefreshToken_tokenNotFound_throws() {
             when(util.hashToken("unknown-token")).thenReturn("hashed-unknown");
-            when(repository.findByTokenValue("hashed-unknown")).thenReturn(Optional.empty());
+            when(repository.findByRefreshToken("hashed-unknown")).thenReturn(Optional.empty());
 
             IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
                     () -> service.rotateRefreshToken(testUser, "unknown-token"));
@@ -137,8 +140,9 @@ public class RefreshTokenServiceTest {
             RefreshToken saved = captor.getValue();
 
             assertEquals(testUser, saved.getUser());
-            assertEquals(hashed, saved.getTokenValue());
-            assertNotNull(saved.getCreationDate());
+            assertEquals(hashed, saved.getRefreshToken());
+            // createdAt is populated by the DB (@Column insertable=false), not by JPA in-memory.
+            // In a unit test with no persistence, it will be null — assertion removed.
             verify(util).createRefreshTokenCookie(plaintext);
         }
 
@@ -167,23 +171,23 @@ public class RefreshTokenServiceTest {
             String hashed = "hashed-token";
             RefreshToken entity = new RefreshToken();
             entity.setUser(testUser);
-            entity.setTokenValue(hashed);
+            entity.setRefreshToken(hashed);
 
             when(util.hashToken(incoming)).thenReturn(hashed);
-            when(repository.findByTokenValue(hashed)).thenReturn(Optional.of(entity));
+            when(repository.findByRefreshToken(hashed)).thenReturn(Optional.of(entity));
 
             User result = service.getUserByRefreshToken(incoming);
 
             assertEquals(testUser, result);
             verify(util).hashToken(incoming);
-            verify(repository).findByTokenValue(hashed);
+            verify(repository).findByRefreshToken(hashed);
         }
 
         @Test
         @DisplayName("throws IllegalArgumentException when token does not exist in database")
         void getUserByRefreshToken_tokenNotFound_throws() {
             when(util.hashToken("missing-token")).thenReturn("hashed-missing");
-            when(repository.findByTokenValue("hashed-missing")).thenReturn(Optional.empty());
+            when(repository.findByRefreshToken("hashed-missing")).thenReturn(Optional.empty());
 
             IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
                     () -> service.getUserByRefreshToken("missing-token"));

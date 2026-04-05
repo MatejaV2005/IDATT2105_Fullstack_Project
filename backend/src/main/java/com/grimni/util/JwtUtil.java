@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import com.grimni.domain.OrgUserBridge;
 import com.grimni.domain.User;
 
 
@@ -47,15 +48,15 @@ public class JwtUtil {
      * @return a signed JWT string
      */
 
-    public String generateToken(User user) {
+    public String generateToken(User user, OrgUserBridge bridge) {
         Date expiration= new Date(System.currentTimeMillis() + 15 * 60 * 1000); // 15 minute token expiry limit
         
         try {
             String jwt = Jwts.builder()
-            .subject(user.getUsername())
-            .claim("role", user.getRole())
-            .claim("orgId", user.getOrganization().getId())
-            .claim("userId", user.getUserId())
+            .subject(user.getId().toString())
+            .claim("username", user.getUsername())
+            .claim("role", bridge.getUserRole().name())
+            .claim("orgId", bridge.getOrganization().getId())
             .issuedAt(new Date())
             .expiration(expiration)
             .signWith(key)
@@ -90,7 +91,7 @@ public class JwtUtil {
     }
 
     
-    public String extractUsername(String jwtToken) {
+    public String extractUserId(String jwtToken) {
         try {
             if (jwtToken == null || jwtToken.isEmpty()) {
                 logger.error("Error: JWT token is null or empty");
@@ -105,13 +106,13 @@ public class JwtUtil {
             .getSubject();
 
         } catch (JwtException error) {
-            logger.error("Error parsing and extracting username: " + error);
+            logger.error("Error parsing and extracting user id: " + error);
             return null;
         }
     }
 
-    
-    public Long extractUserId(String jwtToken) {
+
+    public String extractUsername(String jwtToken) {
         try {
             if (jwtToken == null || jwtToken.isEmpty()) {
                 logger.error("Error: JWT token is null or empty");
@@ -123,10 +124,10 @@ public class JwtUtil {
             .build()
             .parseSignedClaims(jwtToken)
             .getPayload()
-            .get("userId", Long.class);
+            .get("username", String.class);
 
         } catch (JwtException error) {
-            logger.error("Error parsing and extracting user ID: " + error);
+            logger.error("Error parsing and extracting username: " + error);
             return null;
         }
     }

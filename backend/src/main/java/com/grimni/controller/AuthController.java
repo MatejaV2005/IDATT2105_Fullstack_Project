@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.grimni.domain.OrgUserBridge;
 import com.grimni.domain.User;
 import com.grimni.dto.LoginRequest;
 import com.grimni.service.RefreshTokenService;
@@ -32,20 +33,29 @@ public class AuthController {
         this.refService = refService;
         this.userService = userService;
     }
-    
-    /*MENTION IN JAVADOC, POST and not GET due to REST state idempotency*/ 
+
+    private OrgUserBridge resolveBridge(User user, Long orgId) {
+        return user.getOrganizations().stream()
+                .filter(b -> b.getOrganization().getId().equals(orgId))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "User is not a member of organization " + orgId));
+    }
+
+    /*MENTION IN JAVADOC, POST and not GET due to REST state idempotency*/
 
     // TODO: Redundant DB hit — getUserByRefreshToken and rotateRefreshToken both call
     // validateRefreshToken internally. Refactor using RotationResult record to eliminate
     // duplicate hash + DB lookup in the refresh flow. See RefreshTokenService.rotateRefreshToken.
     @PostMapping("/refresh")
-    public ResponseEntity<?> grantRefreshToken(@CookieValue("refresh_token") String cookie) {
+    public ResponseEntity<?> grantRefreshToken(@CookieValue("refresh_token") String cookie, @RequestBody Long orgId) {
         try {
             logger.info("Refresh token request received");
 
             User user = refService.getUserByRefreshToken(cookie);
             ResponseCookie refToken = refService.rotateRefreshToken(user, cookie);
-            String jwtToken = jwtUtil.generateToken(user);
+            OrgUserBridge bridge = resolveBridge(user, orgId);
+            String jwtToken = jwtUtil.generateToken(user, bridge);
 
             // return status 200 OK + set the rotated refresh token in header and new JWT token in body
             return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, refToken.toString()).body(jwtToken);
@@ -85,7 +95,8 @@ public class AuthController {
         logger.info("Login attempt for user: {}", request.username());
         try {
             User user = userService.login(request.username(), request.password());
-            String jwtToken = jwtUtil.generateToken(user);
+            OrgUserBridge bridge = resolveBridge(user, request.orgId());
+            String jwtToken = jwtUtil.generateToken(user, bridge);
 
             ResponseCookie refToken = refService.createAndStoreRefreshToken(user);
 

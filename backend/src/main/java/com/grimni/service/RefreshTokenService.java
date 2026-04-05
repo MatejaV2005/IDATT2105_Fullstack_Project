@@ -26,7 +26,7 @@ public class RefreshTokenService {
     // 1. Private validation concern, single responsibility: confirm token exists in DB
     private RefreshToken validateRefreshToken(String incomingToken) {
         String hashed = util.hashToken(incomingToken);
-        return repository.findByTokenValue(hashed)
+        return repository.findByRefreshToken(hashed)
                 .orElseThrow(() -> {
                     logger.warn("Refresh token validation failed: token not found in database");
                     return new IllegalArgumentException("Invalid refresh token");
@@ -36,21 +36,21 @@ public class RefreshTokenService {
     // 2. Rotates the refresh token: validates, deletes old, issues new, returns new cookie
     // NOTE: POST and not GET due to REST state idempotency — rotation mutates DB state
     public ResponseCookie rotateRefreshToken(User user, String incomingToken) {
-        logger.info("Rotating refresh token for user: {}", user.getUsername());
+        logger.info("Rotating refresh token for user: {}", user.getLegalName());
         RefreshToken existing = validateRefreshToken(incomingToken); // reuse validation, single DB hit
 
         repository.delete(existing);
 
-        logger.info("Old refresh token deleted for user: {}", user.getUsername());
+        logger.info("Old refresh token deleted for user: {}", user.getLegalName());
         return createAndStoreRefreshToken(user);
     }
 
     // 3. method for deleting tokens upon expiry/logout from database
     // Revokes all refresh tokens for a user (logout / security wipe)
     public void revokeAllTokens(User user) {
-        logger.info("Revoking all refresh tokens for user: {}", user.getUsername());
+        logger.info("Revoking all refresh tokens for user: {}", user.getLegalName());
         repository.deleteByUser(user);
-        logger.info("All refresh tokens revoked for user: {}", user.getUsername());
+        logger.info("All refresh tokens revoked for user: {}", user.getLegalName());
     }
 
     // 4. method for generating the refToken, hashing it and saving it per user in the database
@@ -77,7 +77,7 @@ public class RefreshTokenService {
         if (user == null) {
             throw new IllegalArgumentException("User cannot be null");
         }
-        logger.info("Creating and storing refresh token for user: {}", user.getUsername());
+        logger.info("Creating and storing refresh token for user: {}", user.getLegalName());
         // generate a random 32-byte token from RandomSecure, and hash the token
         String plaintext = util.generateRefreshToken();
         String hashed = util.hashToken(plaintext);
@@ -85,10 +85,10 @@ public class RefreshTokenService {
         // Create a new RefreshToken object for a specific user, set necessary fields and store it in database through JPA repository
         RefreshToken entity = new RefreshToken();
         entity.setUser(user);
-        entity.setTokenValue(hashed);
-        entity.setCreatedAt(new Date());
+        entity.setRefreshToken(hashed);
+        entity.setOrgId(null);
         repository.save(entity);
-        logger.info("Refresh token stored in database for user: {}", user.getUsername());
+        logger.info("Refresh token stored in database for user: {}", user.getLegalName());
 
         // return ResponseCookie object for being used in Http requests
         return util.createRefreshTokenCookie(plaintext);

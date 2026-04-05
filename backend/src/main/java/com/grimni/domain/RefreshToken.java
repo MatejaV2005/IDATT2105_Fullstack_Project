@@ -1,57 +1,53 @@
 package com.grimni.domain;
 
-import java.util.Date;
-
 import jakarta.persistence.*;
 
-@Entity(name="RefreshToken")
-@Table(name="refreshTokens")
-public class RefreshToken {
+@Entity
+@Table(name = "refresh_token")
+public class RefreshToken extends CreatedAtEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long tokenId;
+    private Long id;
 
-    // FK relation between refreshTokens and userIds
-    @ManyToOne
-    @JoinColumn(name = "userId")
+    @Column(name = "refresh_token", columnDefinition = "TEXT")
+    private String refreshToken;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
     private User user;
 
-    private String tokenValue;
-    private Date createdAt;
-    
+    @Column(name = "org_id")
+    private Long orgId;
 
     public RefreshToken() {} // no-args constructor
 
-    public Long getTokenId() {
-        return tokenId;
+    public Long getId() {
+        return this.id;
     }
-
-    public String getTokenValue() {
-        return tokenValue;
+    public String getRefreshToken() {
+        return this.refreshToken;
     }
-
     public User getUser() {
-        return user;
+        return this.user;
     }
 
-    public Date getCreationDate() {
-        return createdAt;
+    public void setId(Long id) {
+        this.id = id;
     }
-
-    public void setTokenId(Long tokenId) {
-        this.tokenId = tokenId;
+    public void setRefreshToken(String refreshToken) {
+        this.refreshToken = refreshToken;
     }
-
     public void setUser(User user) {
         this.user = user;
     }
 
-    public void setTokenValue(String tokenValue) {
-        this.tokenValue = tokenValue;
+    public Long getOrgId() {
+        return orgId;
     }
 
-    public void setCreatedAt(Date createdAt) {
-        this.createdAt = createdAt;
+    public void setOrgId(Long orgId) {
+        this.orgId = orgId;
     }
+
 }

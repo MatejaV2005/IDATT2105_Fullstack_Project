@@ -39,11 +39,11 @@ public class UserServiceTest {
         ReflectionTestUtils.setField(userService, "passwordEncoder", passwordEncoder);
     }
 
-    private User createUser(String username, String email, String password) {
+    private User createUser(String username, String email, String passwordHash) {
         User user = new User();
         user.setUsername(username);
         user.setEmail(email);
-        user.setPassword(password);
+        user.setPasswordHash(passwordHash);
         return user;
     }
 
@@ -80,8 +80,8 @@ public class UserServiceTest {
 
             User saved = userService.register(user);
 
-            assertEquals("$2a$hashed", saved.getPassword());
-            assertNotEquals("mypassword", saved.getPassword());
+            assertEquals("$2a$hashed", saved.getPasswordHash());
+            assertNotEquals("mypassword", saved.getPasswordHash());
             verify(passwordEncoder).encode("mypassword");
         }
 
@@ -161,14 +161,14 @@ public class UserServiceTest {
         @Test
         void findUserById_success_returnsUser() {
             User user = createUser("alice", "alice@test.com", "pass");
-            user.setUserId(1L);
+            ReflectionTestUtils.setField(user, "id", 1L);
             when(userRepository.findById(1L)).thenReturn(Optional.of(user));
 
             User result = userService.findUserById(1L);
 
             assertNotNull(result);
             assertEquals("alice", result.getUsername());
-            assertEquals(1L, result.getUserId());
+            assertEquals(1L, result.getId());
         }
 
         @Test
