@@ -33,7 +33,7 @@ public class JwtUtilTest {
     private static User createTestUser(String username, Long userId) {
         User user = new User();
         ReflectionTestUtils.setField(user, "id", userId);
-        user.setUsername(username);
+        user.setLegalName(username); // ? Wallah
         return user;
     }
 

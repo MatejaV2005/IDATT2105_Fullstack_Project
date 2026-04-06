@@ -65,6 +65,9 @@ public class Organization extends CreatedAtEntity {
 
     @OneToMany(mappedBy = "organization")
     private List<Deviation> deviations = new ArrayList<>();
+
+    @OneToMany(mappedBy = "organization")
+    private List<Certificate> certificates = new ArrayList<>();
     
     public Organization() {
     }
@@ -219,6 +222,14 @@ public class Organization extends CreatedAtEntity {
 
     public void setDeviations(List<Deviation> deviations) {
         this.deviations = deviations;
+    }
+
+    public List<Certificate> getCertificates() {
+        return this.certificates;
+    }
+    
+    public void setCertificates(List<Certificate> certificates) {
+        this.certificates = certificates;
     }
 
 }
