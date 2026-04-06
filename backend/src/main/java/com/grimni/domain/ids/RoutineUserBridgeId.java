@@ -11,6 +11,7 @@ public class RoutineUserBridgeId implements Serializable {
     private Long routineId;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "user_role")
     private RoutineUserRole userRole;
 
     public RoutineUserBridgeId() {}
@@ -18,6 +19,14 @@ public class RoutineUserBridgeId implements Serializable {
     public RoutineUserBridgeId(Long userId, Long routineId, RoutineUserRole userRole) {
         this.userId = userId;
         this.routineId = routineId;
+        this.userRole = userRole;
+    }
+
+    public RoutineUserRole getUserRole() {
+        return userRole;
+    }
+
+    public void setUserRole(RoutineUserRole userRole) {
         this.userRole = userRole;
     }
 

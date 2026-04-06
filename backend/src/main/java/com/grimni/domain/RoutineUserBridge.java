@@ -9,7 +9,7 @@ import jakarta.persistence.*;
 public class RoutineUserBridge extends CreatedAtEntity {
 
     @EmbeddedId
-    private RoutineUserBridgeId id;
+    private RoutineUserBridgeId id; // Has user_role as a part of composite keys
 
     @ManyToOne(fetch = FetchType.LAZY)
     @MapsId("userId")
@@ -21,10 +21,6 @@ public class RoutineUserBridge extends CreatedAtEntity {
     @JoinColumn(name = "routine_id")
     private PrerequisiteRoutine routine;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "user_role", nullable = false, insertable = false, updatable = false)
-    private RoutineUserRole userRole;
-    
     public RoutineUserBridge() {
     }
 
@@ -53,11 +49,14 @@ public class RoutineUserBridge extends CreatedAtEntity {
     }
 
     public RoutineUserRole getUserRole() {
-        return userRole;
+        return id != null ? id.getUserRole() : null;
     }
 
     public void setUserRole(RoutineUserRole userRole) {
-        this.userRole = userRole;
+        if (id == null) {
+            id = new RoutineUserBridgeId();
+        }
+        id.setUserRole(userRole);
     }
 
 }

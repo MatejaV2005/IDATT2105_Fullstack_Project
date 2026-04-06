@@ -11,6 +11,7 @@ public class CcpUserBridgeId implements Serializable {
     private Long ccpId;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "user_role")
     private RoutineUserRole userRole;
 
     public CcpUserBridgeId() {}
@@ -18,6 +19,14 @@ public class CcpUserBridgeId implements Serializable {
     public CcpUserBridgeId(Long userId, Long ccpId, RoutineUserRole userRole) {
         this.userId = userId;
         this.ccpId = ccpId;
+        this.userRole = userRole;
+    }
+
+    public RoutineUserRole getUserRole() {
+        return userRole;
+    }
+
+    public void setUserRole(RoutineUserRole userRole) {
         this.userRole = userRole;
     }
 

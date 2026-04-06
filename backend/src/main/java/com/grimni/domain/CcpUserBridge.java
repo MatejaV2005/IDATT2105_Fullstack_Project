@@ -21,10 +21,6 @@ public class CcpUserBridge extends CreatedAtEntity {
     @JoinColumn(name = "ccp_id")
     private Ccp ccp;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "user_role", nullable = false, insertable = false, updatable = false)
-    private RoutineUserRole userRole;
-    
     public CcpUserBridge() {
     }
 
@@ -53,11 +49,14 @@ public class CcpUserBridge extends CreatedAtEntity {
     }
 
     public RoutineUserRole getUserRole() {
-        return userRole;
+        return id != null ? id.getUserRole() : null;
     }
 
     public void setUserRole(RoutineUserRole userRole) {
-        this.userRole = userRole;
+        if (id == null) {
+            id = new CcpUserBridgeId();
+        }
+        id.setUserRole(userRole);
     }
 
 }
