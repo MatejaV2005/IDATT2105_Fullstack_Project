@@ -7,6 +7,9 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+
+import com.grimni.security.JwtUserPrinciple;
+
 import org.springframework.lang.NonNull;
 
 import jakarta.servlet.FilterChain;
@@ -42,17 +45,27 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 return;
             }
 
-            String userId = jwtUtil.extractUserId(jwtToken);
+            
+            Long userId = jwtUtil.extractUserId(jwtToken);
             String role = jwtUtil.extractUserRole(jwtToken);
+            String username = jwtUtil.extractUsername(jwtToken);
+            Long orgId = jwtUtil.extractUserOrgId(jwtToken);
 
-            if (userId == null || role == null) {
+            if (userId == null || role == null || username == null || orgId == null) {
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                logger.error("Could not extract user ID or role from token");
+                logger.error("Missing required claims in JWT token");
                 return;
             }
-            
+
+            JwtUserPrinciple principle = new JwtUserPrinciple(
+                userId,
+                orgId,
+                username,
+                role
+            );
+
             // Class in spring security that represents an authentication object (in this case user)
-            UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(userId, null, List.of(new SimpleGrantedAuthority(role))/* SimpleGrantedAuth wraps the role string so that it can be subsequently used in SecurityConfig as .hasRole() */);
+            UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(principle, null, List.of(new SimpleGrantedAuthority(role))/* SimpleGrantedAuth wraps the role string so that it can be subsequently used in SecurityConfig as .hasAuthority() */);
             
             // SecurityContextHolder is a global context storage, storing the authenticated entity for use in the filterchain
             SecurityContextHolder.getContext().setAuthentication(authentication);

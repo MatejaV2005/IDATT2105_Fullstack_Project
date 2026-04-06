@@ -6,6 +6,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -15,6 +16,7 @@ import com.grimni.util.JwtAuthFilter;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 public class SecurityConfig {
     private final JwtAuthFilter jwtAuthFilter;
 
@@ -32,9 +34,6 @@ public class SecurityConfig {
         // expose endpoint /auth/login - /auth/register - /auth/refresh - /health, as available to all, but any other requests to other endpoints require authentication
         http.authorizeHttpRequests(auth -> auth
                 .requestMatchers("/auth/login", "/auth/register", "/auth/refresh", "/health").permitAll() // for this url endpoint, all requests are permitted
-                .requestMatchers("/admin/**").hasAuthority("ADMIN") // allow /admin endpoints for users with role admin
-                .requestMatchers("/manager/**").hasAuthority("MANAGER")
-                .requestMatchers("/employee/**").hasAuthority("EMPLOYEE")
                 .anyRequest().authenticated()); // to any other requests to endpoints, authentication is needed
 
         // since SecurityConfig is initially run before Server Dispatchlet, it blocks due to CORS restriction, therefore we have

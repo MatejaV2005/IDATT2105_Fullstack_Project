@@ -39,20 +39,20 @@ public class UserService {
         return saved;
     }
 
-    public User login(String username, String password) {
-        logger.info("Login attempt for user: {}", username);
-        User user = userRepository.findByUsername(username)
+    public User login(String email, String password) {
+        logger.info("Login attempt for email: {}", email);
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> {
-                    logger.warn("Login failed: user '{}' not found", username);
+                    logger.warn("Login failed: email '{}' not found", email);
                     return new IllegalArgumentException("User not found");
                 });
 
         if (!passwordEncoder.matches(password, user.getPasswordHash())) {
-            logger.warn("Login failed: invalid password for user '{}'", username);
+            logger.warn("Login failed: invalid password for email '{}'", email);
             throw new IllegalArgumentException("Invalid password");
         }
 
-        logger.info("User '{}' logged in successfully", username);
+        logger.info("User '{}' logged in successfully", user.getUsername());
         return user;
     }
 

@@ -92,19 +92,19 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<?> loginUser(@RequestBody LoginRequest request) {
-        logger.info("Login attempt for user: {}", request.username());
+        logger.info("Login attempt for user: {}", request.email());
         try {
-            User user = userService.login(request.username(), request.password());
+            User user = userService.login(request.email(), request.password());
             OrgUserBridge bridge = resolveBridge(user, request.orgId());
             String jwtToken = jwtUtil.generateToken(user, bridge);
 
             ResponseCookie refToken = refService.createAndStoreRefreshToken(user);
 
-            logger.info("Login successful for user: {}", request.username());
+            logger.info("Login successful for user: {}", request.email());
             return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, refToken.toString()).body(jwtToken);
 
         } catch(Exception error) {
-            logger.warn("Login failed for user '{}': {}", request.username(), error.getMessage());
+            logger.warn("Login failed for user '{}': {}", request.email(), error.getMessage());
             return ResponseEntity.status(401).body(error.getMessage());
         }
     } 
