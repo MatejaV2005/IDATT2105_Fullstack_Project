@@ -22,11 +22,8 @@ public class UserService {
     }
 
     public User register(User user) {
-        logger.info("Attempting to register user: {}", user.getLegalName()); // ? Wallah
-        if (userRepository.findByLegalName(user.getLegalName()).isPresent()) { // ? Wallah
-            logger.warn("Registration failed: username '{}' already exists", user.getLegalName()); // ? Wallah
-            throw new IllegalArgumentException("Username already exists");
-        }
+        logger.info("Attempting to register user: {}", user.getEmail());
+
         if (userRepository.findByEmail(user.getEmail()).isPresent()) {
             logger.warn("Registration failed: email '{}' already exists", user.getEmail());
             throw new IllegalArgumentException("Email already exists");
@@ -39,20 +36,20 @@ public class UserService {
         return saved;
     }
 
-    public User login(String username, String password) {
-        logger.info("Login attempt for user: {}", username);
-        User user = userRepository.findByLegalName(username)
+    public User login(String email, String password) {
+        logger.info("Login attempt for user: {}", email);
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> {
-                    logger.warn("Login failed: user '{}' not found", username);
+                    logger.warn("Login failed: user '{}' not found", email);
                     return new IllegalArgumentException("User not found");
                 });
 
         if (!passwordEncoder.matches(password, user.getPasswordData())) {  // ? Wallah
-            logger.warn("Login failed: invalid password for user '{}'", username);
+            logger.warn("Login failed: invalid password for user '{}'", email);
             throw new IllegalArgumentException("Invalid password");
         }
 
-        logger.info("User '{}' logged in successfully", username);
+        logger.info("User '{}' logged in successfully", email);
         return user;
     }
 
