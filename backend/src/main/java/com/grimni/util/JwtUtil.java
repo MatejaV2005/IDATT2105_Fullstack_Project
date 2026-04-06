@@ -54,7 +54,7 @@ public class JwtUtil {
         try {
             String jwt = Jwts.builder()
             .subject(user.getId().toString())
-            .claim("username", user.getUsername())
+            .claim("username", user.getLegalName()) // ? Wallah
             .claim("role", bridge.getUserRole().name())
             .claim("orgId", bridge.getOrganization().getId())
             .issuedAt(new Date())

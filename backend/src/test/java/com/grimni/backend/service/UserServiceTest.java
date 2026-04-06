@@ -41,9 +41,9 @@ public class UserServiceTest {
 
     private User createUser(String username, String email, String passwordHash) {
         User user = new User();
-        user.setUsername(username);
+        user.setLegalName(username); // ? Wallah
         user.setEmail(email);
-        user.setPasswordHash(passwordHash);
+        user.setPasswordData(passwordHash); // ? Wallah
         return user;
     }
 
@@ -65,7 +65,7 @@ public class UserServiceTest {
             User saved = userService.register(user);
 
             assertNotNull(saved);
-            assertEquals("alice", saved.getUsername());
+            assertEquals("alice", saved.getLegalName()); // ? Wallah
             verify(userRepository).save(user);
         }
 
@@ -80,8 +80,8 @@ public class UserServiceTest {
 
             User saved = userService.register(user);
 
-            assertEquals("$2a$hashed", saved.getPasswordHash());
-            assertNotEquals("mypassword", saved.getPasswordHash());
+            assertEquals("$2a$hashed", saved.getPasswordData()); // ? Wallah
+            assertNotEquals("mypassword", saved.getPasswordData()); // ? Wallah
             verify(passwordEncoder).encode("mypassword");
         }
 
@@ -126,7 +126,7 @@ public class UserServiceTest {
             User result = userService.login("alice", "correctpass");
 
             assertNotNull(result);
-            assertEquals("alice", result.getUsername());
+            assertEquals("alice", result.getLegalName()); // ? Wallah
         }
 
         @Test
@@ -167,7 +167,7 @@ public class UserServiceTest {
             User result = userService.findUserById(1L);
 
             assertNotNull(result);
-            assertEquals("alice", result.getUsername());
+            assertEquals("alice", result.getLegalName()); // ? Wallah
             assertEquals(1L, result.getId());
         }
 

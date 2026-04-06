@@ -11,20 +11,20 @@ public class User extends CreatedAtEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "password_hash", nullable = false, columnDefinition = "TEXT")
-    private String passwordHash;
-
-    @Column(name = "email", nullable = false, unique = true, columnDefinition = "TEXT")
-    private String email;
-
-    @Column(name = "username", nullable = false, unique = true, columnDefinition = "TEXT")
-    private String username;
+    @Column(name = "password_data", nullable = false, columnDefinition = "TEXT")
+    private String passwordData;
 
     @Column(name = "legal_name", nullable = false, columnDefinition = "TEXT")
     private String legalName;
 
+    @Column(name = "email", nullable = false, columnDefinition = "TEXT", unique = true)
+    private String email;
+
     @OneToMany(mappedBy = "user")
     private List<RefreshToken> refreshTokens = new ArrayList<>();
+
+    @OneToMany(mappedBy = "user")
+    private List<Certificates> certificates = new ArrayList<>();
 
     @OneToMany(mappedBy = "assignedTo")
     private List<Todo> assignedTodos = new ArrayList<>();
@@ -71,8 +71,6 @@ public class User extends CreatedAtEntity {
     @OneToMany(mappedBy = "reviewedBy")
     private List<Deviation> reviewedDeviations = new ArrayList<>();
 
-    
-
     public User() {
     }
 
@@ -84,28 +82,12 @@ public class User extends CreatedAtEntity {
         this.id = id;
     }
 
-    public String getPasswordHash() {
-        return passwordHash;
+    public String getPasswordData() {
+        return passwordData;
     }
 
-    public void setPasswordHash(String passwordHash) {
-        this.passwordHash = passwordHash;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public String getUsername() {
-        return username;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
+    public void setPasswordData(String passwordData) {
+        this.passwordData = passwordData;
     }
 
     public String getLegalName() {
@@ -114,6 +96,14 @@ public class User extends CreatedAtEntity {
 
     public void setLegalName(String legalName) {
         this.legalName = legalName;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
     }
 
     public List<RefreshToken> getRefreshTokens() {
@@ -242,5 +232,13 @@ public class User extends CreatedAtEntity {
 
     public void setReviewedDeviations(List<Deviation> reviewedDeviations) {
         this.reviewedDeviations = reviewedDeviations;
+    }
+
+    public List<Certificates> getCertificates() {
+        return this.certificates;
+    }
+    
+    public void setCertificates(List<Certificates> certificates) {
+        this.certificates = certificates;
     }
 }

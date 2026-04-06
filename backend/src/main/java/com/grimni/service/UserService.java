@@ -22,9 +22,9 @@ public class UserService {
     }
 
     public User register(User user) {
-        logger.info("Attempting to register user: {}", user.getUsername());
-        if (userRepository.findByUsername(user.getUsername()).isPresent()) {
-            logger.warn("Registration failed: username '{}' already exists", user.getUsername());
+        logger.info("Attempting to register user: {}", user.getLegalName()); // ? Wallah
+        if (userRepository.findByUsername(user.getLegalName()).isPresent()) { // ? Wallah
+            logger.warn("Registration failed: username '{}' already exists", user.getLegalName()); // ? Wallah
             throw new IllegalArgumentException("Username already exists");
         }
         if (userRepository.findByEmail(user.getEmail()).isPresent()) {
@@ -33,9 +33,9 @@ public class UserService {
         }
 
         // Bcrypt automatically generates salt for password, stores salt together in the same string with the hashed password+salt
-        user.setPasswordHash(passwordEncoder.encode(user.getPasswordHash()));
+        user.setPasswordData(passwordEncoder.encode(user.getPasswordData())); // ? Wallah
         User saved = userRepository.save(user);
-        logger.info("User '{}' registered successfully", saved.getUsername());
+        logger.info("User '{}' registered successfully", saved.getLegalName());  // ? Wallah
         return saved;
     }
 
@@ -47,7 +47,7 @@ public class UserService {
                     return new IllegalArgumentException("User not found");
                 });
 
-        if (!passwordEncoder.matches(password, user.getPasswordHash())) {
+        if (!passwordEncoder.matches(password, user.getPasswordData())) {  // ? Wallah
             logger.warn("Login failed: invalid password for user '{}'", username);
             throw new IllegalArgumentException("Invalid password");
         }
@@ -60,9 +60,9 @@ public class UserService {
         if (user == null) {
             throw new IllegalArgumentException("User cannot be null");
         }
-        logger.info("Logging out user: {}", user.getUsername());
+        logger.info("Logging out user: {}", user.getLegalName()); // ? Wallah
         refreshTokenService.revokeAllTokens(user);
-        logger.info("User '{}' logged out successfully", user.getUsername());
+        logger.info("User '{}' logged out successfully", user.getLegalName()); // ? Wallah
     }
 
     public User findUserById(Long id) {

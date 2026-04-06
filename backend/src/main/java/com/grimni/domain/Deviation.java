@@ -2,6 +2,7 @@ package com.grimni.domain;
 
 import java.time.LocalDateTime;
 
+import com.grimni.domain.enums.DeviationCategory;
 import com.grimni.domain.enums.ReviewStatus;
 import jakarta.persistence.*;
 
@@ -29,6 +30,10 @@ public class Deviation extends CreatedAtEntity {
     @JoinColumn(name = "reported_by")
     private User reportedBy;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "category", nullable = false)
+    private DeviationCategory category = DeviationCategory.OTHER;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "reviewed_by")
     private User reviewedBy;
@@ -54,7 +59,7 @@ public class Deviation extends CreatedAtEntity {
 
     @Column(name = "preventative_measure_actually_taken", nullable = false, columnDefinition = "TEXT")
     private String preventativeMeasureActuallyTaken;
-    
+
     public Deviation() {
     }
 
@@ -96,6 +101,14 @@ public class Deviation extends CreatedAtEntity {
 
     public void setReportedBy(User reportedBy) {
         this.reportedBy = reportedBy;
+    }
+
+    public DeviationCategory getCategory() {
+        return category;
+    }
+
+    public void setCategory(DeviationCategory category) {
+        this.category = category;
     }
 
     public User getReviewedBy() {
@@ -161,5 +174,4 @@ public class Deviation extends CreatedAtEntity {
     public void setPreventativeMeasureActuallyTaken(String preventativeMeasureActuallyTaken) {
         this.preventativeMeasureActuallyTaken = preventativeMeasureActuallyTaken;
     }
-
 }
