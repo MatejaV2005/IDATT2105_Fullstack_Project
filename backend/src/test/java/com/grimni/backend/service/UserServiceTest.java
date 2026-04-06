@@ -57,7 +57,7 @@ public class UserServiceTest {
         void register_success_returnsSavedUser() {
             User user = createUser("alice", "alice@test.com", "plaintext");
 
-            when(userRepository.findByUsername("alice")).thenReturn(Optional.empty());
+            when(userRepository.findByLegalName("alice")).thenReturn(Optional.empty());
             when(userRepository.findByEmail("alice@test.com")).thenReturn(Optional.empty());
             when(passwordEncoder.encode("plaintext")).thenReturn("$2a$hashed");
             when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -73,7 +73,7 @@ public class UserServiceTest {
         void register_passwordIsHashedBeforeSaving() {
             User user = createUser("bob", "bob@test.com", "mypassword");
 
-            when(userRepository.findByUsername("bob")).thenReturn(Optional.empty());
+            when(userRepository.findByLegalName("bob")).thenReturn(Optional.empty());
             when(userRepository.findByEmail("bob@test.com")).thenReturn(Optional.empty());
             when(passwordEncoder.encode("mypassword")).thenReturn("$2a$hashed");
             when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -88,7 +88,7 @@ public class UserServiceTest {
         @Test
         void register_failsWhenUsernameAlreadyExists() {
             User user = createUser("alice", "alice@test.com", "pass");
-            when(userRepository.findByUsername("alice")).thenReturn(Optional.of(new User()));
+            when(userRepository.findByLegalName("alice")).thenReturn(Optional.of(new User()));
 
             IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
                     () -> userService.register(user));
@@ -100,7 +100,7 @@ public class UserServiceTest {
         @Test
         void register_failsWhenEmailAlreadyExists() {
             User user = createUser("charlie", "taken@test.com", "pass");
-            when(userRepository.findByUsername("charlie")).thenReturn(Optional.empty());
+            when(userRepository.findByLegalName("charlie")).thenReturn(Optional.empty());
             when(userRepository.findByEmail("taken@test.com")).thenReturn(Optional.of(new User()));
 
             IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
@@ -120,7 +120,7 @@ public class UserServiceTest {
         @Test
         void login_success_returnsUser() {
             User stored = createUser("alice", "alice@test.com", "$2a$hashed");
-            when(userRepository.findByUsername("alice")).thenReturn(Optional.of(stored));
+            when(userRepository.findByLegalName("alice")).thenReturn(Optional.of(stored));
             when(passwordEncoder.matches("correctpass", "$2a$hashed")).thenReturn(true);
 
             User result = userService.login("alice", "correctpass");
@@ -131,7 +131,7 @@ public class UserServiceTest {
 
         @Test
         void login_failsWhenUsernameNotFound() {
-            when(userRepository.findByUsername("ghost")).thenReturn(Optional.empty());
+            when(userRepository.findByLegalName("ghost")).thenReturn(Optional.empty());
 
             IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
                     () -> userService.login("ghost", "pass"));
@@ -142,7 +142,7 @@ public class UserServiceTest {
         @Test
         void login_failsWhenPasswordIsIncorrect() {
             User stored = createUser("alice", "alice@test.com", "$2a$hashed");
-            when(userRepository.findByUsername("alice")).thenReturn(Optional.of(stored));
+            when(userRepository.findByLegalName("alice")).thenReturn(Optional.of(stored));
             when(passwordEncoder.matches("wrongpass", "$2a$hashed")).thenReturn(false);
 
             IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,

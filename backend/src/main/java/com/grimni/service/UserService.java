@@ -23,7 +23,7 @@ public class UserService {
 
     public User register(User user) {
         logger.info("Attempting to register user: {}", user.getLegalName()); // ? Wallah
-        if (userRepository.findByUsername(user.getLegalName()).isPresent()) { // ? Wallah
+        if (userRepository.findByLegalName(user.getLegalName()).isPresent()) { // ? Wallah
             logger.warn("Registration failed: username '{}' already exists", user.getLegalName()); // ? Wallah
             throw new IllegalArgumentException("Username already exists");
         }
@@ -41,7 +41,7 @@ public class UserService {
 
     public User login(String username, String password) {
         logger.info("Login attempt for user: {}", username);
-        User user = userRepository.findByUsername(username)
+        User user = userRepository.findByLegalName(username)
                 .orElseThrow(() -> {
                     logger.warn("Login failed: user '{}' not found", username);
                     return new IllegalArgumentException("User not found");
