@@ -31,7 +31,7 @@ CREATE TABLE users ( -- The users of the system
     id INT AUTO_INCREMENT PRIMARY KEY,
     password_data TEXT NOT NULL,
     legal_name TEXT NOT NULL,
-    email TEXT NOT NULL UNIQUE,
+    email VARCHAR(255) NOT NULL UNIQUE,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 

@@ -17,14 +17,14 @@ public class User extends CreatedAtEntity {
     @Column(name = "legal_name", nullable = false, columnDefinition = "TEXT")
     private String legalName;
 
-    @Column(name = "email", nullable = false, columnDefinition = "TEXT", unique = true)
+    @Column(name = "email", nullable = false, unique = true, length = 255)
     private String email;
 
     @OneToMany(mappedBy = "user")
     private List<RefreshToken> refreshTokens = new ArrayList<>();
 
     @OneToMany(mappedBy = "user")
-    private List<Certificates> certificates = new ArrayList<>();
+    private List<Certificate> certificates = new ArrayList<>();
 
     @OneToMany(mappedBy = "assignedTo")
     private List<Todo> assignedTodos = new ArrayList<>();
@@ -234,11 +234,11 @@ public class User extends CreatedAtEntity {
         this.reviewedDeviations = reviewedDeviations;
     }
 
-    public List<Certificates> getCertificates() {
+    public List<Certificate> getCertificates() {
         return this.certificates;
     }
     
-    public void setCertificates(List<Certificates> certificates) {
+    public void setCertificates(List<Certificate> certificates) {
         this.certificates = certificates;
     }
 }
