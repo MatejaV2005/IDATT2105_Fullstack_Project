@@ -41,14 +41,16 @@ public class JwtUtil {
 
         try {
             String jwt = Jwts.builder()
-                .subject(user.getId().toString())
-                .claim("username", user.getUsername())
-                .claim("role", bridge.getUserRole().name())
-                .claim("orgId", bridge.getOrganization().getId())
-                .issuedAt(new Date())
-                .expiration(expiration)
-                .signWith(key)
-                .compact();
+            .subject(user.getId().toString())
+            .claim("legalName", user.getLegalName()) 
+            .claim("role", bridge.getUserRole().name())
+            .claim("orgId", bridge.getOrganization().getId())
+            .issuedAt(new Date())
+            .expiration(expiration)
+            .signWith(key)
+            .compact();
+            
+            logger.info("Succesfully generated jwt token");
 
             logger.info("Successfully generated JWT token");
             return jwt;
@@ -84,8 +86,8 @@ public class JwtUtil {
         return Long.parseLong(extractAllClaims(jwtToken).getSubject());
     }
 
-    public String extractUsername(String jwtToken) {
-        return extractAllClaims(jwtToken).get("username", String.class);
+    public String extractLegalName(String jwtToken) {
+        return extractAllClaims(jwtToken).get("legalName", String.class);
     }
 
     public String extractUserRole(String jwtToken) {

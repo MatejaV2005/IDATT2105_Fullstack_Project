@@ -65,7 +65,7 @@ public class AuthControllerTest {
         testUser = new User();
         // User.id is DB-assigned (GenerationType.IDENTITY), no setter — use reflection
         ReflectionTestUtils.setField(testUser, "id", 1L);
-        testUser.setUsername("alice");
+        testUser.setLegalName("alice"); // ? Wallah
 
         // AuthController.resolveBridge() filters user.getOrganizations() by orgId, so
         // testUser needs at least one OrgUserBridge with matching orgId for the

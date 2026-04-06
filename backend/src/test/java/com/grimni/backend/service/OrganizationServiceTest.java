@@ -49,7 +49,7 @@ public class OrganizationServiceTest {
     @BeforeEach
     void setUp() {
         testUser = new User();
-        testUser.setUsername("alice");
+        testUser.setLegalName("alice");
         testUser.setEmail("alice@test.com");
         ReflectionTestUtils.setField(testUser, "id", 1L);
     }

@@ -28,7 +28,7 @@ public class JwtUtilTest {
     private static User createTestUser(String username, Long userId) {
         User user = new User();
         ReflectionTestUtils.setField(user, "id", userId);
-        user.setUsername(username);
+        user.setLegalName(username); 
         return user;
     }
 
@@ -163,18 +163,18 @@ public class JwtUtilTest {
         @Test
         void extractUsername_validToken_returnsCorrectUsername() {
             String token = jwtUtil.generateToken(testUser, testBridge);
-            assertEquals("alice", jwtUtil.extractUsername(token));
+            assertEquals("alice", jwtUtil.extractLegalName(token));
         }
 
         @Test
         void extractUsername_validToken_doesNotReturnWrongUsername() {
             String token = jwtUtil.generateToken(testUser, testBridge);
-            assertNotEquals("bob", jwtUtil.extractUsername(token));
+            assertNotEquals("bob", jwtUtil.extractLegalName(token));
         }
 
         @Test
         void extractUsername_invalidToken_throwsJwtException() {
-            assertThrows(JwtException.class, () -> jwtUtil.extractUsername("invalid.token.string"));
+            assertThrows(JwtException.class, () -> jwtUtil.extractLegalName("invalid.token.string"));
         }
 
         @Test
@@ -185,7 +185,7 @@ public class JwtUtilTest {
             ReflectionTestUtils.invokeMethod(otherUtil, "init");
 
             String foreignToken = otherUtil.generateToken(testUser, testBridge);
-            assertThrows(JwtException.class, () -> jwtUtil.extractUsername(foreignToken));
+            assertThrows(JwtException.class, () -> jwtUtil.extractLegalName(foreignToken));
         }
 
         // --- extractUserId ---------------------------------------------------

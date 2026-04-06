@@ -22,6 +22,14 @@ public class CcpUserBridgeId implements Serializable {
         this.userRole = userRole;
     }
 
+    public RoutineUserRole getUserRole() {
+        return userRole;
+    }
+
+    public void setUserRole(RoutineUserRole userRole) {
+        this.userRole = userRole;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

@@ -42,7 +42,7 @@ public class RefreshTokenServiceTest {
     @BeforeEach
     void setUp() {
         testUser = new User();
-        testUser.setUsername("alice");
+        testUser.setLegalName("alice"); // ? Wallah
         // User.id is DB-assigned (GenerationType.IDENTITY), no setter — use reflection
         ReflectionTestUtils.setField(testUser, "id", 1L);
     }

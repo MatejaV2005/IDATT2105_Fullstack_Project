@@ -22,37 +22,34 @@ public class UserService {
     }
 
     public User register(User user) {
-        logger.info("Attempting to register user: {}", user.getUsername());
-        if (userRepository.findByUsername(user.getUsername()).isPresent()) {
-            logger.warn("Registration failed: username '{}' already exists", user.getUsername());
-            throw new IllegalArgumentException("Username already exists");
-        }
+        logger.info("Attempting to register user: {}", user.getEmail());
+
         if (userRepository.findByEmail(user.getEmail()).isPresent()) {
             logger.warn("Registration failed: email '{}' already exists", user.getEmail());
             throw new IllegalArgumentException("Email already exists");
         }
 
         // Bcrypt automatically generates salt for password, stores salt together in the same string with the hashed password+salt
-        user.setPasswordHash(passwordEncoder.encode(user.getPasswordHash()));
+        user.setPasswordData(passwordEncoder.encode(user.getPasswordData())); 
         User saved = userRepository.save(user);
-        logger.info("User '{}' registered successfully", saved.getUsername());
+        logger.info("User '{}' registered successfully", saved.getLegalName());  
         return saved;
     }
 
     public User login(String email, String password) {
-        logger.info("Login attempt for email: {}", email);
+        logger.info("Login attempt for user: {}", email);
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> {
-                    logger.warn("Login failed: email '{}' not found", email);
+                    logger.warn("Login failed: user '{}' not found", email);
                     return new IllegalArgumentException("User not found");
                 });
 
-        if (!passwordEncoder.matches(password, user.getPasswordHash())) {
-            logger.warn("Login failed: invalid password for email '{}'", email);
+        if (!passwordEncoder.matches(password, user.getPasswordData())) {  
+            logger.warn("Login failed: invalid password for user '{}'", email);
             throw new IllegalArgumentException("Invalid password");
         }
 
-        logger.info("User '{}' logged in successfully", user.getUsername());
+        logger.info("User '{}' logged in successfully", email);
         return user;
     }
 
@@ -60,9 +57,9 @@ public class UserService {
         if (user == null) {
             throw new IllegalArgumentException("User cannot be null");
         }
-        logger.info("Logging out user: {}", user.getUsername());
+        logger.info("Logging out user: {}", user.getLegalName()); 
         refreshTokenService.revokeAllTokens(user);
-        logger.info("User '{}' logged out successfully", user.getUsername());
+        logger.info("User '{}' logged out successfully", user.getLegalName()); 
     }
 
     public User findUserById(Long id) {

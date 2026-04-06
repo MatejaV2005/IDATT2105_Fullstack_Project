@@ -48,10 +48,10 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             
             Long userId = jwtUtil.extractUserId(jwtToken);
             String role = jwtUtil.extractUserRole(jwtToken);
-            String username = jwtUtil.extractUsername(jwtToken);
+            String legalName = jwtUtil.extractLegalName(jwtToken);
             Long orgId = jwtUtil.extractUserOrgId(jwtToken);
 
-            if (userId == null || role == null || username == null || orgId == null) {
+            if (userId == null || role == null || legalName == null || orgId == null) {
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                 logger.error("Missing required claims in JWT token");
                 return;
@@ -60,7 +60,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             JwtUserPrinciple principle = new JwtUserPrinciple(
                 userId,
                 orgId,
-                username,
+                legalName,
                 role
             );
 

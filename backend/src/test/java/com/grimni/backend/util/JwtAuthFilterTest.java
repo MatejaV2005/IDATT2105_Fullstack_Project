@@ -158,7 +158,7 @@ public class JwtAuthFilterTest {
             when(jwtUtil.isTokenValid(any())).thenReturn(true);
             when(jwtUtil.extractUserId(any())).thenReturn(null);
             when(jwtUtil.extractUserRole(any())).thenReturn("MANAGER");
-            when(jwtUtil.extractUsername(any())).thenReturn("alice");
+            when(jwtUtil.extractLegalName(any())).thenReturn("alice");
             when(jwtUtil.extractUserOrgId(any())).thenReturn(1L);
 
             MockHttpServletRequest request = new MockHttpServletRequest();
@@ -177,7 +177,7 @@ public class JwtAuthFilterTest {
             when(jwtUtil.isTokenValid(any())).thenReturn(true);
             when(jwtUtil.extractUserId(any())).thenReturn(1L);
             when(jwtUtil.extractUserRole(any())).thenReturn("MANAGER");
-            when(jwtUtil.extractUsername(any())).thenReturn(null);
+            when(jwtUtil.extractLegalName(any())).thenReturn(null);
             when(jwtUtil.extractUserOrgId(any())).thenReturn(1L);
 
             MockHttpServletRequest request = new MockHttpServletRequest();
@@ -196,7 +196,7 @@ public class JwtAuthFilterTest {
             when(jwtUtil.isTokenValid(any())).thenReturn(true);
             when(jwtUtil.extractUserId(any())).thenReturn(1L);
             when(jwtUtil.extractUserRole(any())).thenReturn("MANAGER");
-            when(jwtUtil.extractUsername(any())).thenReturn("alice");
+            when(jwtUtil.extractLegalName(any())).thenReturn("alice");
             when(jwtUtil.extractUserOrgId(any())).thenReturn(null);
 
             MockHttpServletRequest request = new MockHttpServletRequest();
@@ -221,7 +221,7 @@ public class JwtAuthFilterTest {
             when(jwtUtil.isTokenValid(any())).thenReturn(true);
             when(jwtUtil.extractUserId(any())).thenReturn(1L);
             when(jwtUtil.extractUserRole(any())).thenReturn("MANAGER");
-            when(jwtUtil.extractUsername(any())).thenReturn("alice");
+            when(jwtUtil.extractLegalName(any())).thenReturn("alice");
             when(jwtUtil.extractUserOrgId(any())).thenReturn(7L);
         }
 
