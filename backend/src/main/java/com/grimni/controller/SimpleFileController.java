@@ -28,17 +28,23 @@ import com.grimni.repository.UserRepository;
 import com.grimni.service.SimpleStorageService;
 import com.grimni.util.JwtUtil;
 
+/**
+ * * Hey future person.
+ * ! This file should not be a part of prod. It is simply an example / help we can use when developing.
+ * It offers functionality to upload, read & delete files also utilizing access levels & mysql.
+ */
+
 @RestController
 @RequestMapping("/e-files")
-public class GrimniFileController {
-    private static final Logger logger = LoggerFactory.getLogger(GrimniFileController.class);
+public class SimpleFileController {
+    private static final Logger logger = LoggerFactory.getLogger(SimpleFileController.class);
 
     private final SimpleStorageService simpleStorageService;
     private final UserRepository userRepository;
     private final JwtUtil jwtUtil;
     private final String bucket;
 
-    public GrimniFileController(
+    public SimpleFileController(
         SimpleStorageService simpleStorageService,
         UserRepository userRepository,
         JwtUtil jwtUtil,

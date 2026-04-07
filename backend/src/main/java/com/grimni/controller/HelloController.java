@@ -1,7 +1,5 @@
 package com.grimni.controller;
 
-import java.io.File;
-import java.util.HashMap;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -10,8 +8,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.grimni.service.FileStorageService;
 
-import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
-import software.amazon.awssdk.services.s3.S3Client;
 
 @RestController
 public class HelloController {
