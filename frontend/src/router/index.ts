@@ -2,6 +2,7 @@ import DesktopLayout from '@/layouts/DesktopLayout.vue'
 import MobileLayout from '@/layouts/MobileLayout.vue'
 import CreateOrgView from '@/views/desktop/CreateOrgView.vue'
 import CriticalControlPointsView from '@/views/desktop/CriticalControlPointsView.vue'
+import DeviationHandlingView from '@/views/desktop/DeviationHandlingView.vue'
 import DangerAnalysisView from '@/views/desktop/DangerAnalysisView.vue'
 import HaccpView from '@/views/desktop/HaccpView.vue'
 import LearningView from '@/views/desktop/LearningView.vue'
@@ -63,6 +64,10 @@ const router = createRouter({
         {
           path: 'bedrift-opplaering',
           component: LearningView
+        },
+        {
+          path: 'deviations',
+          component: DeviationHandlingView
         }
       ],
     },

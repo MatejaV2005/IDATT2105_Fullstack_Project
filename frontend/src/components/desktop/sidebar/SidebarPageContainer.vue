@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import SidebarMenuOption from './SidebarMenuOption.vue'
-import { FileCheck2, ChartColumnIncreasing, PersonStanding, Brain, Settings } from '@lucide/vue'
+import { FileCheck2, ChartColumnIncreasing, PersonStanding, Brain, Settings, AlertTriangle } from '@lucide/vue'
 
 defineProps<{
   activePage?: string
@@ -62,6 +62,12 @@ defineProps<{
             name="Opplæring"
             :is-selected="activePage === '/desktop/bedrift-opplaering'"
             :icon="Brain"
+          />
+          <SidebarMenuOption
+            to="/desktop/deviations"
+            name="Avvikshåndtering"
+            :is-selected="activePage === '/desktop/deviations'"
+            :icon="AlertTriangle"
           />
         </div>
       </div>
