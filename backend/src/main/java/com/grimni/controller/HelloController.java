@@ -31,12 +31,4 @@ public class HelloController {
    public Map<String, String> health() {
        return Map.of("status", "ok");
     }
-    
-    @GetMapping("/test-upload-from-backend")
-    public Map<String, String> testUploadFromBackend() {
-
-        File file = new File("/schema.sql");
-        fileStorageService.upload(bucket, "banana", file.toPath());
-        return Map.of("status", "ok");
-   }
 }

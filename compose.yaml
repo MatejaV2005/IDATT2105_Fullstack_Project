@@ -31,7 +31,7 @@ services:
       - seaweedfs_data:/data
       - ./seaweedfs/start-seaweedfs.sh:/etc/seaweedfs/start-seaweedfs.sh:ro
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O- http://localhost:8333 || exit 1"]
+      test: ["CMD-SHELL", "wget -q -O- http://localhost:8888 || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 20

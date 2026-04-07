@@ -116,7 +116,7 @@ CREATE TABLE file_object ( -- A file in seaweedfs
     file_name TEXT NOT NULL,
     org_id INT NOT NULL,
     object_key TEXT NOT NULL,
-    create_access ENUM('OWNER', 'MANAGER', 'WORKER', 'ANYONE_IN_ORG', 'PUBLIC') NOT NULL,
+    create_access ENUM('OWNER', 'MANAGER', 'WORKER', 'ANYONE_IN_ORG', 'PUBLIC') NOT NULL, -- Why tf would we need this?
     read_access ENUM('OWNER', 'MANAGER', 'WORKER', 'ANYONE_IN_ORG', 'PUBLIC') NOT NULL,
     delete_access ENUM('OWNER', 'MANAGER', 'WORKER', 'ANYONE_IN_ORG', 'PUBLIC') NOT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,

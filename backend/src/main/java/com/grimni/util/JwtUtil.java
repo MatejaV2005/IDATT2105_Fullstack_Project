@@ -10,6 +10,8 @@ import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 import com.grimni.domain.OrgUserBridge;
@@ -170,5 +172,32 @@ public class JwtUtil {
             logger.error("Error parsing and extracting organization ID: " + error);
             return null;
         }
+    }
+
+    public Long getAuthenticatedUserId() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || authentication.getPrincipal() == null) {
+            throw new IllegalStateException("Missing authenticated user");
+        }
+
+        String userId = authentication.getPrincipal().toString();
+        try {
+            return Long.valueOf(userId);
+        } catch (NumberFormatException exception) {
+            throw new IllegalStateException("Invalid authenticated user id", exception);
+        }
+    }
+
+    public boolean isUserInOrganization(User user, Long orgId) {
+        if (user == null || orgId == null || user.getOrganizations() == null) {
+            return false;
+        }
+
+        for (OrgUserBridge orgBridge : user.getOrganizations()) {
+            if (orgBridge.getOrganization() != null && orgId.equals(orgBridge.getOrganization().getId())) {
+                return true;
+            }
+        }
+        return false;
     }
 }
