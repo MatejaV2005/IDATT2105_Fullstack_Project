@@ -137,10 +137,7 @@ public class CourseService {
         logger.info("Course {} deleted from organization {}", courseId, orgId);
     }
 
-    // -------------------------------------------------------------------------
     // Course User Progress
-    // -------------------------------------------------------------------------
-
     public List<CourseUserProgress> getProgressByCourse(Long courseId, Long orgId, Long userId) {
         logger.info("Fetching all assigned users for course {} in organization {}", courseId, orgId);
 
@@ -228,10 +225,7 @@ public class CourseService {
         logger.info("User {} removed from course {} in organization {}", targetUserId, courseId, orgId);
     }
 
-    // -------------------------------------------------------------------------
     // Course Responsible Users (verifiers)
-    // -------------------------------------------------------------------------
-
     public List<CourseResponsibleUser> getResponsibleUsers(Long courseId, Long orgId, Long userId) {
         logger.info("Fetching responsible users for course {} in organization {}", courseId, orgId);
 
