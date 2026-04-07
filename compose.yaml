@@ -21,7 +21,7 @@ services:
   seaweedfs:
     image: chrislusf/seaweedfs:3.94
     restart: unless-stopped
-    entrypoint:
+    entrypoint: #  entrypoint is the main executable the container starts with. i.e. use shell (sh) to run start-seaweedfs.sh
       - /bin/sh
       - /etc/seaweedfs/start-seaweedfs.sh
     environment:
@@ -29,7 +29,10 @@ services:
       S3_SECRET_KEY: ${S3_SECRET_KEY}
     volumes:
       - seaweedfs_data:/data
-      - ./seaweedfs/start-seaweedfs.sh:/etc/seaweedfs/start-seaweedfs.sh:ro
+
+      # This binds our script into the container (from ./seaweedfs/start-seaweedfs.sh) at startup (:ro = read only) which 
+      # lets us start the container using our own script and therefore create & attach configs
+      - ./seaweedfs/start-seaweedfs.sh:/etc/seaweedfs/start-seaweedfs.sh:ro  
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O- http://localhost:8888 || exit 1"]
       interval: 15s

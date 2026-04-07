@@ -22,14 +22,14 @@ public class S3Config {
 	    @Value("${s3.force-path-style}") Boolean forcePathStyle
     ) {
         return S3Client.builder()
-         		.region(Region.of(region))
-         		.endpointOverride(URI.create(endpoint))
-         		.credentialsProvider(
-     				StaticCredentialsProvider.create(
-						AwsBasicCredentials.create(accessKey, secretKey)
-					)
+			.region(Region.of(region))
+			.endpointOverride(URI.create(endpoint))
+			.credentialsProvider(
+				StaticCredentialsProvider.create(
+					AwsBasicCredentials.create(accessKey, secretKey)
 				)
-	        		.forcePathStyle(forcePathStyle)
-	        		.build();	
+			)
+			.forcePathStyle(forcePathStyle)
+			.build();	
     }
 }
