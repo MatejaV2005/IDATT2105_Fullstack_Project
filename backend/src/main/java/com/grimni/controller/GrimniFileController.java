@@ -118,7 +118,6 @@ public class GrimniFileController {
                 file.getContentType(),
                 AccessLevel.OWNER,
                 AccessLevel.OWNER,
-                AccessLevel.OWNER,
                 uploadedBy,
                 originalFilename,
                 organization

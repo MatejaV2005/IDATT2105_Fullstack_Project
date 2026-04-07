@@ -51,7 +51,6 @@ public class SimpleStorageService {
         InputStream inputStream, 
         long contentLength, 
         String contentType, // should we perhaps not let the client set this?
-        AccessLevel createAccess,
         AccessLevel readAccess,
         AccessLevel deleteAccess,
         User uploadedBy,
@@ -72,7 +71,6 @@ public class SimpleStorageService {
         file.setFileName(fileName);
         file.setOrganization(org);
         file.setObjectKey(key);
-        file.setCreateAccess(createAccess);
         file.setReadAccess(readAccess);
         file.setDeleteAccess(deleteAccess);
 
