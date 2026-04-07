@@ -10,6 +10,8 @@ import com.grimni.domain.User;
 import com.grimni.repository.RefreshTokenRepository;
 import com.grimni.util.RefreshTokenUtil;
 
+import org.springframework.security.authentication.BadCredentialsException;
+
 @Service
 public class RefreshTokenService {
     private static final Logger logger = LoggerFactory.getLogger(RefreshTokenService.class);
@@ -27,7 +29,7 @@ public class RefreshTokenService {
         return repository.findByRefreshToken(hashed)
                 .orElseThrow(() -> {
                     logger.warn("Refresh token validation failed: token not found in database");
-                    return new IllegalArgumentException("Invalid refresh token");
+                    return new BadCredentialsException("Invalid refresh token");
                 });
     }
 

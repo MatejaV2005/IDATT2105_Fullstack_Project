@@ -2,6 +2,8 @@ package com.grimni.service;
 
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import com.grimni.domain.OrgUserBridge;
@@ -15,8 +17,12 @@ import com.grimni.repository.OrgUserBridgeRepository;
 import com.grimni.repository.OrganizationRepository;
 import com.grimni.repository.UserRepository;
 
+import jakarta.persistence.EntityNotFoundException;
+
 @Service
 public class OrganizationService {
+
+    private static final Logger logger = LoggerFactory.getLogger(OrganizationService.class);
 
     private final OrganizationRepository organizationRepository;
     private final OrgUserBridgeRepository orgUserBridgeRepository;
@@ -31,8 +37,13 @@ public class OrganizationService {
     }
 
     public Organization createOrganization(CreateOrganizationRequest request, Long userId) {
+        logger.info("Creating organization '{}' for user {}", request.orgName(), userId);
+
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> {
+                    logger.warn("Create organization failed: user {} not found", userId);
+                    return new EntityNotFoundException("User not found");
+                });
 
         Organization org = new Organization();
         org.setOrgName(request.orgName());
@@ -40,7 +51,6 @@ public class OrganizationService {
         org.setOrgNumber(request.orgNumber());
         org.setAlcoholEnabled(request.alcoholEnabled());
         org.setFoodEnabled(request.foodEnabled());
-
         org = organizationRepository.save(org);
 
         OrgUserBridge bridge = new OrgUserBridge();
@@ -50,32 +60,55 @@ public class OrganizationService {
         bridge.setUserRole(OrgUserRole.OWNER);
         orgUserBridgeRepository.save(bridge);
 
+        logger.info("Organization '{}' (id={}) created successfully, user {} assigned as OWNER", org.getOrgName(), org.getId(), userId);
         return org;
     }
 
     public List<Organization> findOrganizationsByUserId(Long userId) {
-        return orgUserBridgeRepository.findByUserId(userId).stream()
+        logger.info("Fetching organizations for user {}", userId);
+        List<Organization> orgs = orgUserBridgeRepository.findByUserId(userId).stream()
                 .map(OrgUserBridge::getOrganization)
                 .toList();
+        logger.info("Found {} organizations for user {}", orgs.size(), userId);
+        return orgs;
     }
 
     public Organization findOrganizationByIdAndUser(Long orgId, Long userId) {
+        logger.info("Fetching organization {} for user {}", orgId, userId);
         OrgUserBridge bridge = orgUserBridgeRepository.findByOrganizationIdAndUserId(orgId, userId)
-                .orElseThrow(() -> new RuntimeException("Organization not found"));
+                .orElseThrow(() -> {
+                    logger.warn("Organization {} not found for user {}", orgId, userId);
+                    return new EntityNotFoundException("Organization not found");
+                });
+        logger.info("Organization {} found for user {}", orgId, userId);
         return bridge.getOrganization();
     }
 
     public Organization findOrganizationById(Long orgId) {
-        return organizationRepository.findById(orgId)
-                .orElseThrow(() -> new RuntimeException("Organization not found"));
+        logger.info("Fetching organization {}", orgId);
+        Organization org = organizationRepository.findById(orgId)
+                .orElseThrow(() -> {
+                    logger.warn("Organization {} not found", orgId);
+                    return new EntityNotFoundException("Organization not found");
+                });
+        logger.info("Organization {} found", orgId);
+        return org;
     }
 
     public Organization updateOrganization(Long orgId, UpdateOrganizationRequest request, Long userId) {
+        logger.info("Updating organization {} by user {}", orgId, userId);
+
         orgUserBridgeRepository.findByOrganizationIdAndUserId(orgId, userId)
-                .orElseThrow(() -> new RuntimeException("Organization not found"));
+                .orElseThrow(() -> {
+                    logger.warn("Update failed: organization {} not found for user {}", orgId, userId);
+                    return new EntityNotFoundException("Organization not found");
+                });
 
         Organization org = organizationRepository.findById(orgId)
-                .orElseThrow(() -> new RuntimeException("Organization not found"));
+                .orElseThrow(() -> {
+                    logger.warn("Update failed: organization {} not found", orgId);
+                    return new EntityNotFoundException("Organization not found");
+                });
 
         if (request.orgName() != null) org.setOrgName(request.orgName());
         if (request.orgAddress() != null) org.setOrgAddress(request.orgAddress());
@@ -83,6 +116,8 @@ public class OrganizationService {
         if (request.alcoholEnabled() != null) org.setAlcoholEnabled(request.alcoholEnabled());
         if (request.foodEnabled() != null) org.setFoodEnabled(request.foodEnabled());
 
-        return organizationRepository.save(org);
+        org = organizationRepository.save(org);
+        logger.info("Organization {} updated successfully by user {}", orgId, userId);
+        return org;
     }
 }
