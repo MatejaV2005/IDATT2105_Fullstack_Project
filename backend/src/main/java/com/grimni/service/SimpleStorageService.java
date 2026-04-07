@@ -95,9 +95,11 @@ public class SimpleStorageService {
         List<OrgUserBridge> orgUserBridge
     ) {
         FileObject fileObject = repository.findById(fileObjectId).orElseThrow(() -> new IllegalArgumentException("File object not found"));
-        AccessLevel fileObjectAccessLevel = fileObject.getReadAccess();
+        AccessLevel fileObjectAccessLevel = fileObject.getDeleteAccess();
         Long fileObjectOrgId = fileObject.getOrganization().getId();
-        if (doesUserHaveRightAccessLevel(fileObjectOrgId, fileObjectAccessLevel, orgUserBridge)) new IllegalAccessException("You don't have access level to read this file");
+        if (!doesUserHaveRightAccessLevel(fileObjectOrgId, fileObjectAccessLevel, orgUserBridge)) {
+            throw new SecurityException("You don't have access level to delete this file");
+        }
 
 
         String objectKey = fileObject.getObjectKey();
@@ -117,7 +119,9 @@ public class SimpleStorageService {
         FileObject fileObject = repository.findById(fileObjectId).orElseThrow(() -> new IllegalArgumentException("File object not found"));
         AccessLevel fileObjectAccessLevel = fileObject.getReadAccess();
         Long fileObjectOrgId = fileObject.getOrganization().getId();
-        if (doesUserHaveRightAccessLevel(fileObjectOrgId, fileObjectAccessLevel, orgUserBridge)) new IllegalAccessException("You don't have access level to read this file");
+        if (!doesUserHaveRightAccessLevel(fileObjectOrgId, fileObjectAccessLevel, orgUserBridge)) {
+            throw new SecurityException("You don't have access level to read this file");
+        }
 
         String objectKey = fileObject.getObjectKey();
         ResponseBytes<GetObjectResponse> objectBytes = s3Client.getObjectAsBytes(
@@ -136,12 +140,16 @@ public class SimpleStorageService {
     }
 
     private boolean doesUserHaveRightAccessLevel(Long fileObjectOrgId, AccessLevel fileObjectAccessLevel, List<OrgUserBridge> orgUserBridge) {
+        if (orgUserBridge == null) {
+            return fileObjectAccessLevel.equals(AccessLevel.PUBLIC);
+        }
+
         Boolean isUserInOrg = orgUserBridge.stream().map(OrgUserBridge::getOrganization).filter(org -> org.getId().equals(fileObjectOrgId)).count() > 0;
         if (fileObjectAccessLevel.equals(AccessLevel.PUBLIC)) return true;
         if (!isUserInOrg) return false;
         if (fileObjectAccessLevel.equals(AccessLevel.ANYONE_IN_ORG)) return true;
         List<OrgUserRole> userRolesInOrg = orgUserBridge.stream()
-            .filter(bridge -> bridge.getOrganization().getId() == fileObjectOrgId)
+            .filter(bridge -> bridge.getOrganization().getId().equals(fileObjectOrgId))
             .map(bridge -> bridge.getUserRole())
             .toList();
         if (userRolesInOrg.contains(OrgUserRole.OWNER)) return true;

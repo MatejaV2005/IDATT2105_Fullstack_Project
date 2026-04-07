@@ -52,8 +52,10 @@ public class GrimniFileController {
 
     @GetMapping("/{fileObjectId}")
     public ResponseEntity<byte[]> read(@PathVariable Long fileObjectId) {
+        User user = getCurrentUser();
+
         try {
-            SimpleStorageService.StoredFile storedFile = simpleStorageService.read(fileObjectId);
+            SimpleStorageService.StoredFile storedFile = simpleStorageService.read(fileObjectId, user.getOrganizations());
             FileObject fileObject = storedFile.fileObject();
 
             return ResponseEntity.ok()
@@ -62,16 +64,22 @@ public class GrimniFileController {
                 .body(storedFile.bytes());
         } catch (IllegalArgumentException exception) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "File wasn't found", exception);
+        } catch (SecurityException exception) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, exception.getMessage(), exception);
         }
     }
 
     @DeleteMapping("/{fileObjectId}")
     public ResponseEntity<Void> delete(@PathVariable Long fileObjectId) {
+        User user = getCurrentUser();
+
         try {
-            simpleStorageService.delete(fileObjectId);
+            simpleStorageService.delete(fileObjectId, user.getOrganizations());
             return ResponseEntity.noContent().build();
         } catch (IllegalArgumentException exception) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "File wasn't found", exception);
+        } catch (SecurityException exception) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, exception.getMessage(), exception);
         }
     }
     
@@ -129,5 +137,15 @@ public class GrimniFileController {
         }
 
         return ResponseEntity.ok("Uploaded to bucket '" + bucket + "' with key: " + key);
+    }
+
+    private User getCurrentUser() {
+        try {
+            Long userId = jwtUtil.getAuthenticatedUserId();
+            return userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authenticated user not found"));
+        } catch (IllegalStateException exception) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, exception.getMessage(), exception);
+        }
     }
 }
