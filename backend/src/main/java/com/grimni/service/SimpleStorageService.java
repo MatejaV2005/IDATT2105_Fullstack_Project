@@ -1,15 +1,18 @@
 package com.grimni.service;
 
 import java.io.InputStream;
+import java.util.List;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.grimni.domain.FileObject;
+import com.grimni.domain.OrgUserBridge;
 import com.grimni.domain.Organization;
 import com.grimni.domain.User;
 import com.grimni.domain.enums.AccessLevel;
+import com.grimni.domain.enums.OrgUserRole;
 import com.grimni.repository.FileObjectRepository;
 
 import software.amazon.awssdk.core.sync.RequestBody;
@@ -21,7 +24,7 @@ import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 @Service
-public class GrimniStorageService {
+public class SimpleStorageService {
     public record StoredFile(
         FileObject fileObject,
         byte[] bytes,
@@ -32,7 +35,7 @@ public class GrimniStorageService {
     private final FileObjectRepository repository;
     private final String bucket;
 
-    public GrimniStorageService(
+    public SimpleStorageService(
         S3Client s3Client,
         FileObjectRepository repository,
         @Value("${s3.bucket}") String bucket
@@ -88,10 +91,14 @@ public class GrimniStorageService {
 
     @Transactional
     public void delete(
-        Long fileObjectId 
+        Long fileObjectId,
+        List<OrgUserBridge> orgUserBridge
     ) {
-        FileObject fileObject = repository.findById(fileObjectId)
-            .orElseThrow(() -> new IllegalArgumentException("File object not found"));
+        FileObject fileObject = repository.findById(fileObjectId).orElseThrow(() -> new IllegalArgumentException("File object not found"));
+        AccessLevel fileObjectAccessLevel = fileObject.getReadAccess();
+        Long fileObjectOrgId = fileObject.getOrganization().getId();
+        if (doesUserHaveRightAccessLevel(fileObjectOrgId, fileObjectAccessLevel, orgUserBridge)) new IllegalAccessException("You don't have access level to read this file");
+
 
         String objectKey = fileObject.getObjectKey();
         repository.delete(fileObject);
@@ -106,9 +113,11 @@ public class GrimniStorageService {
     }
 
     @Transactional(readOnly = true)
-    public StoredFile read(Long fileObjectId) {
-        FileObject fileObject = repository.findById(fileObjectId)
-            .orElseThrow(() -> new IllegalArgumentException("File object not found"));
+    public StoredFile read(Long fileObjectId, List<OrgUserBridge> orgUserBridge) {
+        FileObject fileObject = repository.findById(fileObjectId).orElseThrow(() -> new IllegalArgumentException("File object not found"));
+        AccessLevel fileObjectAccessLevel = fileObject.getReadAccess();
+        Long fileObjectOrgId = fileObject.getOrganization().getId();
+        if (doesUserHaveRightAccessLevel(fileObjectOrgId, fileObjectAccessLevel, orgUserBridge)) new IllegalAccessException("You don't have access level to read this file");
 
         String objectKey = fileObject.getObjectKey();
         ResponseBytes<GetObjectResponse> objectBytes = s3Client.getObjectAsBytes(
@@ -124,5 +133,20 @@ public class GrimniStorageService {
         }
 
         return new StoredFile(fileObject, objectBytes.asByteArray(), contentType);
+    }
+
+    private boolean doesUserHaveRightAccessLevel(Long fileObjectOrgId, AccessLevel fileObjectAccessLevel, List<OrgUserBridge> orgUserBridge) {
+        Boolean isUserInOrg = orgUserBridge.stream().map(OrgUserBridge::getOrganization).filter(org -> org.getId().equals(fileObjectOrgId)).count() > 0;
+        if (fileObjectAccessLevel.equals(AccessLevel.PUBLIC)) return true;
+        if (!isUserInOrg) return false;
+        if (fileObjectAccessLevel.equals(AccessLevel.ANYONE_IN_ORG)) return true;
+        List<OrgUserRole> userRolesInOrg = orgUserBridge.stream()
+            .filter(bridge -> bridge.getOrganization().getId() == fileObjectOrgId)
+            .map(bridge -> bridge.getUserRole())
+            .toList();
+        if (userRolesInOrg.contains(OrgUserRole.OWNER)) return true;
+        if (!userRolesInOrg.contains(OrgUserRole.OWNER) && fileObjectAccessLevel.equals(AccessLevel.OWNER)) return false;
+        if (!userRolesInOrg.contains(OrgUserRole.MANAGER) && fileObjectAccessLevel.equals(AccessLevel.MANAGER)) return false;
+        return true;
     }
 }

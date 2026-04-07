@@ -25,7 +25,7 @@ import com.grimni.domain.OrgUserBridge;
 import com.grimni.domain.User;
 import com.grimni.domain.enums.AccessLevel;
 import com.grimni.repository.UserRepository;
-import com.grimni.service.GrimniStorageService;
+import com.grimni.service.SimpleStorageService;
 import com.grimni.util.JwtUtil;
 
 @RestController
@@ -33,18 +33,18 @@ import com.grimni.util.JwtUtil;
 public class GrimniFileController {
     private static final Logger logger = LoggerFactory.getLogger(GrimniFileController.class);
 
-    private final GrimniStorageService grimniStorageService;
+    private final SimpleStorageService simpleStorageService;
     private final UserRepository userRepository;
     private final JwtUtil jwtUtil;
     private final String bucket;
 
     public GrimniFileController(
-        GrimniStorageService grimniStorageService,
+        SimpleStorageService simpleStorageService,
         UserRepository userRepository,
         JwtUtil jwtUtil,
         @Value("${s3.bucket}") String bucket
     ) {
-        this.grimniStorageService = grimniStorageService;
+        this.simpleStorageService = simpleStorageService;
         this.userRepository = userRepository;
         this.jwtUtil = jwtUtil;
         this.bucket = bucket;
@@ -53,7 +53,7 @@ public class GrimniFileController {
     @GetMapping("/{fileObjectId}")
     public ResponseEntity<byte[]> read(@PathVariable Long fileObjectId) {
         try {
-            GrimniStorageService.StoredFile storedFile = grimniStorageService.read(fileObjectId);
+            SimpleStorageService.StoredFile storedFile = simpleStorageService.read(fileObjectId);
             FileObject fileObject = storedFile.fileObject();
 
             return ResponseEntity.ok()
@@ -68,7 +68,7 @@ public class GrimniFileController {
     @DeleteMapping("/{fileObjectId}")
     public ResponseEntity<Void> delete(@PathVariable Long fileObjectId) {
         try {
-            grimniStorageService.delete(fileObjectId);
+            simpleStorageService.delete(fileObjectId);
             return ResponseEntity.noContent().build();
         } catch (IllegalArgumentException exception) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "File wasn't found", exception);
@@ -103,7 +103,7 @@ public class GrimniFileController {
         String key = "sanity/" + UUID.randomUUID() + "-" + originalFilename;
 
         try {
-            grimniStorageService.upload(
+            simpleStorageService.upload(
                 key,
                 file.getInputStream(),
                 file.getSize(),
