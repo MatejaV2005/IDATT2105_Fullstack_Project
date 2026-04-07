@@ -7,6 +7,7 @@ import java.time.Duration;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -49,36 +50,29 @@ public class AuthController {
     // duplicate hash + DB lookup in the refresh flow. See RefreshTokenService.rotateRefreshToken.
     @PostMapping("/refresh")
     public ResponseEntity<?> grantRefreshToken(@CookieValue("refresh_token") String cookie, @RequestBody Long orgId) {
-        try {
-            logger.info("Refresh token request received");
+        logger.info("Refresh token request received");
 
-            User user = refService.getUserByRefreshToken(cookie);
-            ResponseCookie refToken = refService.rotateRefreshToken(user, cookie);
-            OrgUserBridge bridge = resolveBridge(user, orgId);
-            String jwtToken = jwtUtil.generateToken(user, bridge);
+        User user = refService.getUserByRefreshToken(cookie);
+        ResponseCookie refToken = refService.rotateRefreshToken(user, cookie);
+        OrgUserBridge bridge = resolveBridge(user, orgId);
+        String jwtToken = jwtUtil.generateToken(user, bridge);
 
-            // return status 200 OK + set the rotated refresh token in header and new JWT token in body
-            return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, refToken.toString()).body(jwtToken);
-                            
-            } catch(Exception error) {
-                return ResponseEntity.status(401).body(error.getMessage());
-        }
+        return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, refToken.toString()).body(jwtToken);
     }
 
     @PostMapping("/logout")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> logoutUser(@CookieValue(value = "refresh_token", required = false) String cookie) {
         logger.info("Logout request received");
-        try {
-            if (cookie != null) {
-                // removes the cookie from the database for the user upon logout
+        if (cookie != null) {
+            try {
                 User user = refService.getUserByRefreshToken(cookie);
                 userService.logout(user);
+            } catch (Exception error) {
+                logger.warn("Logout token lookup failed, clearing cookie anyway: {}", error.getMessage());
             }
-        } catch (Exception error) {
-            logger.warn("Logout token lookup failed, clearing cookie anyway: {}", error.getMessage());
         }
 
-        // sends a new RefreshToken cookie to the browser with 0 duration to clear the existing one in browser
         ResponseCookie expired = ResponseCookie.from("refresh_token", "")
                 .httpOnly(true)
                 .secure(true)
@@ -93,19 +87,14 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<?> loginUser(@RequestBody LoginRequest request) {
         logger.info("Login attempt for user: {}", request.email());
-        try {
-            User user = userService.login(request.email(), request.password());
-            OrgUserBridge bridge = resolveBridge(user, request.orgId());
-            String jwtToken = jwtUtil.generateToken(user, bridge);
 
-            ResponseCookie refToken = refService.createAndStoreRefreshToken(user);
+        User user = userService.login(request.email(), request.password());
+        OrgUserBridge bridge = resolveBridge(user, request.orgId());
+        String jwtToken = jwtUtil.generateToken(user, bridge);
 
-            logger.info("Login successful for user: {}", request.email());
-            return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, refToken.toString()).body(jwtToken);
+        ResponseCookie refToken = refService.createAndStoreRefreshToken(user);
 
-        } catch(Exception error) {
-            logger.warn("Login failed for user '{}': {}", request.email(), error.getMessage());
-            return ResponseEntity.status(401).body(error.getMessage());
-        }
-    } 
+        logger.info("Login successful for user: {}", request.email());
+        return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, refToken.toString()).body(jwtToken);
+    }
 }

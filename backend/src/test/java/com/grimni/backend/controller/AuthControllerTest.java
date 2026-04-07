@@ -26,6 +26,8 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import jakarta.servlet.http.Cookie;
 
+import org.springframework.security.authentication.BadCredentialsException;
+
 import java.time.Duration;
 import java.util.List;
 
@@ -210,7 +212,7 @@ public class AuthControllerTest {
         void login_userNotFound_returns401() throws Exception {
             // Controller should catch the service exception and return 401, not 500
             when(userService.login("ghost", "pass"))
-                    .thenThrow(new IllegalArgumentException("User not found"));
+                    .thenThrow(new BadCredentialsException("Invalid email or password"));
 
             LoginRequest request = new LoginRequest("ghost", "pass", TEST_ORG_ID);
 
@@ -225,7 +227,7 @@ public class AuthControllerTest {
         void login_invalidPassword_returns401() throws Exception {
             // Wrong password should produce the same 401 status as user-not-found
             when(userService.login("alice", "wrongpass"))
-                    .thenThrow(new IllegalArgumentException("Invalid password"));
+                    .thenThrow(new BadCredentialsException("Invalid email or password"));
 
             LoginRequest request = new LoginRequest("alice", "wrongpass", TEST_ORG_ID);
 
@@ -240,14 +242,14 @@ public class AuthControllerTest {
         void login_failure_bodyContainsExceptionMessage() throws Exception {
             // The frontend needs the specific error message for user feedback
             when(userService.login("alice", "wrongpass"))
-                    .thenThrow(new IllegalArgumentException("Invalid password"));
+                    .thenThrow(new BadCredentialsException("Invalid email or password"));
 
             LoginRequest request = new LoginRequest("alice", "wrongpass", TEST_ORG_ID);
 
             mockMvc.perform(post("/auth/login")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(content().string("Invalid password"));
+                    .andExpect(jsonPath("$.error").value("Invalid email or password"));
         }
 
         @Test
@@ -255,7 +257,7 @@ public class AuthControllerTest {
         void login_failure_refServiceNeverCalled() throws Exception {
             // No refresh token should be created if authentication failed
             when(userService.login("alice", "wrongpass"))
-                    .thenThrow(new IllegalArgumentException("Invalid password"));
+                    .thenThrow(new BadCredentialsException("Invalid email or password"));
 
             LoginRequest request = new LoginRequest("alice", "wrongpass", TEST_ORG_ID);
 
@@ -272,7 +274,7 @@ public class AuthControllerTest {
         void login_failure_jwtUtilNeverCalled() throws Exception {
             // No JWT should be generated if the user could not be authenticated
             when(userService.login("alice", "wrongpass"))
-                    .thenThrow(new IllegalArgumentException("Invalid password"));
+                    .thenThrow(new BadCredentialsException("Invalid email or password"));
 
             LoginRequest request = new LoginRequest("alice", "wrongpass", TEST_ORG_ID);
 
@@ -403,14 +405,14 @@ public class AuthControllerTest {
         void refresh_invalidToken_returns401() throws Exception {
             // An invalid or expired refresh token should result in 401, not 500
             when(refService.getUserByRefreshToken("bad-token"))
-                    .thenThrow(new IllegalArgumentException("Invalid refresh token"));
+                    .thenThrow(new BadCredentialsException("Invalid refresh token"));
 
             mockMvc.perform(post("/auth/refresh")
                             .cookie(new Cookie("refresh_token", "bad-token"))
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("10"))
                     .andExpect(status().isUnauthorized())
-                    .andExpect(content().string("Invalid refresh token"));
+                    .andExpect(jsonPath("$.error").value("Invalid refresh token"));
         }
 
         @Test
@@ -429,7 +431,7 @@ public class AuthControllerTest {
         void refresh_invalidToken_rotateNeverCalled() throws Exception {
             // If the token doesn't resolve to a user, rotation must not proceed
             when(refService.getUserByRefreshToken("bad-token"))
-                    .thenThrow(new IllegalArgumentException("Invalid refresh token"));
+                    .thenThrow(new BadCredentialsException("Invalid refresh token"));
 
             mockMvc.perform(post("/auth/refresh")
                             .cookie(new Cookie("refresh_token", "bad-token"))
@@ -445,7 +447,7 @@ public class AuthControllerTest {
         void refresh_invalidToken_jwtUtilNeverCalled() throws Exception {
             // No JWT should be issued if the refresh token is invalid
             when(refService.getUserByRefreshToken("bad-token"))
-                    .thenThrow(new IllegalArgumentException("Invalid refresh token"));
+                    .thenThrow(new BadCredentialsException("Invalid refresh token"));
 
             mockMvc.perform(post("/auth/refresh")
                             .cookie(new Cookie("refresh_token", "bad-token"))
@@ -489,7 +491,7 @@ public class AuthControllerTest {
         void logout_invalidCookie_returns200() throws Exception {
             // Invalid/expired token shouldn't fail logout — client still gets cookie cleared
             when(refService.getUserByRefreshToken("bad-token"))
-                    .thenThrow(new IllegalArgumentException("Invalid refresh token"));
+                    .thenThrow(new BadCredentialsException("Invalid refresh token"));
 
             mockMvc.perform(post("/auth/logout")
                             .cookie(new Cookie("refresh_token", "bad-token")))
@@ -537,7 +539,7 @@ public class AuthControllerTest {
         void logout_invalidCookie_userServiceNeverCalled() throws Exception {
             // If the token cannot be resolved to a user, revocation must not proceed
             when(refService.getUserByRefreshToken("bad-token"))
-                    .thenThrow(new IllegalArgumentException("Invalid refresh token"));
+                    .thenThrow(new BadCredentialsException("Invalid refresh token"));
 
             mockMvc.perform(post("/auth/logout")
                             .cookie(new Cookie("refresh_token", "bad-token")))

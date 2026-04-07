@@ -25,6 +25,8 @@ import com.grimni.repository.OrganizationRepository;
 import com.grimni.repository.UserRepository;
 import com.grimni.service.OrganizationService;
 
+import jakarta.persistence.EntityNotFoundException;
+
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -103,12 +105,12 @@ public class OrganizationServiceTest {
 
         
         @Test
-        @DisplayName("throws RuntimeException when user not found")
+        @DisplayName("throws EntityNotFoundException when user not found")
         void createOrganization_userNotFound_throws() {
             CreateOrganizationRequest request = new CreateOrganizationRequest("Test Org", "123 Main St", 100, false, false);
             when(userRepository.findById(999L)).thenReturn(Optional.empty());
 
-            RuntimeException ex = assertThrows(RuntimeException.class,
+            EntityNotFoundException ex = assertThrows(EntityNotFoundException.class,
                     () -> organizationService.createOrganization(request, 999L));
 
             assertEquals("User not found", ex.getMessage());
@@ -175,11 +177,11 @@ public class OrganizationServiceTest {
         }
 
         @Test
-        @DisplayName("throws RuntimeException when organization not found")
+        @DisplayName("throws EntityNotFoundException when organization not found")
         void findOrganizationById_notFound_throws() {
             when(organizationRepository.findById(999L)).thenReturn(Optional.empty());
 
-            RuntimeException ex = assertThrows(RuntimeException.class,
+            EntityNotFoundException ex = assertThrows(EntityNotFoundException.class,
                     () -> organizationService.findOrganizationById(999L));
 
             assertEquals("Organization not found", ex.getMessage());
@@ -242,7 +244,7 @@ public class OrganizationServiceTest {
 
             when(orgUserBridgeRepository.findByOrganizationIdAndUserId(1L, 99L)).thenReturn(Optional.empty());
 
-            RuntimeException ex = assertThrows(RuntimeException.class,
+            EntityNotFoundException ex = assertThrows(EntityNotFoundException.class,
                     () -> organizationService.updateOrganization(1L, request, 99L));
 
             assertEquals("Organization not found", ex.getMessage());
@@ -259,7 +261,7 @@ public class OrganizationServiceTest {
             when(orgUserBridgeRepository.findByOrganizationIdAndUserId(999L, 1L)).thenReturn(Optional.of(bridge));
             when(organizationRepository.findById(999L)).thenReturn(Optional.empty());
 
-            RuntimeException ex = assertThrows(RuntimeException.class,
+            EntityNotFoundException ex = assertThrows(EntityNotFoundException.class,
                     () -> organizationService.updateOrganization(999L, request, 1L));
 
             assertEquals("Organization not found", ex.getMessage());

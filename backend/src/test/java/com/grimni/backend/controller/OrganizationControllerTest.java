@@ -31,6 +31,8 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
+import jakarta.persistence.EntityNotFoundException;
+
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -149,20 +151,20 @@ public class OrganizationControllerTest {
     class CreateOrganizationFailureTests {
 
         @Test
-        @DisplayName("returns HTTP 400 when user not found")
-        void createOrganization_userNotFound_returns400() throws Exception {
+        @DisplayName("returns HTTP 404 when user not found")
+        void createOrganization_userNotFound_returns404() throws Exception {
             CreateOrganizationRequest request = new CreateOrganizationRequest("New Org", "123 Main St", 100, false, true);
 
             when(organizationService.createOrganization(any(CreateOrganizationRequest.class), eq(1L)))
-                    .thenThrow(new RuntimeException("User not found"));
+                    .thenThrow(new EntityNotFoundException("User not found"));
 
             mockMvc.perform(post("/organizations")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request))
                             .with(authentication(authWithRole("OWNER")))
                             .with(csrf()))
-                    .andExpect(status().isBadRequest())
-                    .andExpect(content().string("User not found"));
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.error").value("User not found"));
         }
 
         @Test
@@ -224,15 +226,15 @@ public class OrganizationControllerTest {
     class GetMyOrganizationsFailureTests {
 
         @Test
-        @DisplayName("returns HTTP 500 when service throws")
-        void getMyOrganizations_serviceThrows_returns500() throws Exception {
+        @DisplayName("returns HTTP 404 when service throws EntityNotFoundException")
+        void getMyOrganizations_serviceThrows_returns404() throws Exception {
             when(organizationService.findOrganizationsByUserId(1L))
-                    .thenThrow(new RuntimeException("Database error"));
+                    .thenThrow(new EntityNotFoundException("Not found"));
 
             mockMvc.perform(get("/me/organizations")
                             .with(authentication(authWithRole("WORKER"))))
-                    .andExpect(status().isInternalServerError())
-                    .andExpect(content().string("Database error"));
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.error").value("Not found"));
         }
 
         @Test
@@ -298,24 +300,24 @@ public class OrganizationControllerTest {
         @DisplayName("returns HTTP 404 when organization not found")
         void getOrganization_notFound_returns404() throws Exception {
             when(organizationService.findOrganizationByIdAndUser(999L, 1L))
-                    .thenThrow(new RuntimeException("Organization not found"));
+                    .thenThrow(new EntityNotFoundException("Organization not found"));
 
             mockMvc.perform(get("/organizations/999")
                             .with(authentication(authWithRole("WORKER"))))
                     .andExpect(status().isNotFound())
-                    .andExpect(content().string("Organization not found"));
+                    .andExpect(jsonPath("$.error").value("Organization not found"));
         }
 
         @Test
         @DisplayName("returns HTTP 404 when user does not belong to organization")
         void getOrganization_notMember_returns404() throws Exception {
             when(organizationService.findOrganizationByIdAndUser(99L, 1L))
-                    .thenThrow(new RuntimeException("Organization not found"));
+                    .thenThrow(new EntityNotFoundException("Organization not found"));
 
             mockMvc.perform(get("/organizations/99")
                             .with(authentication(authWithRole("WORKER"))))
                     .andExpect(status().isNotFound())
-                    .andExpect(content().string("Organization not found"));
+                    .andExpect(jsonPath("$.error").value("Organization not found"));
 
             verify(organizationService).findOrganizationByIdAndUser(99L, 1L);
         }
@@ -369,37 +371,37 @@ public class OrganizationControllerTest {
     class UpdateOrganizationFailureTests {
 
         @Test
-        @DisplayName("returns HTTP 400 when organization not found")
-        void updateOrganization_notFound_returns400() throws Exception {
+        @DisplayName("returns HTTP 404 when organization not found")
+        void updateOrganization_notFound_returns404() throws Exception {
             UpdateOrganizationRequest request = new UpdateOrganizationRequest("Name", "Addr", 100, false, false);
 
             when(organizationService.updateOrganization(eq(999L), any(UpdateOrganizationRequest.class), eq(1L)))
-                    .thenThrow(new RuntimeException("Organization not found"));
+                    .thenThrow(new EntityNotFoundException("Organization not found"));
 
             mockMvc.perform(patch("/organizations/999")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request))
                             .with(authentication(authWithRole("OWNER")))
                             .with(csrf()))
-                    .andExpect(status().isBadRequest())
-                    .andExpect(content().string("Organization not found"));
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.error").value("Organization not found"));
         }
 
         @Test
-        @DisplayName("returns HTTP 400 when user does not belong to organization")
-        void updateOrganization_notMember_returns400() throws Exception {
+        @DisplayName("returns HTTP 404 when user does not belong to organization")
+        void updateOrganization_notMember_returns404() throws Exception {
             UpdateOrganizationRequest request = new UpdateOrganizationRequest("Name", null, null, null, null);
 
             when(organizationService.updateOrganization(eq(99L), any(UpdateOrganizationRequest.class), eq(1L)))
-                    .thenThrow(new RuntimeException("Organization not found"));
+                    .thenThrow(new EntityNotFoundException("Organization not found"));
 
             mockMvc.perform(patch("/organizations/99")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request))
                             .with(authentication(authWithRole("OWNER")))
                             .with(csrf()))
-                    .andExpect(status().isBadRequest())
-                    .andExpect(content().string("Organization not found"));
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.error").value("Organization not found"));
 
             verify(organizationService).updateOrganization(eq(99L), any(UpdateOrganizationRequest.class), eq(1L));
         }
