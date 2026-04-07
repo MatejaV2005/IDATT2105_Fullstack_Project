@@ -4,9 +4,12 @@ import Badge from '@/components/desktop/shared/Badge.vue'
 import DesktopButton from '@/components/desktop/shared/DesktopButton.vue'
 import { AlertTriangle, Check, X, Eye } from '@lucide/vue'
 import { deviations, type Deviation, reviewStatuses, deviationCategories } from '@/data/deviations'
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 
-const deviationsList = ref<Deviation[]>([...deviations])
+const deviationsList = ref<Deviation[]>([])
+const loading = ref(true)
+const error = ref<string | null>(null)
+const patchError = ref<string | null>(null)
 
 const openDeviations = computed(() => 
   deviationsList.value.filter(d => d.reviewStatus === 'OPEN')
@@ -23,48 +26,97 @@ function getCategoryLabel(category: string): string {
   return deviationCategories.find(c => c.value === category)?.label || category
 }
 
-function getStatusLabel(status: string): string {
-  return reviewStatuses.find(s => s.value === status)?.label || status
-}
-
 function formatDate(dateString: string): string {
   const date = new Date(dateString)
   return date.toLocaleDateString('nb-NO', { day: 'numeric', month: 'long', year: 'numeric' })
+}
+
+async function fetchDeviations() {
+  try {
+    const response = await fetch('/api/deviations') //TODO include user credentials
+    if (!response.ok) {
+      throw new Error('Failed to fetch deviations from API')
+    }
+    const data = await response.json()
+    deviationsList.value = data
+    error.value = null
+  } catch (err) {
+    console.warn('Using fallback mock data due to API error:', err)
+    deviationsList.value = [...deviations]
+    error.value = 'Kunne ikke hente avvik fra server. Viser mockdata.'
+  } finally {
+    loading.value = false
+  }
 }
 
 function openResolveModal(deviation: Deviation) {
   selectedDeviation.value = deviation
   resolveMeasure.value = ''
   showResolveModal.value = true
+  patchError.value = null
 }
 
 function closeResolveModal() {
   showResolveModal.value = false
   selectedDeviation.value = null
   resolveMeasure.value = ''
+  patchError.value = null
 }
 
-function submitResolve() {
+async function submitResolve() {
   if (!selectedDeviation.value || !resolveMeasure.value.trim()) return
 
-  const index = deviationsList.value.findIndex(d => d.id === selectedDeviation.value!.id)
-  if (index !== -1) {
-    deviationsList.value[index] = {
-      ...deviationsList.value[index],
-      reviewStatus: 'CLOSED',
-      reviewedByName: 'Jonas Ghar Støre',
-      reviewedAt: new Date().toISOString(),
-      preventativeMeasureActuallyTaken: resolveMeasure.value.trim()
+  try {
+    //TODO include user credentials
+    const response = await fetch(`/api/deviations/${selectedDeviation.value.id}/resolve`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        preventativeMeasureActuallyTaken: resolveMeasure.value.trim()
+      })
+    })
+
+    if (!response.ok) {
+      throw new Error('Failed to resolve deviation')
     }
+
+    const updatedDeviation = await response.json()
+    
+    const index = deviationsList.value.findIndex(d => d.id === updatedDeviation.id)
+    if (index !== -1) {
+      deviationsList.value[index] = updatedDeviation
+    }
+    
+    closeResolveModal()
+    patchError.value = null
+  } catch (err) {
+    console.error('Error resolving deviation:', err)
+    patchError.value = 'Kunne ikke løse avvik. Vennligst prøv igjen.'
   }
-  closeResolveModal()
 }
+
+onMounted(() => {
+  fetchDeviations()
+})
 </script>
 
 <template>
   <SidebarPageContainer active-page="/desktop/deviations">
     <div class="deviations-page">
       <h1 class="instrument-serif-regular no-margin">Avvikshåndtering</h1>
+
+      <div v-if="loading" class="loading-state">
+        <p>Laster avvik...</p>
+      </div>
+
+      <div v-else-if="error" class="error-banner">
+        <div class="error-content">
+          <AlertTriangle class="error-icon" />
+          <p>{{ error }}</p>
+        </div>
+      </div>
 
       <div v-if="openDeviations.length > 0" class="section">
         <h2 class="section-title">Åpne avvik ({{ openDeviations.length }})</h2>
@@ -157,7 +209,7 @@ function submitResolve() {
         </div>
       </div>
 
-      <div v-if="deviationsList.length === 0" class="empty-state">
+      <div v-if="deviationsList.length === 0 && !loading" class="empty-state">
         <p>Ingen avvik funnet.</p>
       </div>
 
@@ -180,6 +232,12 @@ function submitResolve() {
                 placeholder="Beskriv tiltakene som ble utført..."
                 rows="6"
               />
+            </div>
+            <div v-if="patchError" class="error-message">
+              <div class="error-content">
+                <AlertTriangle class="error-icon" />
+                <p>{{ patchError }}</p>
+              </div>
             </div>
             <div class="modal-footer">
               <DesktopButton
@@ -294,6 +352,39 @@ function submitResolve() {
   text-align: center;
   padding: 3rem;
   color: var(--blue-navy-60);
+}
+
+.loading-state {
+  text-align: center;
+  padding: 3rem;
+  color: var(--blue-navy-60);
+}
+
+.error-banner {
+  background-color: #fee2e2;
+  border: 1px solid #ef4444;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.error-content {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #dc2626;
+}
+
+.error-icon {
+  flex-shrink: 0;
+}
+
+.error-message {
+  background-color: #fee2e2;
+  border: 1px solid #ef4444;
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
 }
 
 .modal-overlay {
