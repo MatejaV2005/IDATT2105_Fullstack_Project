@@ -30,9 +30,9 @@ public class UserService {
         }
 
         // Bcrypt automatically generates salt for password, stores salt together in the same string with the hashed password+salt
-        user.setPasswordData(passwordEncoder.encode(user.getPasswordData())); // ? Wallah
+        user.setPasswordData(passwordEncoder.encode(user.getPasswordData())); 
         User saved = userRepository.save(user);
-        logger.info("User '{}' registered successfully", saved.getLegalName());  // ? Wallah
+        logger.info("User '{}' registered successfully", saved.getLegalName());  
         return saved;
     }
 
@@ -44,7 +44,7 @@ public class UserService {
                     return new IllegalArgumentException("User not found");
                 });
 
-        if (!passwordEncoder.matches(password, user.getPasswordData())) {  // ? Wallah
+        if (!passwordEncoder.matches(password, user.getPasswordData())) {  
             logger.warn("Login failed: invalid password for user '{}'", email);
             throw new IllegalArgumentException("Invalid password");
         }
@@ -57,9 +57,9 @@ public class UserService {
         if (user == null) {
             throw new IllegalArgumentException("User cannot be null");
         }
-        logger.info("Logging out user: {}", user.getLegalName()); // ? Wallah
+        logger.info("Logging out user: {}", user.getLegalName()); 
         refreshTokenService.revokeAllTokens(user);
-        logger.info("User '{}' logged out successfully", user.getLegalName()); // ? Wallah
+        logger.info("User '{}' logged out successfully", user.getLegalName()); 
     }
 
     public User findUserById(Long id) {
