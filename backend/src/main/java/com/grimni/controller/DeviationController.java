@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/api/deviations")
+@RequestMapping("/deviations")
 public class DeviationController {
 
     private final DeviationService deviationService;
