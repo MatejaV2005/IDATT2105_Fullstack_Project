@@ -12,6 +12,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import com.grimni.domain.User;
 import com.grimni.repository.UserRepository;
+import com.grimni.service.RefreshTokenService;
 import com.grimni.service.UserService;
 
 import java.util.Optional;
@@ -27,6 +28,9 @@ public class UserServiceTest {
     private UserRepository userRepository;
 
     @Mock
+    private RefreshTokenService refreshTokenService;
+
+    @Mock
     private BCryptPasswordEncoder passwordEncoder;
 
     @InjectMocks
@@ -39,11 +43,11 @@ public class UserServiceTest {
         ReflectionTestUtils.setField(userService, "passwordEncoder", passwordEncoder);
     }
 
-    private User createUser(String username, String email, String passwordHash) {
+    private User createUser(String legalName, String email, String passwordHash) {
         User user = new User();
-        user.setLegalName(username); // ? Wallah
+        user.setLegalName(legalName);
         user.setEmail(email);
-        user.setPasswordData(passwordHash); // ? Wallah
+        user.setPasswordData(passwordHash);
         return user;
     }
 
@@ -57,7 +61,6 @@ public class UserServiceTest {
         void register_success_returnsSavedUser() {
             User user = createUser("alice", "alice@test.com", "plaintext");
 
-            when(userRepository.findByLegalName("alice")).thenReturn(Optional.empty());
             when(userRepository.findByEmail("alice@test.com")).thenReturn(Optional.empty());
             when(passwordEncoder.encode("plaintext")).thenReturn("$2a$hashed");
             when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -65,7 +68,7 @@ public class UserServiceTest {
             User saved = userService.register(user);
 
             assertNotNull(saved);
-            assertEquals("alice", saved.getLegalName()); // ? Wallah
+            assertEquals("alice", saved.getLegalName());
             verify(userRepository).save(user);
         }
 
@@ -73,34 +76,20 @@ public class UserServiceTest {
         void register_passwordIsHashedBeforeSaving() {
             User user = createUser("bob", "bob@test.com", "mypassword");
 
-            when(userRepository.findByLegalName("bob")).thenReturn(Optional.empty());
             when(userRepository.findByEmail("bob@test.com")).thenReturn(Optional.empty());
             when(passwordEncoder.encode("mypassword")).thenReturn("$2a$hashed");
             when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
             User saved = userService.register(user);
 
-            assertEquals("$2a$hashed", saved.getPasswordData()); // ? Wallah
-            assertNotEquals("mypassword", saved.getPasswordData()); // ? Wallah
+            assertEquals("$2a$hashed", saved.getPasswordData());
+            assertNotEquals("mypassword", saved.getPasswordData());
             verify(passwordEncoder).encode("mypassword");
-        }
-
-        @Test
-        void register_failsWhenUsernameAlreadyExists() {
-            User user = createUser("alice", "alice@test.com", "pass");
-            when(userRepository.findByLegalName("alice")).thenReturn(Optional.of(new User()));
-
-            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                    () -> userService.register(user));
-
-            assertEquals("Username already exists", ex.getMessage());
-            verify(userRepository, never()).save(any());
         }
 
         @Test
         void register_failsWhenEmailAlreadyExists() {
             User user = createUser("charlie", "taken@test.com", "pass");
-            when(userRepository.findByLegalName("charlie")).thenReturn(Optional.empty());
             when(userRepository.findByEmail("taken@test.com")).thenReturn(Optional.of(new User()));
 
             IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
@@ -120,21 +109,21 @@ public class UserServiceTest {
         @Test
         void login_success_returnsUser() {
             User stored = createUser("alice", "alice@test.com", "$2a$hashed");
-            when(userRepository.findByLegalName("alice")).thenReturn(Optional.of(stored));
+            when(userRepository.findByEmail("alice@test.com")).thenReturn(Optional.of(stored));
             when(passwordEncoder.matches("correctpass", "$2a$hashed")).thenReturn(true);
 
-            User result = userService.login("alice", "correctpass");
+            User result = userService.login("alice@test.com", "correctpass");
 
             assertNotNull(result);
-            assertEquals("alice", result.getLegalName()); // ? Wallah
+            assertEquals("alice", result.getLegalName());
         }
 
         @Test
-        void login_failsWhenUsernameNotFound() {
-            when(userRepository.findByLegalName("ghost")).thenReturn(Optional.empty());
+        void login_failsWhenEmailNotFound() {
+            when(userRepository.findByEmail("ghost@test.com")).thenReturn(Optional.empty());
 
             IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                    () -> userService.login("ghost", "pass"));
+                    () -> userService.login("ghost@test.com", "pass"));
 
             assertEquals("User not found", ex.getMessage());
         }
@@ -142,13 +131,38 @@ public class UserServiceTest {
         @Test
         void login_failsWhenPasswordIsIncorrect() {
             User stored = createUser("alice", "alice@test.com", "$2a$hashed");
-            when(userRepository.findByLegalName("alice")).thenReturn(Optional.of(stored));
+            when(userRepository.findByEmail("alice@test.com")).thenReturn(Optional.of(stored));
             when(passwordEncoder.matches("wrongpass", "$2a$hashed")).thenReturn(false);
 
             IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                    () -> userService.login("alice", "wrongpass"));
+                    () -> userService.login("alice@test.com", "wrongpass"));
 
             assertEquals("Invalid password", ex.getMessage());
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Logout
+    // -------------------------------------------------------------------------
+    @Nested
+    class LogoutTests {
+
+        @Test
+        void logout_success_revokesAllTokens() {
+            User user = createUser("alice", "alice@test.com", "pass");
+
+            userService.logout(user);
+
+            verify(refreshTokenService).revokeAllTokens(user);
+        }
+
+        @Test
+        void logout_failsWhenUserIsNull() {
+            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                    () -> userService.logout(null));
+
+            assertEquals("User cannot be null", ex.getMessage());
+            verify(refreshTokenService, never()).revokeAllTokens(any());
         }
     }
 
@@ -167,7 +181,7 @@ public class UserServiceTest {
             User result = userService.findUserById(1L);
 
             assertNotNull(result);
-            assertEquals("alice", result.getLegalName()); // ? Wallah
+            assertEquals("alice", result.getLegalName());
             assertEquals(1L, result.getId());
         }
 

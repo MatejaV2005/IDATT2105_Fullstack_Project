@@ -1,5 +1,6 @@
 package com.grimni.backend.util;
 
+import io.jsonwebtoken.JwtException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -21,27 +22,16 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class JwtUtilTest {
 
-    // Valid base64 secret that decodes to >= 32 bytes (required for HMAC-SHA256)
-    // Decodes to: "this is a test secret key for unit testing" (43 bytes)
     private static final String TEST_SECRET =
             "dGhpcyBpcyBhIHRlc3Qgc2VjcmV0IGtleSBmb3IgdW5pdCB0ZXN0aW5n";
 
-    /**
-     * Builds a User entity for testing. User.id is set via ReflectionTestUtils
-     * because it's assigned by the DB (GenerationType.IDENTITY) and has no setter.
-     */
     private static User createTestUser(String username, Long userId) {
         User user = new User();
         ReflectionTestUtils.setField(user, "id", userId);
-        user.setLegalName(username); // ? Wallah
+        user.setLegalName(username); 
         return user;
     }
 
-    /**
-     * Builds the OrgUserBridge that represents the user's membership in a specific
-     * organization with a specific role. This is what gets passed to generateToken
-     * alongside the user — the bridge determines the orgId + role claims.
-     */
     private static OrgUserBridge createTestBridge(OrgUserRole role, Long orgId) {
         Organization org = new Organization();
         org.setId(orgId);
@@ -52,9 +42,6 @@ public class JwtUtilTest {
         return bridge;
     }
 
-    // -------------------------------------------------------------------------
-    // Spring context slice — verifies that jwt.secret is loaded from properties
-    // -------------------------------------------------------------------------
     @Nested
     @ExtendWith(SpringExtension.class)
     @Import(JwtUtil.class)
@@ -83,9 +70,6 @@ public class JwtUtilTest {
         }
     }
 
-    // -------------------------------------------------------------------------
-    // Unit tests — no Spring context, secret injected via ReflectionTestUtils
-    // -------------------------------------------------------------------------
     @Nested
     class UnitTests {
 
@@ -161,48 +145,60 @@ public class JwtUtilTest {
             assertFalse(jwtUtil.isTokenValid(""));
         }
 
+        // --- extractAllClaims ------------------------------------------------
+
+        @Test
+        void extractAllClaims_validToken_returnsNonNull() {
+            String token = jwtUtil.generateToken(testUser, testBridge);
+            assertNotNull(jwtUtil.extractAllClaims(token));
+        }
+
+        @Test
+        void extractAllClaims_invalidToken_throwsJwtException() {
+            assertThrows(JwtException.class, () -> jwtUtil.extractAllClaims("invalid.token.string"));
+        }
+
         // --- extractUsername -------------------------------------------------
 
         @Test
         void extractUsername_validToken_returnsCorrectUsername() {
             String token = jwtUtil.generateToken(testUser, testBridge);
-            assertEquals("alice", jwtUtil.extractUsername(token));
+            assertEquals("alice", jwtUtil.extractLegalName(token));
         }
 
         @Test
         void extractUsername_validToken_doesNotReturnWrongUsername() {
             String token = jwtUtil.generateToken(testUser, testBridge);
-            assertNotEquals("bob", jwtUtil.extractUsername(token));
+            assertNotEquals("bob", jwtUtil.extractLegalName(token));
         }
 
         @Test
-        void extractUsername_invalidToken_returnsNull() {
-            assertNull(jwtUtil.extractUsername("invalid.token.string"));
+        void extractUsername_invalidToken_throwsJwtException() {
+            assertThrows(JwtException.class, () -> jwtUtil.extractLegalName("invalid.token.string"));
         }
 
         @Test
-        void extractUsername_tokenSignedWithDifferentKey_returnsNull() {
+        void extractUsername_tokenSignedWithDifferentKey_throwsJwtException() {
             JwtUtil otherUtil = new JwtUtil();
             ReflectionTestUtils.setField(otherUtil, "secret",
                     "YW5vdGhlclRlc3RTZWNyZXRLZXlGb3JVbml0VGVzdGluZ09ubHkxMjM=");
             ReflectionTestUtils.invokeMethod(otherUtil, "init");
 
             String foreignToken = otherUtil.generateToken(testUser, testBridge);
-            assertNull(jwtUtil.extractUsername(foreignToken));
+            assertThrows(JwtException.class, () -> jwtUtil.extractLegalName(foreignToken));
         }
 
         // --- extractUserId ---------------------------------------------------
-        // sub claim now holds user.getId().toString(), so extractUserId returns a String
 
         @Test
         void extractUserId_validToken_returnsCorrectId() {
             String token = jwtUtil.generateToken(testUser, testBridge);
-            assertEquals("42", jwtUtil.extractUserId(token));
+            assertEquals(42L, jwtUtil.extractUserId(token));
         }
 
         @Test
-        void extractUserId_invalidToken_returnsNull() {
-            assertNull(jwtUtil.extractUserId("invalid.token.string"));
+        void extractUserId_invalidToken_throwsJwtException() {
+            assertThrows(JwtException.class, () -> jwtUtil.extractUserId("invalid.token.string"));
         }
 
         // --- extractUserRole -------------------------------------------------
@@ -222,8 +218,8 @@ public class JwtUtilTest {
         }
 
         @Test
-        void extractUserRole_invalidToken_returnsNull() {
-            assertNull(jwtUtil.extractUserRole("invalid.token.string"));
+        void extractUserRole_invalidToken_throwsJwtException() {
+            assertThrows(JwtException.class, () -> jwtUtil.extractUserRole("invalid.token.string"));
         }
 
         // --- extractUserOrgId ------------------------------------------------
@@ -235,8 +231,8 @@ public class JwtUtilTest {
         }
 
         @Test
-        void extractUserOrgId_invalidToken_returnsNull() {
-            assertNull(jwtUtil.extractUserOrgId("invalid.token.string"));
+        void extractUserOrgId_invalidToken_throwsJwtException() {
+            assertThrows(JwtException.class, () -> jwtUtil.extractUserOrgId("invalid.token.string"));
         }
     }
 }
