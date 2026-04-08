@@ -13,4 +13,5 @@ public interface OrgUserBridgeRepository extends JpaRepository<OrgUserBridge, Or
     List<OrgUserBridge> findByUserId(Long userId);
     Optional<OrgUserBridge> findByOrganizationIdAndUserId(Long orgId, Long userId);
     List<OrgUserBridge> findByOrganizationIdAndUserIdIn(Long orgId, Collection<Long> userIds);
+    Optional<OrgUserBridge> findFirstByUserId(Long userId);
 }

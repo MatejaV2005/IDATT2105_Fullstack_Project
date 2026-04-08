@@ -34,27 +34,19 @@ public class OrganizationController {
     @PostMapping
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> createOrganization(
-        @Valid @RequestBody CreateOrganizationRequest request, 
+        @Valid @RequestBody CreateOrganizationRequest request,
         Authentication authentication) {
-        try {
-            JwtUserPrinciple principal = (JwtUserPrinciple) authentication.getPrincipal();
-            Organization org = organizationService.createOrganization(request, principal.userId());
-            return ResponseEntity.status(HttpStatus.CREATED).body(OrganizationResponse.fromEntity(org));
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
-        }
+        JwtUserPrinciple principal = (JwtUserPrinciple) authentication.getPrincipal();
+        Organization org = organizationService.createOrganization(request, principal.userId());
+        return ResponseEntity.status(HttpStatus.CREATED).body(OrganizationResponse.fromEntity(org));
     }
 
     @GetMapping("/{orgId}")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> getOrganization(@PathVariable Long orgId, Authentication authentication) {
-        try {
-            JwtUserPrinciple principle = (JwtUserPrinciple) authentication.getPrincipal();
-            Organization org = organizationService.findOrganizationByIdAndUser(orgId, principle.userId());
-            return ResponseEntity.ok(OrganizationResponse.fromEntity(org));
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-        }
+        JwtUserPrinciple principle = (JwtUserPrinciple) authentication.getPrincipal();
+        Organization org = organizationService.findOrganizationByIdAndUser(orgId, principle.userId());
+        return ResponseEntity.ok(OrganizationResponse.fromEntity(org));
     }
 
     @PatchMapping("/{orgId}")
@@ -62,12 +54,8 @@ public class OrganizationController {
     public ResponseEntity<?> updateOrganization(@PathVariable Long orgId,
                                                 @Valid @RequestBody UpdateOrganizationRequest request,
                                                 Authentication authentication) {
-        try {
-            JwtUserPrinciple principal = (JwtUserPrinciple) authentication.getPrincipal();
-            Organization org = organizationService.updateOrganization(orgId, request, principal.userId());
-            return ResponseEntity.ok(OrganizationResponse.fromEntity(org));
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
-        }
+        JwtUserPrinciple principal = (JwtUserPrinciple) authentication.getPrincipal();
+        Organization org = organizationService.updateOrganization(orgId, request, principal.userId());
+        return ResponseEntity.ok(OrganizationResponse.fromEntity(org));
     }
 }

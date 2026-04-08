@@ -390,6 +390,7 @@ CREATE TABLE certificates (
     user_id INT NOT NULL,
     file_id INT NOT NULL,
     org_id INT,
+    course_id 
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT fk_certificates_user
@@ -398,4 +399,6 @@ CREATE TABLE certificates (
         FOREIGN KEY (file_id) REFERENCES file_object(id) ON DELETE CASCADE,
     CONSTRAINT fk_certificates_org
         FOREIGN KEY (org_id) REFERENCES organization(id) ON DELETE SET NULL
+    CONSTRAINT fk_certificates_course
+        FOREIGN KEY (course_id) REFERENCES coruse(id) ON DELETE SET NULL
 );

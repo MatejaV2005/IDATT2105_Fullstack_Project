@@ -92,7 +92,8 @@ public class SimpleFileController {
     @PostMapping
     public ResponseEntity<String> upload(
         @RequestParam("file") MultipartFile file,
-        @RequestParam("orgId") Long orgId
+        @RequestParam("orgId") Long orgId,
+        @RequestParam(value = "courseId", required = false) Long courseId
     ) {
         if (file.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "File is empty");
@@ -117,7 +118,7 @@ public class SimpleFileController {
         String key = "sanity/" + UUID.randomUUID() + "-" + originalFilename;
 
         try {
-            simpleStorageService.upload(
+            FileObject savedFile = simpleStorageService.upload(
                 key,
                 file.getInputStream(),
                 file.getSize(),
@@ -128,6 +129,10 @@ public class SimpleFileController {
                 originalFilename,
                 organization
             );
+
+            if (courseId != null) {
+                simpleStorageService.linkFileToCourse(savedFile.getId(), courseId);
+            }
         } catch (IllegalArgumentException exception) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, exception.getMessage(), exception);
         } catch (RuntimeException exception) {

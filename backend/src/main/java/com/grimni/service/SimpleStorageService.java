@@ -7,13 +7,20 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.grimni.domain.Course;
+import com.grimni.domain.FileCourseBridge;
 import com.grimni.domain.FileObject;
 import com.grimni.domain.OrgUserBridge;
 import com.grimni.domain.Organization;
 import com.grimni.domain.User;
 import com.grimni.domain.enums.AccessLevel;
 import com.grimni.domain.enums.OrgUserRole;
+import com.grimni.domain.ids.FileCourseBridgeId;
+import com.grimni.repository.CourseRepository;
+import com.grimni.repository.FileCourseBridgeRepository;
 import com.grimni.repository.FileObjectRepository;
+
+import jakarta.persistence.EntityNotFoundException;
 
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.core.ResponseBytes;
@@ -33,15 +40,21 @@ public class SimpleStorageService {
 
     private final S3Client s3Client;
     private final FileObjectRepository repository;
+    private final CourseRepository courseRepository;
+    private final FileCourseBridgeRepository fileCourseBridgeRepository;
     private final String bucket;
 
     public SimpleStorageService(
         S3Client s3Client,
         FileObjectRepository repository,
+        CourseRepository courseRepository,
+        FileCourseBridgeRepository fileCourseBridgeRepository,
         @Value("${s3.bucket}") String bucket
     ) {
         this.s3Client = s3Client;
         this.repository = repository;
+        this.courseRepository = courseRepository;
+        this.fileCourseBridgeRepository = fileCourseBridgeRepository;
         this.bucket = bucket;
     }
 
@@ -92,7 +105,7 @@ public class SimpleStorageService {
         Long fileObjectId,
         List<OrgUserBridge> orgUserBridge
     ) {
-        FileObject fileObject = repository.findById(fileObjectId).orElseThrow(() -> new IllegalArgumentException("File object not found"));
+        FileObject fileObject = repository.findById(fileObjectId).orElseThrow(() -> new EntityNotFoundException("File object not found"));
         AccessLevel fileObjectAccessLevel = fileObject.getDeleteAccess();
         Long fileObjectOrgId = fileObject.getOrganization().getId();
         if (!doesUserHaveRightAccessLevel(fileObjectOrgId, fileObjectAccessLevel, orgUserBridge)) {
@@ -114,7 +127,7 @@ public class SimpleStorageService {
 
     @Transactional(readOnly = true)
     public StoredFile read(Long fileObjectId, List<OrgUserBridge> orgUserBridge) {
-        FileObject fileObject = repository.findById(fileObjectId).orElseThrow(() -> new IllegalArgumentException("File object not found"));
+        FileObject fileObject = repository.findById(fileObjectId).orElseThrow(() -> new EntityNotFoundException("File object not found"));
         AccessLevel fileObjectAccessLevel = fileObject.getReadAccess();
         Long fileObjectOrgId = fileObject.getOrganization().getId();
         if (!doesUserHaveRightAccessLevel(fileObjectOrgId, fileObjectAccessLevel, orgUserBridge)) {
@@ -135,6 +148,20 @@ public class SimpleStorageService {
         }
 
         return new StoredFile(fileObject, objectBytes.asByteArray(), contentType);
+    }
+
+    @Transactional
+    public void linkFileToCourse(Long fileId, Long courseId) {
+        FileObject file = repository.findById(fileId)
+            .orElseThrow(() -> new EntityNotFoundException("File not found"));
+        Course course = courseRepository.findById(courseId)
+            .orElseThrow(() -> new EntityNotFoundException("Course not found"));
+
+        FileCourseBridge bridge = new FileCourseBridge();
+        bridge.setId(new FileCourseBridgeId(courseId, fileId));
+        bridge.setCourse(course);
+        bridge.setFile(file);
+        fileCourseBridgeRepository.save(bridge);
     }
 
     private boolean doesUserHaveRightAccessLevel(Long fileObjectOrgId, AccessLevel fileObjectAccessLevel, List<OrgUserBridge> orgUserBridge) {

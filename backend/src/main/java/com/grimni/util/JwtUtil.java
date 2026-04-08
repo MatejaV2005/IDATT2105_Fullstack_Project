@@ -45,8 +45,9 @@ public class JwtUtil {
             String jwt = Jwts.builder()
             .subject(user.getId().toString())
             .claim("legalName", user.getLegalName()) 
-            .claim("role", bridge.getUserRole().name())
-            .claim("orgId", bridge.getOrganization().getId())
+            .claim("role", bridge != null ? bridge.getUserRole().name() : null)
+            .claim("orgId", bridge != null ? bridge.getOrganization().getId() : null)
+            .claim("email", user.getEmail())
             .issuedAt(new Date())
             .expiration(expiration)
             .signWith(key)
@@ -112,5 +113,9 @@ public class JwtUtil {
         } catch (NumberFormatException exception) {
             throw new IllegalStateException("Invalid authenticated user id", exception);
         }
+    }
+
+    public String extractUserEmail(String jwtToken) {
+        return extractAllClaims(jwtToken).get("email", String.class);
     }
 }
