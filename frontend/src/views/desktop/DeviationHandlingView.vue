@@ -33,7 +33,11 @@ function formatDate(dateString: string): string {
 
 async function fetchDeviations() {
   try {
-    const response = await fetch('/api/deviations') //TODO include user credentials
+    const response = await fetch('/api/deviations', {
+      headers: {
+        'Authorization': 'Bearer <JWT_TOKEN>' //TODO
+      }
+    })
     if (!response.ok) {
       throw new Error('Failed to fetch deviations from API')
     }
@@ -43,7 +47,7 @@ async function fetchDeviations() {
   } catch (err) {
     console.warn('Using fallback mock data due to API error:', err)
     deviationsList.value = [...deviations]
-    error.value = 'Kunne ikke hente avvik fra server. Viser mockdata.'
+    error.value = 'Kunne ikke hente avvik fra server. Viser test-data.'
   } finally {
     loading.value = false
   }
@@ -67,11 +71,11 @@ async function submitResolve() {
   if (!selectedDeviation.value || !resolveMeasure.value.trim()) return
 
   try {
-    //TODO include user credentials
     const response = await fetch(`/api/deviations/${selectedDeviation.value.id}/resolve`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': 'Bearer <JWT_TOKEN>' //TODO
       },
       body: JSON.stringify({
         preventativeMeasureActuallyTaken: resolveMeasure.value.trim()
