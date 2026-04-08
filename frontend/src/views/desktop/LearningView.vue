@@ -1,10 +1,15 @@
 <script setup lang="ts">
 import Badge from '@/components/desktop/shared/Badge.vue'
 import DesktopButton from '@/components/desktop/shared/DesktopButton.vue'
+import Loading from '@/components/desktop/shared/Loading.vue'
 import SidebarPageContainer from '@/components/desktop/sidebar/SidebarPageContainer.vue'
+import type { LearningAllInfo } from '@/interfaces/api-interfaces'
+import { delay } from '@/utils'
 import { Edit2, File, Link, Plus } from '@lucide/vue'
+import { onMounted, ref } from 'vue'
 
-const allCourses = [
+const mockData: LearningAllInfo = {
+  allCourses: [
   {
     name: 'Serveringskurs',
     description:
@@ -56,8 +61,8 @@ const allCourses = [
     responsible: ['Simen Velle', 'Ola svenneby'],
     uniqueId: 9816,
   },
-]
-const userProgress = [
+  ],
+  userProgress: [
   {
     name: 'Mona Jul',
     courses: [
@@ -118,7 +123,31 @@ const userProgress = [
       },
     ],
   },
-]
+  ],
+}
+
+const resource = ref<LearningAllInfo>({ allCourses: [], userProgress: [] })
+const loading = ref(true)
+const error = ref<boolean | null>(null)
+
+onMounted(async () => {
+  try {
+    // const response = await fetch('/api/learning/get-all-info')
+    // const data = await response.json()
+    await delay(2000)
+    const data = mockData
+    resource.value = data
+    loading.value = false
+    error.value = false
+  } catch (err) {
+    if (err instanceof Error) {
+      console.error(err.message)
+    } else {
+      console.error('Unknown error occurred')
+    }
+    error.value = true
+  }
+})
 
 function hasCompletedCourse(
   user: { courses: { name: string; completed: boolean; uniqueId: number }[] },
@@ -138,13 +167,14 @@ function sayHello() {
         Opplæring
       </h1>
       <span class="navy-subtitle">Godkjenning</span>
-      <div class="course-completion">
+      <Loading v-if="loading" />
+      <div class="course-completion" v-if="!loading">
         <table>
           <thead>
             <tr>
               <th>Bruker</th>
-              <th
-                v-for="course in allCourses"
+                <th
+                v-for="course in resource.allCourses"
                 :key="course.uniqueId"
               >
                 {{ course.name }}
@@ -152,14 +182,14 @@ function sayHello() {
             </tr>
           </thead>
           <tbody>
-            <tr
-              v-for="user in userProgress"
+              <tr
+              v-for="user in resource.userProgress"
               :key="user.name"
             >
               <td>{{ user.name }}</td>
               <td
-                v-for="course in allCourses"
-                :key="`${user.name}-${course}`"
+                v-for="course in resource.allCourses"
+                :key="`${user.name}-${course.uniqueId}`"
               >
                 <span
                   class="completion-chip"
@@ -180,8 +210,9 @@ function sayHello() {
         />
       </div>
       <span class="navy-subtitle">Opplæringskrav</span>
+      <Loading v-if="loading" />
       <div
-        v-for="course in allCourses"
+        v-for="course in resource.allCourses"
         :key="course.uniqueId"
         class="course"
       >
@@ -205,6 +236,7 @@ function sayHello() {
           <div class="resource-container">
             <Badge
               v-for="resource in course.resources"
+              :key="`${course.uniqueId}-${resource.name}`"
               badge-color="navy"
               :icon="resource.type === 'link' ? Link : File"
             >

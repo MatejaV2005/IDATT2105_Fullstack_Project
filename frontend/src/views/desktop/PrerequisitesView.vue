@@ -18,7 +18,7 @@ const error = ref<boolean | null>(null)
 
 onMounted(async () => {
   try {
-    // const response = await fetch("/api/prerequisite-category/get-all-info")
+    // const response = await fetch("/api/prerequisite-categories/get-all-info")
     // const data = await response.json();
     await delay(2000);
     const data: PrerequisiteCategoryAllInfo = [ // This is mock data
@@ -107,7 +107,7 @@ onMounted(async () => {
           Grunnforutsetninger
         </h1>
         <hr class="navy-hr">
-        <Loading />
+        <Loading v-if="loading"/>
         <div
           v-for="prerequisite in resource"
           :key="prerequisite.categoryName"

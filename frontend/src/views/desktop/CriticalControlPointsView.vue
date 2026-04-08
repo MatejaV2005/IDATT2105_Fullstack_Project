@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import DesktopButton from '@/components/desktop/shared/DesktopButton.vue'
+import Loading from '@/components/desktop/shared/Loading.vue'
 import Paginator from '@/components/desktop/shared/Paginator.vue'
 import UserBadge from '@/components/desktop/shared/UserBadge.vue'
+import type { CriticalControlPointAllInfo } from '@/interfaces/api-interfaces'
+import { delay } from '@/utils'
 import { Edit2, Plus } from '@lucide/vue'
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 
 const expandedMeasures = ref<Record<string, boolean>>({})
 
@@ -25,7 +28,7 @@ function getMeasureDescription(ccpIndex: number, measureIndex: number, text: str
   return `${text.slice(0, 220)}...`
 }
 
-const ccps = [
+const mockData: CriticalControlPointAllInfo = [
   {
     name: 'Renhold av lokaler og utstyr',
     how: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod  tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim  veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea  commodo consequat. Duis aute irure dolor. Lerum in reprehenderit in voluptate  velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint  occaecat cupidatat non proident, sunt in culpa qui officia deserunt  mollit anim id est laborum',
@@ -180,6 +183,29 @@ const ccps = [
   },
 ]
 
+const resource = ref<CriticalControlPointAllInfo>([])
+const loading = ref(true)
+const error = ref<boolean | null>(null)
+
+onMounted(async () => {
+  try {
+    // const response = await fetch('/api/haccp/critical-control-points/get-all-info')
+    // const data = await response.json()
+    await delay(2000)
+    const data = mockData
+    resource.value = data
+    loading.value = false
+    error.value = false
+  } catch (err) {
+    if (err instanceof Error) {
+      console.error(err.message)
+    } else {
+      console.error('Unknown error occurred')
+    }
+    error.value = true
+  }
+})
+
 function sayHello() {
   alert('Hello')
 }
@@ -194,9 +220,9 @@ function sayHello() {
           Kritiske punkter
         </h1>
         <hr class="navy-hr">
-
+        <Loading v-if="loading" />
         <div
-          v-for="(ccp, index) in ccps"
+          v-for="(ccp, index) in resource"
           :key="`${ccp.name}-${index}`"
           class="ccp"
         >

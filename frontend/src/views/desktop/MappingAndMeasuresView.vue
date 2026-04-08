@@ -1,10 +1,14 @@
 <script setup lang="ts">
 import Badge from '@/components/desktop/shared/Badge.vue'
 import DesktopButton from '@/components/desktop/shared/DesktopButton.vue'
+import Loading from '@/components/desktop/shared/Loading.vue'
 import SidebarPageContainer from '@/components/desktop/sidebar/SidebarPageContainer.vue'
+import type { MappingPointAllInfo } from '@/interfaces/api-interfaces'
+import { delay } from '@/utils'
 import { CircleAlert, Edit2, User } from '@lucide/vue'
+import { onMounted, ref } from 'vue'
 
-const mappingPoints = [
+const mockData: MappingPointAllInfo = [
   {
     law: 'AL § 1-5',
     dots: 8,
@@ -53,6 +57,29 @@ const mappingPoints = [
     responsibleText: 'Hvem enn som er i kassen ved gitt tidspunkt',
   },
 ]
+
+const resource = ref<MappingPointAllInfo>([])
+const loading = ref(true)
+const error = ref<boolean | null>(null)
+
+onMounted(async () => {
+  try {
+    // const response = await fetch('/api/mapping-points')
+    // const data = await response.json()
+    await delay(2000)
+    const data = mockData
+    resource.value = data
+    loading.value = false
+    error.value = false
+  } catch (err) {
+    if (err instanceof Error) {
+      console.error(err.message)
+    } else {
+      console.error('Unknown error occurred')
+    }
+    error.value = true
+  }
+})
 </script>
 
 <template>
@@ -61,8 +88,10 @@ const mappingPoints = [
       <h1 class="instrument-serif-regular no-margin">
         Kartlegging & tiltak
       </h1>
+      <Loading v-if="loading"/>
       <div
-        v-for="point in mappingPoints"
+        v-for="(point, pointIndex) in resource"
+        :key="`${point.law}-${point.title}-${pointIndex}`"
         class="mapping-point"
       >
         <div class="point-header">
@@ -102,11 +131,12 @@ const mappingPoints = [
             Ansvarlige
           </h3>
           <div class="responsible-parent">
-            <Badge
-              v-for="user in point.responsible"
-              badge-color="navy"
-              :icon="User"
-            >
+              <Badge
+                v-for="user in point.responsible"
+                :key="`${point.title}-${user}`"
+                badge-color="navy"
+                :icon="User"
+              >
               {{ user }}
             </Badge>
           </div>
