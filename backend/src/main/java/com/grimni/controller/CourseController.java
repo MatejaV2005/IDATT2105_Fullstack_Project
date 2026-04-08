@@ -1,11 +1,14 @@
 package com.grimni.controller;
 
 import java.util.List;
+import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -13,16 +16,26 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.grimni.domain.Course;
+import com.grimni.domain.FileObject;
+import com.grimni.domain.Organization;
+import com.grimni.domain.User;
+import com.grimni.domain.enums.AccessLevel;
 import com.grimni.dto.CourseResponse;
 import com.grimni.dto.CourseResponsibleUserResponse;
 import com.grimni.dto.CourseUserProgressResponse;
 import com.grimni.dto.CreateCourseRequest;
 import com.grimni.dto.UpdateCourseRequest;
+import com.grimni.repository.OrganizationRepository;
+import com.grimni.repository.UserRepository;
 import com.grimni.security.JwtUserPrinciple;
 import com.grimni.service.CourseService;
+import com.grimni.service.SimpleStorageService;
 
 import jakarta.validation.Valid;
 
@@ -31,9 +44,18 @@ import jakarta.validation.Valid;
 public class CourseController {
 
     private final CourseService courseService;
+    private final SimpleStorageService simpleStorageService;
+    private final UserRepository userRepository;
+    private final OrganizationRepository organizationRepository;
 
-    public CourseController(CourseService courseService) {
+    public CourseController(CourseService courseService,
+                            SimpleStorageService simpleStorageService,
+                            UserRepository userRepository,
+                            OrganizationRepository organizationRepository) {
         this.courseService = courseService;
+        this.simpleStorageService = simpleStorageService;
+        this.userRepository = userRepository;
+        this.organizationRepository = organizationRepository;
     }
 
     @PostMapping
@@ -84,7 +106,6 @@ public class CourseController {
         return ResponseEntity.noContent().build();
     }
 
-    // -------------------------------------------------------------------------
     // Course User Progress
     // -------------------------------------------------------------------------
 
@@ -144,7 +165,6 @@ public class CourseController {
         return ResponseEntity.noContent().build();
     }
 
-    // -------------------------------------------------------------------------
     // Course Responsible Users
     // -------------------------------------------------------------------------
 
@@ -179,5 +199,104 @@ public class CourseController {
         JwtUserPrinciple principal = (JwtUserPrinciple) authentication.getPrincipal();
         courseService.removeResponsibleUser(courseId, targetUserId, principal.orgId(), principal.userId());
         return ResponseEntity.noContent().build();
+    }
+
+    // -------------------------------------------------------------------------
+    // Course Files
+    // -------------------------------------------------------------------------
+
+    @PostMapping("/{courseId}/files")
+    @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
+    public ResponseEntity<?> uploadCourseFile(
+            @PathVariable Long courseId,
+            @RequestParam("file") MultipartFile file,
+            Authentication authentication) {
+        JwtUserPrinciple principal = (JwtUserPrinciple) authentication.getPrincipal();
+        Long orgId = principal.orgId();
+        Long userId = principal.userId();
+
+        courseService.getCourseById(courseId, orgId, userId);
+
+        if (file.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "File is empty");
+        }
+
+        User uploadedBy = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
+        Organization organization = organizationRepository.findById(orgId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Organization not found"));
+
+        String originalFilename = file.getOriginalFilename() == null
+                ? "unnamed" : StringUtils.cleanPath(file.getOriginalFilename());
+        String key = "courses/" + courseId + "/" + UUID.randomUUID() + "-" + originalFilename;
+
+        try {
+            FileObject savedFile = simpleStorageService.upload(
+                    key,
+                    file.getInputStream(),
+                    file.getSize(),
+                    file.getContentType(),
+                    AccessLevel.ANYONE_IN_ORG,
+                    AccessLevel.MANAGER,
+                    uploadedBy,
+                    originalFilename,
+                    organization
+            );
+            simpleStorageService.linkFileToCourse(savedFile.getId(), courseId);
+            return ResponseEntity.status(HttpStatus.CREATED).body(savedFile.getId());
+        } catch (java.io.IOException exception) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Upload failed", exception);
+        }
+    }
+
+    @GetMapping("/{courseId}/files/{fileId}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<byte[]> downloadCourseFile(
+            @PathVariable Long courseId,
+            @PathVariable Long fileId,
+            Authentication authentication) {
+        JwtUserPrinciple principal = (JwtUserPrinciple) authentication.getPrincipal();
+
+        courseService.getCourseById(courseId, principal.orgId(), principal.userId());
+
+        User user = userRepository.findById(principal.userId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
+
+        try {
+            SimpleStorageService.StoredFile storedFile = simpleStorageService.read(fileId, user.getOrganizations());
+            FileObject fileObject = storedFile.fileObject();
+
+            return ResponseEntity.ok()
+                    .contentType(MediaType.parseMediaType(storedFile.contentType()))
+                    .header("Content-Disposition", "attachment; filename=\"" + fileObject.getFileName() + "\"")
+                    .body(storedFile.bytes());
+        } catch (IllegalArgumentException exception) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "File not found", exception);
+        } catch (SecurityException exception) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, exception.getMessage(), exception);
+        }
+    }
+
+    @DeleteMapping("/{courseId}/files/{fileId}")
+    @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
+    public ResponseEntity<Void> deleteCourseFile(
+            @PathVariable Long courseId,
+            @PathVariable Long fileId,
+            Authentication authentication) {
+        JwtUserPrinciple principal = (JwtUserPrinciple) authentication.getPrincipal();
+
+        courseService.getCourseById(courseId, principal.orgId(), principal.userId());
+
+        User user = userRepository.findById(principal.userId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
+
+        try {
+            simpleStorageService.delete(fileId, user.getOrganizations());
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException exception) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "File not found", exception);
+        } catch (SecurityException exception) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, exception.getMessage(), exception);
+        }
     }
 }

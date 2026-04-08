@@ -5,13 +5,17 @@ import com.grimni.controller.CourseController;
 import com.grimni.domain.Course;
 import com.grimni.domain.CourseResponsibleUser;
 import com.grimni.domain.CourseUserProgress;
+import com.grimni.domain.FileObject;
 import com.grimni.domain.Organization;
 import com.grimni.domain.User;
 import com.grimni.dto.CreateCourseRequest;
 import com.grimni.dto.UpdateCourseRequest;
+import com.grimni.repository.OrganizationRepository;
+import com.grimni.repository.UserRepository;
 import com.grimni.security.JwtUserPrinciple;
 import com.grimni.security.SecurityConfig;
 import com.grimni.service.CourseService;
+import com.grimni.service.SimpleStorageService;
 import com.grimni.util.JwtAuthFilter;
 import com.grimni.util.JwtUtil;
 
@@ -23,6 +27,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -35,6 +40,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -59,6 +65,15 @@ public class CourseControllerTest {
 
     @MockitoBean
     private JwtAuthFilter jwtAuthFilter;
+
+    @MockitoBean
+    private SimpleStorageService simpleStorageService;
+
+    @MockitoBean
+    private UserRepository userRepository;
+
+    @MockitoBean
+    private OrganizationRepository organizationRepository;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -629,6 +644,206 @@ public class CourseControllerTest {
                             .with(csrf()))
                     .andExpect(status().isNotFound())
                     .andExpect(jsonPath("$.error").value("Responsible user not found"));
+        }
+    }
+
+    // =========================================================================
+    // Course File Endpoints
+    // =========================================================================
+
+    @Nested
+    @DisplayName("POST /courses/{courseId}/files")
+    class UploadCourseFileTests {
+
+        @Test
+        @DisplayName("OWNER can upload file — returns 201")
+        void uploadFile_owner_returns201() throws Exception {
+            MockMultipartFile file = new MockMultipartFile(
+                    "file", "test.pdf", "application/pdf", "file-content".getBytes());
+
+            when(courseService.getCourseById(100L, 10L, 1L)).thenReturn(testCourse);
+            when(userRepository.findById(1L)).thenReturn(Optional.of(targetUser));
+            when(organizationRepository.findById(10L)).thenReturn(Optional.of(testOrg));
+
+            FileObject savedFile = new FileObject();
+            ReflectionTestUtils.setField(savedFile, "id", 50L);
+            when(simpleStorageService.upload(any(), any(), anyLong(), any(), any(), any(), any(), any(), any()))
+                    .thenReturn(savedFile);
+
+            mockMvc.perform(multipart("/courses/100/files")
+                            .file(file)
+                            .with(authentication(authWithRole("OWNER")))
+                            .with(csrf()))
+                    .andExpect(status().isCreated())
+                    .andExpect(content().string("50"));
+
+            verify(simpleStorageService).linkFileToCourse(50L, 100L);
+        }
+
+        @Test
+        @DisplayName("WORKER cannot upload — returns 403")
+        void uploadFile_worker_returns403() throws Exception {
+            MockMultipartFile file = new MockMultipartFile(
+                    "file", "test.pdf", "application/pdf", "file-content".getBytes());
+
+            mockMvc.perform(multipart("/courses/100/files")
+                            .file(file)
+                            .with(authentication(authWithRole("WORKER")))
+                            .with(csrf()))
+                    .andExpect(status().isForbidden());
+
+            verify(simpleStorageService, never()).upload(any(), any(), anyLong(), any(), any(), any(), any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("unauthenticated — returns 403")
+        void uploadFile_unauthenticated_returns403() throws Exception {
+            MockMultipartFile file = new MockMultipartFile(
+                    "file", "test.pdf", "application/pdf", "file-content".getBytes());
+
+            mockMvc.perform(multipart("/courses/100/files")
+                            .file(file)
+                            .with(csrf()))
+                    .andExpect(status().isForbidden());
+        }
+
+        @Test
+        @DisplayName("course not found — returns 404")
+        void uploadFile_courseNotFound_returns404() throws Exception {
+            MockMultipartFile file = new MockMultipartFile(
+                    "file", "test.pdf", "application/pdf", "file-content".getBytes());
+
+            when(courseService.getCourseById(999L, 10L, 1L))
+                    .thenThrow(new EntityNotFoundException("Course not found"));
+
+            mockMvc.perform(multipart("/courses/999/files")
+                            .file(file)
+                            .with(authentication(authWithRole("OWNER")))
+                            .with(csrf()))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.error").value("Course not found"));
+        }
+    }
+
+    @Nested
+    @DisplayName("GET /courses/{courseId}/files/{fileId}")
+    class DownloadCourseFileTests {
+
+        @Test
+        @DisplayName("authenticated user can download — returns 200")
+        void downloadFile_authenticated_returns200() throws Exception {
+            when(courseService.getCourseById(100L, 10L, 1L)).thenReturn(testCourse);
+
+            User user = new User();
+            ReflectionTestUtils.setField(user, "id", 1L);
+            when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+
+            FileObject fileObject = new FileObject();
+            ReflectionTestUtils.setField(fileObject, "id", 50L);
+            fileObject.setFileName("test.pdf");
+
+            SimpleStorageService.StoredFile storedFile =
+                    new SimpleStorageService.StoredFile(fileObject, "file-content".getBytes(), "application/pdf");
+            when(simpleStorageService.read(eq(50L), any())).thenReturn(storedFile);
+
+            mockMvc.perform(get("/courses/100/files/50")
+                            .with(authentication(authWithRole("WORKER"))))
+                    .andExpect(status().isOk())
+                    .andExpect(content().contentType(MediaType.APPLICATION_PDF))
+                    .andExpect(header().string("Content-Disposition", "attachment; filename=\"test.pdf\""))
+                    .andExpect(content().bytes("file-content".getBytes()));
+        }
+
+        @Test
+        @DisplayName("file not found — returns 404")
+        void downloadFile_notFound_returns404() throws Exception {
+            when(courseService.getCourseById(100L, 10L, 1L)).thenReturn(testCourse);
+
+            User user = new User();
+            ReflectionTestUtils.setField(user, "id", 1L);
+            when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+
+            when(simpleStorageService.read(eq(999L), any()))
+                    .thenThrow(new EntityNotFoundException("File object not found"));
+
+            mockMvc.perform(get("/courses/100/files/999")
+                            .with(authentication(authWithRole("WORKER"))))
+                    .andExpect(status().isNotFound());
+        }
+
+        @Test
+        @DisplayName("no access — returns 403")
+        void downloadFile_noAccess_returns403() throws Exception {
+            when(courseService.getCourseById(100L, 10L, 1L)).thenReturn(testCourse);
+
+            User user = new User();
+            ReflectionTestUtils.setField(user, "id", 1L);
+            when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+
+            when(simpleStorageService.read(eq(50L), any()))
+                    .thenThrow(new SecurityException("You don't have access level to read this file"));
+
+            mockMvc.perform(get("/courses/100/files/50")
+                            .with(authentication(authWithRole("WORKER"))))
+                    .andExpect(status().isForbidden());
+        }
+
+        @Test
+        @DisplayName("unauthenticated — returns 403")
+        void downloadFile_unauthenticated_returns403() throws Exception {
+            mockMvc.perform(get("/courses/100/files/50"))
+                    .andExpect(status().isForbidden());
+        }
+    }
+
+    @Nested
+    @DisplayName("DELETE /courses/{courseId}/files/{fileId}")
+    class DeleteCourseFileTests {
+
+        @Test
+        @DisplayName("OWNER can delete file — returns 204")
+        void deleteFile_owner_returns204() throws Exception {
+            when(courseService.getCourseById(100L, 10L, 1L)).thenReturn(testCourse);
+
+            User user = new User();
+            ReflectionTestUtils.setField(user, "id", 1L);
+            when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+
+            mockMvc.perform(delete("/courses/100/files/50")
+                            .with(authentication(authWithRole("OWNER")))
+                            .with(csrf()))
+                    .andExpect(status().isNoContent());
+
+            verify(simpleStorageService).delete(eq(50L), any());
+        }
+
+        @Test
+        @DisplayName("WORKER cannot delete file — returns 403")
+        void deleteFile_worker_returns403() throws Exception {
+            mockMvc.perform(delete("/courses/100/files/50")
+                            .with(authentication(authWithRole("WORKER")))
+                            .with(csrf()))
+                    .andExpect(status().isForbidden());
+
+            verify(simpleStorageService, never()).delete(any(), any());
+        }
+
+        @Test
+        @DisplayName("file not found — returns 404")
+        void deleteFile_notFound_returns404() throws Exception {
+            when(courseService.getCourseById(100L, 10L, 1L)).thenReturn(testCourse);
+
+            User user = new User();
+            ReflectionTestUtils.setField(user, "id", 1L);
+            when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+
+            doThrow(new EntityNotFoundException("File object not found"))
+                    .when(simpleStorageService).delete(eq(999L), any());
+
+            mockMvc.perform(delete("/courses/100/files/999")
+                            .with(authentication(authWithRole("OWNER")))
+                            .with(csrf()))
+                    .andExpect(status().isNotFound());
         }
     }
 }

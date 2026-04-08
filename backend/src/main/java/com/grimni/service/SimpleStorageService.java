@@ -20,6 +20,8 @@ import com.grimni.repository.CourseRepository;
 import com.grimni.repository.FileCourseBridgeRepository;
 import com.grimni.repository.FileObjectRepository;
 
+import jakarta.persistence.EntityNotFoundException;
+
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.core.ResponseBytes;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -103,7 +105,7 @@ public class SimpleStorageService {
         Long fileObjectId,
         List<OrgUserBridge> orgUserBridge
     ) {
-        FileObject fileObject = repository.findById(fileObjectId).orElseThrow(() -> new IllegalArgumentException("File object not found"));
+        FileObject fileObject = repository.findById(fileObjectId).orElseThrow(() -> new EntityNotFoundException("File object not found"));
         AccessLevel fileObjectAccessLevel = fileObject.getDeleteAccess();
         Long fileObjectOrgId = fileObject.getOrganization().getId();
         if (!doesUserHaveRightAccessLevel(fileObjectOrgId, fileObjectAccessLevel, orgUserBridge)) {
@@ -125,7 +127,7 @@ public class SimpleStorageService {
 
     @Transactional(readOnly = true)
     public StoredFile read(Long fileObjectId, List<OrgUserBridge> orgUserBridge) {
-        FileObject fileObject = repository.findById(fileObjectId).orElseThrow(() -> new IllegalArgumentException("File object not found"));
+        FileObject fileObject = repository.findById(fileObjectId).orElseThrow(() -> new EntityNotFoundException("File object not found"));
         AccessLevel fileObjectAccessLevel = fileObject.getReadAccess();
         Long fileObjectOrgId = fileObject.getOrganization().getId();
         if (!doesUserHaveRightAccessLevel(fileObjectOrgId, fileObjectAccessLevel, orgUserBridge)) {
@@ -151,9 +153,9 @@ public class SimpleStorageService {
     @Transactional
     public void linkFileToCourse(Long fileId, Long courseId) {
         FileObject file = repository.findById(fileId)
-            .orElseThrow(() -> new IllegalArgumentException("File not found"));
+            .orElseThrow(() -> new EntityNotFoundException("File not found"));
         Course course = courseRepository.findById(courseId)
-            .orElseThrow(() -> new IllegalArgumentException("Course not found"));
+            .orElseThrow(() -> new EntityNotFoundException("Course not found"));
 
         FileCourseBridge bridge = new FileCourseBridge();
         bridge.setId(new FileCourseBridgeId(courseId, fileId));
