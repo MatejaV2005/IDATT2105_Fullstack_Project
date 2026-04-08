@@ -84,7 +84,6 @@ public class RefreshTokenService {
         RefreshToken entity = new RefreshToken();
         entity.setUser(user);
         entity.setRefreshToken(hashed);
-        entity.setOrgId(null);
         repository.save(entity);
         logger.info("Refresh token stored in database for user: {}", user.getLegalName());
 
