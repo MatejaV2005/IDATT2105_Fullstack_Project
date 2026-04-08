@@ -15,8 +15,8 @@ services:
       timeout: 5s
       retries: 10
     # ! Only use port forwarding for dev
-    ports: 
-      - "3306:3306"
+    # ports: 
+    #   - "3306:3306"
   
   seaweedfs:
     image: chrislusf/seaweedfs:3.94
@@ -39,10 +39,10 @@ services:
       timeout: 5s
       retries: 20
     # ! Only use port forwarding for dev
-    ports:
-      - "8333:8333" # Default s3 endpoint port
-      - "9333:9333" # Master UI
-      - "8888:8888" # Filer UI
+    # ports:
+    #   - "8333:8333" # Default s3 endpoint port
+    #   - "9333:9333" # Master UI
+    #   - "8888:8888" # Filer UI
 
   backend_app:
     restart: unless-stopped
@@ -71,8 +71,8 @@ services:
       JWT_SECRET_KEY: ${JWT_SECRET_KEY} 
 
     # ! Only use port forwarding for dev
-    ports:
-     - "1234:8080" # Default ports
+    # ports:
+    #  - "1234:8080" # Default ports
                     
 
   frontend_app: # should be a vue project ran in production mode. Using normal vue, not some SSR framework 
