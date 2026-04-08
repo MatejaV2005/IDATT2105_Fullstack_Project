@@ -11,4 +11,5 @@ import com.grimni.domain.ids.OrgUserBridgeId;
 public interface OrgUserBridgeRepository extends JpaRepository<OrgUserBridge, OrgUserBridgeId> {
     List<OrgUserBridge> findByUserId(Long userId);
     Optional<OrgUserBridge> findByOrganizationIdAndUserId(Long orgId, Long userId);
+    Optional<OrgUserBridge> findFirstByUserId(Long userId);
 }
