@@ -7,6 +7,7 @@ import com.grimni.domain.Organization;
 import com.grimni.dto.CreateOrganizationRequest;
 import com.grimni.dto.UpdateOrganizationRequest;
 import com.grimni.security.JwtUserPrinciple;
+import com.grimni.service.CertificateService;
 import com.grimni.service.OrganizationService;
 import org.springframework.context.annotation.Import;
 import com.grimni.security.SecurityConfig;
@@ -58,6 +59,9 @@ public class OrganizationControllerTest {
 
     @MockitoBean
     private JwtAuthFilter jwtAuthFilter;
+
+    @MockitoBean
+    private CertificateService certificateService;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
