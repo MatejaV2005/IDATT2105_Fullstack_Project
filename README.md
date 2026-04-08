@@ -11,6 +11,14 @@ Run `docker compose down --volumes` to remove all volumes (stored data).
 
 Visit `http://localhost:8080/api/health` to make sure the website works.
 
+
+## Useful commands
+
+### Having problems where schema isn't reset?
+1. `docker compose down -v` to wipe db volume
+2. `docker compose up -d --force-recreate db` to recreate db
+3. Reapply schema using the `schema.sql` file
+
 ## Unimportant stuff
 
 Backend setup command
