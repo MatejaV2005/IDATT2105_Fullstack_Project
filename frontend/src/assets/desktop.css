@@ -94,3 +94,8 @@ input {
   border: 0;
   border-top: 1px solid var(--blue-navy-40);
 }
+.center-content { /* How do you even center a div? */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}

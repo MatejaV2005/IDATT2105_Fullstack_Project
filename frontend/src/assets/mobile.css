@@ -1,3 +1,5 @@
+@import './main.css';
+
 :root {
   --font-display:
     Manrope, 'Avenir Next', 'Segoe UI', 'Helvetica Neue', sans-serif;
@@ -61,9 +63,6 @@ html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
-
-@import './base-app.css';
-@import './main.css';
 
 #app {
   min-height: 100vh;

@@ -3,7 +3,8 @@ Extensive project for fullstack covering both backend and frontend
 
 ## Getting started
 
-Run `docker compose up -d --build` to run everything
+Run `docker compose up -d --build` to run everything.
+Run `docker compose up -d seaweedfs` to just run one service (in this example seaweedfs).
 Run `docker compose down` to take down the app.
 
 
