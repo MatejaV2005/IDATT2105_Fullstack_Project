@@ -6,6 +6,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.grimni.domain.User;
+import com.grimni.dto.UpdateUserRequest;
 import com.grimni.repository.UserRepository;
 
 import jakarta.persistence.EntityNotFoundException;
@@ -73,5 +74,21 @@ public class UserService {
                     logger.warn("User not found with ID: {}", id);
                     return new EntityNotFoundException("User not found");
                 });
+    }
+
+    public User updateUser(Long id, UpdateUserRequest request) {
+        logger.info("Updating user with ID: {}", id);
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> {
+                    logger.warn("Update failed: user {} not found", id);
+                    return new EntityNotFoundException("User not found");
+                });
+
+        if (request.legalName() != null) user.setLegalName(request.legalName());
+        if (request.email() != null) user.setEmail(request.email());
+
+        User saved = userRepository.save(user);
+        logger.info("User {} updated successfully", id);
+        return saved;
     }
 }
