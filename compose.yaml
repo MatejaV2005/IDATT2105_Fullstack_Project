@@ -15,31 +15,34 @@ services:
       timeout: 5s
       retries: 10
     # ! Only use port forwarding for dev
-    # ports: 
-    #   - "3306:3306"
+    ports: 
+      - "3306:3306"
   
   seaweedfs:
     image: chrislusf/seaweedfs:3.94
     restart: unless-stopped
-    command: >
-      server
-      -dir=/data
-      -s3
-      -s3.port=8333
-      -ip.bind=0.0.0.0
+    entrypoint: #  entrypoint is the main executable the container starts with. i.e. use shell (sh) to run start-seaweedfs.sh
+      - /bin/sh
+      - /etc/seaweedfs/start-seaweedfs.sh
+    environment:
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+      S3_SECRET_KEY: ${S3_SECRET_KEY}
     volumes:
       - seaweedfs_data:/data
+
+      # This binds our script into the container (from ./seaweedfs/start-seaweedfs.sh) at startup (:ro = read only) which 
+      # lets us start the container using our own script and therefore create & attach configs
+      - ./seaweedfs/start-seaweedfs.sh:/etc/seaweedfs/start-seaweedfs.sh:ro  
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O- http://localhost:8333 || exit 1"]
+      test: ["CMD-SHELL", "wget -q -O- http://localhost:8888 || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 20
     # ! Only use port forwarding for dev
-    # ports:
-    #   - "8333:8333" # Default s3 endpoint port
-    #   - "9333:9333" # Master UI
-    #   - "8888:8888" # Filer UI
-    #   - "23646:23646" # Admin UI
+    ports:
+      - "8333:8333" # Default s3 endpoint port
+      - "9333:9333" # Master UI
+      - "8888:8888" # Filer UI
 
   backend_app:
     restart: unless-stopped
@@ -68,8 +71,8 @@ services:
       JWT_SECRET_KEY: ${JWT_SECRET_KEY} 
 
     # ! Only use port forwarding for dev
-    # ports:
-    #  - "8080:8080" # Default ports
+    ports:
+     - "1234:8080" # Default ports
                     
 
   frontend_app: # should be a vue project ran in production mode. Using normal vue, not some SSR framework 

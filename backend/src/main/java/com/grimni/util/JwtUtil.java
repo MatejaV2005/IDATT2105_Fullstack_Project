@@ -12,6 +12,8 @@ import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 import com.grimni.domain.OrgUserBridge;
@@ -96,5 +98,19 @@ public class JwtUtil {
 
     public Long extractUserOrgId(String jwtToken) {
         return extractAllClaims(jwtToken).get("orgId", Long.class);
+    }
+
+    public Long getAuthenticatedUserId() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || authentication.getPrincipal() == null) {
+            throw new IllegalStateException("Missing authenticated user");
+        }
+
+        String userId = authentication.getPrincipal().toString();
+        try {
+            return Long.valueOf(userId);
+        } catch (NumberFormatException exception) {
+            throw new IllegalStateException("Invalid authenticated user id", exception);
+        }
     }
 }

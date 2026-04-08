@@ -17,9 +17,6 @@ public class RefreshToken extends CreatedAtEntity {
     @JoinColumn(name = "user_id")
     private User user;
 
-    @Column(name = "org_id")
-    private Long orgId;
-
     public RefreshToken() {} // no-args constructor
 
     public Long getId() {
@@ -40,14 +37,6 @@ public class RefreshToken extends CreatedAtEntity {
     }
     public void setUser(User user) {
         this.user = user;
-    }
-
-    public Long getOrgId() {
-        return orgId;
-    }
-
-    public void setOrgId(Long orgId) {
-        this.orgId = orgId;
     }
 
 }

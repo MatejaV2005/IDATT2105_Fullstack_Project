@@ -29,10 +29,6 @@ public class FileObject extends CreatedAtEntity {
     private String objectKey;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "create_access", nullable = false)
-    private AccessLevel createAccess;
-
-    @Enumerated(EnumType.STRING)
     @Column(name = "read_access", nullable = false)
     private AccessLevel readAccess;
 
@@ -84,14 +80,6 @@ public class FileObject extends CreatedAtEntity {
 
     public void setObjectKey(String objectKey) {
         this.objectKey = objectKey;
-    }
-
-    public AccessLevel getCreateAccess() {
-        return createAccess;
-    }
-
-    public void setCreateAccess(AccessLevel createAccess) {
-        this.createAccess = createAccess;
     }
 
     public AccessLevel getReadAccess() {
