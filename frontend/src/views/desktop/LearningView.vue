@@ -133,6 +133,9 @@ const error = ref<boolean | null>(null)
 onMounted(async () => {
   try {
     // const response = await fetch('/api/learning/get-all-info')
+    // if (!response.ok) {
+    //     throw new Error(`Failed to get user (${response.status})`)
+    // }
     // const data = await response.json()
     await delay(2000)
     const data = mockData

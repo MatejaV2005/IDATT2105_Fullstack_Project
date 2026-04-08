@@ -141,3 +141,12 @@ export interface DangerAnalysisCollaborator {
 
 export type DangerAnalysisCollaboratorsAllInfo = DangerAnalysisCollaborator[]
 // #endregion
+
+// #region MeView
+export interface MeInfo {
+  id: number
+  legalName: string
+  email: string
+  createdAt: string
+}
+// #endregion

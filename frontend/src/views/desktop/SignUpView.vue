@@ -6,6 +6,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 const email = ref('')
+const legalName = ref('')
 const password = ref('')
 const isLoading = ref(false)
 const errorMessage = ref('')
@@ -13,7 +14,7 @@ const errorMessage = ref('')
 const router = useRouter()
 
 async function handleSubmit() {
-  if (!email.value || !password.value || isLoading.value) {
+  if (!email.value || !legalName || !password.value || isLoading.value) {
     return
   }
 
@@ -22,11 +23,12 @@ async function handleSubmit() {
 
   const payload = {
     email: email.value,
-    password: password.value
+    password: password.value,
+    legalName: legalName
   }
 
   try {
-    // const response = await fetch('/api/auth/login', {
+    // const response = await fetch('/api/auth/register', {
     //   method: 'POST',
     //   headers: {
     //     'Content-Type': 'application/json',
@@ -37,7 +39,7 @@ async function handleSubmit() {
     const response = { ok: true } 
 
     if (!response.ok) {
-      errorMessage.value = 'Klarte ikke å logge inn. Prøv igjen.'
+      errorMessage.value = 'Klarte ikke å registrere en bruker. Prøv igjen.'
       return
     }
 
@@ -57,7 +59,7 @@ async function handleSubmit() {
   <main>
     <form @submit.prevent="handleSubmit">
       <h1 class="instrument-serif-regular no-margin">
-        Logg inn
+        Registrer bruker
       </h1>
       <hr class="no-margin">
       <label>
@@ -82,6 +84,17 @@ async function handleSubmit() {
           :disabled="isLoading"
         >
       </label>
+      <label>
+        *Fult navn<br>
+        <input
+          v-model="legalName"
+          required
+          class="simple-text-input"
+          placeholder="Skriv ditt fulle navn"
+          type="password"
+          :disabled="isLoading"
+        >
+      </label>
       <p
         v-if="errorMessage"
         class="error-message"
@@ -93,7 +106,7 @@ async function handleSubmit() {
         type="submit"
       >
         <span v-if="!isLoading">
-          Logg inn
+          Registrer deg
         </span>
         <svg
           v-if="!isLoading"

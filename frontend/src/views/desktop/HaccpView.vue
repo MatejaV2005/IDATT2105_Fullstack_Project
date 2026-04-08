@@ -1,14 +1,45 @@
 <script setup lang="ts">
 import DesktopButton from '@/components/desktop/shared/DesktopButton.vue'
+import Loading from '@/components/desktop/shared/Loading.vue'
 import UserBadge from '@/components/desktop/shared/UserBadge.vue'
 import SidebarPageContainer from '@/components/desktop/sidebar/SidebarPageContainer.vue'
-import { Edit, Plus, SendHorizonal } from '@lucide/vue'
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import type { DangerAnalysisCollaboratorsAllInfo } from '@/interfaces/api-interfaces'
+import { delay } from '@/utils'
+import { Plus, SendHorizonal } from '@lucide/vue'
+import { onMounted, ref } from 'vue'
 
 function hello() {
   alert('hello')
 }
+
+const resource = ref<DangerAnalysisCollaboratorsAllInfo>([])
+const loading = ref(true)
+const error = ref<boolean | null>(null)
+
+onMounted(async () => {
+  try {
+    // const response = await fetch('/api/haccp/danger-analysis/collaborators')
+    // if (!response.ok) {
+    //     throw new Error(`Failed to update user (${response.status})`)
+    // }
+    // const data = await response.json()
+    await delay(2000)
+    const data: DangerAnalysisCollaboratorsAllInfo = [
+      { userId: 123, legalName: 'Einar Gerherdsen' },
+      { userId: 456, legalName: 'Kari Naess Northun' },
+    ]
+    resource.value = data
+    loading.value = false
+    error.value = false
+  } catch (err) {
+    if (err instanceof Error) {
+      console.error(err.message)
+    } else {
+      console.error('Unknown error occurred')
+    }
+    error.value = true
+  }
+})
 </script>
 
 <template>
@@ -49,15 +80,15 @@ function hello() {
             Fareanalyse
           </div>
           <div class="user-container">
+            <Loading v-if="loading" class="loading-in-user-container" />
+            <span v-else-if="error">Kunne ikke hente medlemmer</span>
             <UserBadge
-              name="Einar Gerherdsen"
-              :user-id="123"
+              v-for="collaborator in resource"
+              :key="collaborator.userId"
+              :name="collaborator.legalName"
+              :user-id="collaborator.userId"
             />
-            <UserBadge
-              name="Kari Næss Northun"
-              :user-id="123"
-            />
-            <div class="vertical-divider" />
+            <div v-if="resource.length > 0" class="vertical-divider" />
             <DesktopButton
               :on-click="hello"
               content="Legg til medlem"
@@ -110,6 +141,11 @@ function hello() {
   display: flex;
   gap: 0.25rem;
   flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  .loading-in-user-container {
+    margin-right: .5rem;
+  }
 }
 .haccp-area-container {
   display: flex;

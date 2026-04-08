@@ -6,7 +6,10 @@ import DangerAnalysisView from '@/views/desktop/DangerAnalysisView.vue'
 import HaccpView from '@/views/desktop/HaccpView.vue'
 import LearningView from '@/views/desktop/LearningView.vue'
 import MappingAndMeasuresView from '@/views/desktop/MappingAndMeasuresView.vue'
+import MeView from '@/views/desktop/MeView.vue'
 import PrerequisitesView from '@/views/desktop/PrerequisitesView.vue'
+import SignInView from '@/views/desktop/SignInView.vue'
+import SignUpView from '@/views/desktop/SignUpView.vue'
 import TeamView from '@/views/desktop/TeamView.vue'
 import DeviationsView from '@/views/mobile/DeviationsView.vue'
 import LoggingView from '@/views/mobile/LoggingView.vue'
@@ -28,6 +31,24 @@ const router = createRouter({
         {
           path: 'bedrift-teamsammensetning',
           component: TeamView
+        },
+        {
+          path: 'sign-in',
+          component: SignInView
+        },
+        {
+          path: 'sign-up',
+          component: SignUpView
+        },
+        {
+          path: 'users',
+          children: [
+            {
+              path: 'me',
+              component: MeView
+            },
+
+          ]
         },
         {
           path: 'haccp',

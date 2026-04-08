@@ -67,7 +67,7 @@ defineProps<{
       </div>
       <SidebarMenuOption
         to="/desktop/bedrift-innstillinger"
-        name="Innstillinger"
+        name="Bedrift Innstillinger"
         :is-selected="activePage === '/desktop/bedrift-innstillinger'"
         :icon="Settings"
       />

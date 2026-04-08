@@ -6,7 +6,7 @@ import { LoaderCircle } from '@lucide/vue';
 <template>
     <div class="center-content loading-container">
         <LoaderCircle :size="32" class="loading-spinner" />
-        Loading
+        Laster
     </div>
 </template>
 <style scoped>

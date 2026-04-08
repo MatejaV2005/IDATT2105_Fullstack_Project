@@ -7,6 +7,7 @@ import { delay } from '@/utils'
 import { Edit2 } from '@lucide/vue'
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import Loading from '@/components/desktop/shared/Loading.vue'
 
 const router = useRouter()
 

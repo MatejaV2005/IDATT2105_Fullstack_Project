@@ -65,6 +65,9 @@ const error = ref<boolean | null>(null)
 onMounted(async () => {
   try {
     // const response = await fetch('/api/mapping-points')
+    // if (!response.ok) {
+    //     throw new Error(`Failed to update user (${response.status})`)
+    // }
     // const data = await response.json()
     await delay(2000)
     const data = mockData
