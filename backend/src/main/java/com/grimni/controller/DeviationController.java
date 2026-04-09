@@ -45,6 +45,13 @@ public class DeviationController {
         Deviation deviation = deviationService.createDeviation(request, userId);
         DeviationResponse response = DeviationResponse.fromEntity(deviation);
         return ResponseEntity.ok(response);
+      
+    @GetMapping("/deviation-review-count")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Long> getDeviationReviewCount(Authentication authentication) {
+        JwtUserPrinciple principal = (JwtUserPrinciple) authentication.getPrincipal();
+        long count = deviationService.getDeviationReviewCount(principal.userId(), principal.orgId(), principal.role());
+        return ResponseEntity.ok(count);
     }
 
     @GetMapping

@@ -32,6 +32,14 @@ public class CcpController {
         this.ccpService = ccpService;
     }
 
+    @GetMapping("/ccps/verification-count")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Long> getVerificationCount(Authentication authentication) {
+        JwtUserPrinciple principal = (JwtUserPrinciple) authentication.getPrincipal();
+        long count = ccpService.getVerificationCount(principal.userId(), principal.orgId(), principal.role());
+        return ResponseEntity.ok(count);
+    }
+
     @GetMapping("/haccp/critical-control-points/get-all-info")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> getAllInfo(Authentication authentication) {
