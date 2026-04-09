@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.grimni.domain.Ccp;
 import com.grimni.domain.CcpCorrectiveMeasure;
+import com.grimni.domain.CcpRecord;
 import com.grimni.domain.CcpUserBridge;
 import com.grimni.domain.IntervalRule;
 import com.grimni.domain.OrgUserBridge;
@@ -29,6 +30,8 @@ import com.grimni.domain.User;
 import com.grimni.domain.enums.RoutineUserRole;
 import com.grimni.domain.ids.CcpUserBridgeId;
 import com.grimni.dto.CcpCorrectiveMeasureResponse;
+import com.grimni.dto.CcpHistoryResponse;
+import com.grimni.dto.CollaboratorResponse;
 import com.grimni.dto.CcpIntervalResponse;
 import com.grimni.dto.CcpResponse;
 import com.grimni.dto.CcpUserResponse;
@@ -109,6 +112,44 @@ public class CcpService {
         ensureAuthenticatedMember(userId, orgId);
         boolean isManagerOrOwner = "OWNER".equals(role) || "MANAGER".equals(role);
         return ccpRecordRepository.countWaitingVerifications(orgId, userId, isManagerOrOwner);
+    }
+
+    @Transactional(readOnly = true)
+    public List<CcpHistoryResponse> getVerificationLogs(Long userId, Long orgId, String role) {
+        ensureAuthenticatedMember(userId, orgId);
+        boolean isManagerOrOwner = "OWNER".equals(role) || "MANAGER".equals(role);
+
+        List<CcpRecord> records = ccpRecordRepository.findWaitingVerificationRecords(orgId, userId, isManagerOrOwner);
+
+        return records.stream()
+            .collect(Collectors.groupingBy(
+                r -> r.getCcp() != null ? r.getCcp().getId() : -1L,
+                java.util.LinkedHashMap::new,
+                Collectors.toList()
+            ))
+            .entrySet().stream()
+            .map(entry -> {
+                CcpRecord first = entry.getValue().get(0);
+                String name = first.getCcp() != null ? first.getCcp().getCcpName() : first.getCcpName();
+                Long ccpId = first.getCcp() != null ? first.getCcp().getId() : null;
+
+                List<CcpHistoryResponse.CcpRecordResponse> recordResponses = entry.getValue().stream()
+                    .map(r -> new CcpHistoryResponse.CcpRecordResponse(
+                        r.getId(),
+                        r.getMeasuredValue(),
+                        r.getCriticalMin(),
+                        r.getCriticalMax(),
+                        r.getUnit(),
+                        r.getComment(),
+                        r.getPerformedBy() != null
+                            ? CollaboratorResponse.fromEntity(r.getPerformedBy())
+                            : null
+                    ))
+                    .toList();
+
+                return new CcpHistoryResponse(ccpId, name, recordResponses);
+            })
+            .toList();
     }
 
     @Transactional

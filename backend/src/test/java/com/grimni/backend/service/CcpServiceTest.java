@@ -27,6 +27,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import com.grimni.domain.Ccp;
 import com.grimni.domain.CcpCorrectiveMeasure;
+import com.grimni.domain.CcpRecord;
 import com.grimni.domain.CcpUserBridge;
 import com.grimni.domain.IntervalRule;
 import com.grimni.domain.OrgUserBridge;
@@ -36,11 +37,13 @@ import com.grimni.domain.User;
 import com.grimni.domain.enums.RoutineUserRole;
 import com.grimni.domain.ids.CcpUserBridgeId;
 import com.grimni.domain.ids.OrgUserBridgeId;
+import com.grimni.dto.CcpHistoryResponse;
 import com.grimni.dto.CreateCcpCorrectiveMeasureRequest;
 import com.grimni.dto.CreateCcpRequest;
 import com.grimni.dto.CcpResponse;
 import com.grimni.dto.ReplaceCcpAssignmentsRequest;
 import com.grimni.repository.CcpCorrectiveMeasureRepository;
+import com.grimni.repository.CcpRecordRepository;
 import com.grimni.repository.CcpRepository;
 import com.grimni.repository.CcpUserBridgeRepository;
 import com.grimni.repository.IntervalRuleRepository;
@@ -58,6 +61,9 @@ public class CcpServiceTest {
 
     @Mock
     private CcpUserBridgeRepository ccpUserBridgeRepository;
+
+    @Mock
+    private CcpRecordRepository ccpRecordRepository;
 
     @Mock
     private CcpCorrectiveMeasureRepository ccpCorrectiveMeasureRepository;
@@ -314,6 +320,124 @@ public class CcpServiceTest {
             verify(ccpCorrectiveMeasureRepository).deleteByCcp_Id(33L);
             verify(ccpRepository).delete(ccp);
             verify(intervalRuleRepository).deleteById(30L);
+        }
+    }
+
+    @Nested
+    @DisplayName("getVerificationCount")
+    class GetVerificationCountTests {
+
+        @Test
+        @DisplayName("returns count for a VERIFIER user")
+        void getVerificationCount_verifier() {
+            when(orgUserBridgeRepository.findByOrganizationIdAndUserId(10L, 1L)).thenReturn(Optional.of(orgMembership(1L)));
+            when(ccpRecordRepository.countWaitingVerifications(10L, 1L, false)).thenReturn(3L);
+
+            long count = ccpService.getVerificationCount(1L, 10L, "WORKER");
+
+            assertEquals(3L, count);
+        }
+
+        @Test
+        @DisplayName("passes isManagerOrOwner=true for MANAGER role")
+        void getVerificationCount_manager() {
+            when(orgUserBridgeRepository.findByOrganizationIdAndUserId(10L, 1L)).thenReturn(Optional.of(orgMembership(1L)));
+            when(ccpRecordRepository.countWaitingVerifications(10L, 1L, true)).thenReturn(5L);
+
+            long count = ccpService.getVerificationCount(1L, 10L, "MANAGER");
+
+            assertEquals(5L, count);
+        }
+
+        @Test
+        @DisplayName("throws when user is not in org")
+        void getVerificationCount_notInOrg() {
+            when(orgUserBridgeRepository.findByOrganizationIdAndUserId(10L, 1L)).thenReturn(Optional.empty());
+
+            assertThrows(RuntimeException.class, () -> ccpService.getVerificationCount(1L, 10L, "WORKER"));
+        }
+    }
+
+    @Nested
+    @DisplayName("getVerificationLogs")
+    class GetVerificationLogsTests {
+
+        @Test
+        @DisplayName("returns records grouped by CCP")
+        void getVerificationLogs_grouped() {
+            User performer = new User();
+            ReflectionTestUtils.setField(performer, "id", 5L);
+            performer.setLegalName("Per Willy Amundsen");
+
+            CcpRecord record1 = new CcpRecord();
+            ReflectionTestUtils.setField(record1, "id", 11L);
+            record1.setCcp(ccp);
+            record1.setCcpName(ccp.getCcpName());
+            record1.setMeasuredValue(new BigDecimal("2.4"));
+            record1.setCriticalMin(new BigDecimal("2"));
+            record1.setCriticalMax(new BigDecimal("4"));
+            record1.setUnit("C");
+            record1.setComment("Kjøleskapet lager en rar lyd");
+            record1.setPerformedBy(performer);
+
+            CcpRecord record2 = new CcpRecord();
+            ReflectionTestUtils.setField(record2, "id", 12L);
+            record2.setCcp(ccp);
+            record2.setCcpName(ccp.getCcpName());
+            record2.setMeasuredValue(new BigDecimal("8"));
+            record2.setCriticalMin(new BigDecimal("2"));
+            record2.setCriticalMax(new BigDecimal("4"));
+            record2.setUnit("C");
+            record2.setComment("Midlertidig høy temperatur");
+            record2.setPerformedBy(verifier);
+
+            when(orgUserBridgeRepository.findByOrganizationIdAndUserId(10L, 1L)).thenReturn(Optional.of(orgMembership(1L)));
+            when(ccpRecordRepository.findWaitingVerificationRecords(10L, 1L, false)).thenReturn(List.of(record1, record2));
+
+            List<CcpHistoryResponse> result = ccpService.getVerificationLogs(1L, 10L, "WORKER");
+
+            assertEquals(1, result.size());
+            assertEquals(33L, result.get(0).id());
+            assertEquals("Varmholding ved servering", result.get(0).name());
+            assertEquals(2, result.get(0).records().size());
+            assertEquals(new BigDecimal("2.4"), result.get(0).records().get(0).value());
+            assertEquals("Per Willy Amundsen", result.get(0).records().get(0).performedBy().legalName());
+        }
+
+        @Test
+        @DisplayName("returns empty list when no records")
+        void getVerificationLogs_empty() {
+            when(orgUserBridgeRepository.findByOrganizationIdAndUserId(10L, 1L)).thenReturn(Optional.of(orgMembership(1L)));
+            when(ccpRecordRepository.findWaitingVerificationRecords(10L, 1L, true)).thenReturn(List.of());
+
+            List<CcpHistoryResponse> result = ccpService.getVerificationLogs(1L, 10L, "OWNER");
+
+            assertEquals(0, result.size());
+        }
+
+        @Test
+        @DisplayName("handles orphan records with null CCP")
+        void getVerificationLogs_orphanRecords() {
+            CcpRecord orphan = new CcpRecord();
+            ReflectionTestUtils.setField(orphan, "id", 20L);
+            orphan.setCcp(null);
+            orphan.setCcpName("Deleted CCP");
+            orphan.setMeasuredValue(new BigDecimal("5.0"));
+            orphan.setCriticalMin(new BigDecimal("2"));
+            orphan.setCriticalMax(new BigDecimal("8"));
+            orphan.setUnit("C");
+            orphan.setComment(null);
+            orphan.setPerformedBy(null);
+
+            when(orgUserBridgeRepository.findByOrganizationIdAndUserId(10L, 1L)).thenReturn(Optional.of(orgMembership(1L)));
+            when(ccpRecordRepository.findWaitingVerificationRecords(10L, 1L, true)).thenReturn(List.of(orphan));
+
+            List<CcpHistoryResponse> result = ccpService.getVerificationLogs(1L, 10L, "MANAGER");
+
+            assertEquals(1, result.size());
+            assertEquals(null, result.get(0).id());
+            assertEquals("Deleted CCP", result.get(0).name());
+            assertEquals(null, result.get(0).records().get(0).performedBy());
         }
     }
 }

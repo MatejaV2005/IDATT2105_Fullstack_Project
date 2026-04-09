@@ -40,6 +40,15 @@ public class CcpController {
         return ResponseEntity.ok(count);
     }
 
+    @GetMapping("/ccps/logs")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> getVerificationLogs(Authentication authentication) {
+        JwtUserPrinciple principal = (JwtUserPrinciple) authentication.getPrincipal();
+        return ResponseEntity.ok(
+            ccpService.getVerificationLogs(principal.userId(), principal.orgId(), principal.role())
+        );
+    }
+
     @GetMapping("/haccp/critical-control-points/get-all-info")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> getAllInfo(Authentication authentication) {

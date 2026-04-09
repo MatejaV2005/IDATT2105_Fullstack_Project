@@ -36,9 +36,11 @@ import org.springframework.test.web.servlet.MockMvc;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.grimni.controller.CcpController;
 import com.grimni.dto.CcpCorrectiveMeasureResponse;
+import com.grimni.dto.CcpHistoryResponse;
 import com.grimni.dto.CcpIntervalResponse;
 import com.grimni.dto.CcpResponse;
 import com.grimni.dto.CcpUserResponse;
+import com.grimni.dto.CollaboratorResponse;
 import com.grimni.dto.CreateCcpCorrectiveMeasureRequest;
 import com.grimni.dto.CreateCcpRequest;
 import com.grimni.dto.ReplaceCcpAssignmentsRequest;
@@ -284,6 +286,95 @@ public class CcpControllerTest {
                     .with(authentication(authWithRole("MANAGER")))
                     .with(csrf()))
                 .andExpect(status().isNoContent());
+        }
+    }
+
+    @Nested
+    @DisplayName("GET /ccps/verification-count")
+    class GetVerificationCountTests {
+
+        @Test
+        @DisplayName("returns count for authenticated user")
+        void getVerificationCount_success() throws Exception {
+            when(ccpService.getVerificationCount(1L, 10L, "MANAGER")).thenReturn(7L);
+
+            mockMvc.perform(get("/ccps/verification-count")
+                    .with(authentication(authWithRole("MANAGER"))))
+                .andExpect(status().isOk())
+                .andExpect(content().string("7"));
+        }
+
+        @Test
+        @DisplayName("returns count for WORKER role")
+        void getVerificationCount_worker() throws Exception {
+            when(ccpService.getVerificationCount(1L, 10L, "WORKER")).thenReturn(2L);
+
+            mockMvc.perform(get("/ccps/verification-count")
+                    .with(authentication(authWithRole("WORKER"))))
+                .andExpect(status().isOk())
+                .andExpect(content().string("2"));
+        }
+
+        @Test
+        @DisplayName("unauthenticated returns 403")
+        void getVerificationCount_unauthenticated() throws Exception {
+            mockMvc.perform(get("/ccps/verification-count"))
+                .andExpect(status().isForbidden());
+        }
+    }
+
+    @Nested
+    @DisplayName("GET /ccps/logs")
+    class GetVerificationLogsTests {
+
+        @Test
+        @DisplayName("returns grouped CCP records")
+        void getVerificationLogs_success() throws Exception {
+            when(ccpService.getVerificationLogs(1L, 10L, "MANAGER")).thenReturn(List.of(
+                new CcpHistoryResponse(33L, "Kjøleskap temperatur", List.of(
+                    new CcpHistoryResponse.CcpRecordResponse(
+                        11L,
+                        new java.math.BigDecimal("2.4"),
+                        new java.math.BigDecimal("2"),
+                        new java.math.BigDecimal("4"),
+                        "C",
+                        "Kjøleskapet lager en rar lyd",
+                        new CollaboratorResponse(5L, "Per Willy Amundsen")
+                    )
+                ))
+            ));
+
+            mockMvc.perform(get("/ccps/logs")
+                    .with(authentication(authWithRole("MANAGER"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(33))
+                .andExpect(jsonPath("$[0].name").value("Kjøleskap temperatur"))
+                .andExpect(jsonPath("$[0].records[0].id").value(11))
+                .andExpect(jsonPath("$[0].records[0].value").value(2.4))
+                .andExpect(jsonPath("$[0].records[0].min").value(2))
+                .andExpect(jsonPath("$[0].records[0].max").value(4))
+                .andExpect(jsonPath("$[0].records[0].unit").value("C"))
+                .andExpect(jsonPath("$[0].records[0].performedBy.userId").value(5))
+                .andExpect(jsonPath("$[0].records[0].performedBy.legalName").value("Per Willy Amundsen"));
+        }
+
+        @Test
+        @DisplayName("returns empty list when no records")
+        void getVerificationLogs_empty() throws Exception {
+            when(ccpService.getVerificationLogs(1L, 10L, "WORKER")).thenReturn(List.of());
+
+            mockMvc.perform(get("/ccps/logs")
+                    .with(authentication(authWithRole("WORKER"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$").isEmpty());
+        }
+
+        @Test
+        @DisplayName("unauthenticated returns 403")
+        void getVerificationLogs_unauthenticated() throws Exception {
+            mockMvc.perform(get("/ccps/logs"))
+                .andExpect(status().isForbidden());
         }
     }
 }
