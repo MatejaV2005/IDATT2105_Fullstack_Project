@@ -10,6 +10,7 @@ const deviationsList = ref<Deviation[]>([])
 const loading = ref(true)
 const error = ref<string | null>(null)
 const patchError = ref<string | null>(null)
+const useMockData = ref(false)
 
 const openDeviations = computed(() => 
   deviationsList.value.filter(d => d.reviewStatus === 'OPEN')
@@ -48,6 +49,7 @@ async function fetchDeviations() {
     console.warn('Using fallback mock data due to API error:', err)
     deviationsList.value = [...deviations]
     error.value = 'Kunne ikke hente avvik fra server. Viser test-data.'
+    useMockData.value = true
   } finally {
     loading.value = false
   }
@@ -69,6 +71,19 @@ function closeResolveModal() {
 
 async function submitResolve() {
   if (!selectedDeviation.value || !resolveMeasure.value.trim()) return
+
+  if (useMockData.value) {
+    const index = deviationsList.value.findIndex(d => d.id === selectedDeviation.value!.id)
+    if (index !== -1) {
+      const dev = deviationsList.value[index]
+      if (dev){
+        dev.reviewStatus = 'CLOSED'
+        dev.preventativeMeasureActuallyTaken = resolveMeasure.value.trim()
+      }
+    }
+    closeResolveModal()
+    return
+  }
 
   try {
     const response = await fetch(`/api/deviations/${selectedDeviation.value.id}/resolve`, {
@@ -109,21 +124,34 @@ onMounted(() => {
 <template>
   <SidebarPageContainer active-page="/desktop/deviations">
     <div class="deviations-page">
-      <h1 class="instrument-serif-regular no-margin">Avvikshåndtering</h1>
+      <h1 class="instrument-serif-regular no-margin">
+        Avvikshåndtering
+      </h1>
 
-      <div v-if="loading" class="loading-state">
+      <div
+        v-if="loading"
+        class="loading-state"
+      >
         <p>Laster avvik...</p>
       </div>
 
-      <div v-else-if="error" class="error-banner">
+      <div
+        v-else-if="error"
+        class="error-banner"
+      >
         <div class="error-content">
           <AlertTriangle class="error-icon" />
           <p>{{ error }}</p>
         </div>
       </div>
 
-      <div v-if="openDeviations.length > 0" class="section">
-        <h2 class="section-title">Åpne avvik ({{ openDeviations.length }})</h2>
+      <div
+        v-if="openDeviations.length > 0"
+        class="section"
+      >
+        <h2 class="section-title">
+          Åpne avvik ({{ openDeviations.length }})
+        </h2>
         <div class="deviation-list">
           <article 
             v-for="deviation in openDeviations" 
@@ -168,8 +196,13 @@ onMounted(() => {
         </div>
       </div>
 
-      <div v-if="closedDeviations.length > 0" class="section">
-        <h2 class="section-title">Lukkede avvik ({{ closedDeviations.length }})</h2>
+      <div
+        v-if="closedDeviations.length > 0"
+        class="section"
+      >
+        <h2 class="section-title">
+          Lukkede avvik ({{ closedDeviations.length }})
+        </h2>
         <div class="deviation-list">
           <article 
             v-for="deviation in closedDeviations" 
@@ -213,16 +246,29 @@ onMounted(() => {
         </div>
       </div>
 
-      <div v-if="deviationsList.length === 0 && !loading" class="empty-state">
+      <div
+        v-if="deviationsList.length === 0 && !loading"
+        class="empty-state"
+      >
         <p>Ingen avvik funnet.</p>
       </div>
 
       <Teleport to="body">
-        <div v-if="showResolveModal" class="modal-overlay" @click="closeResolveModal">
-          <div class="modal-content" @click.stop>
+        <div
+          v-if="showResolveModal"
+          class="modal-overlay"
+          @click="closeResolveModal"
+        >
+          <div
+            class="modal-content"
+            @click.stop
+          >
             <div class="modal-header">
               <h2>Løs avvik #{{ selectedDeviation?.id }}</h2>
-              <button class="modal-close" @click="closeResolveModal">
+              <button
+                class="modal-close"
+                @click="closeResolveModal"
+              >
                 <X />
               </button>
             </div>
@@ -237,7 +283,10 @@ onMounted(() => {
                 rows="6"
               />
             </div>
-            <div v-if="patchError" class="error-message">
+            <div
+              v-if="patchError"
+              class="error-message"
+            >
               <div class="error-content">
                 <AlertTriangle class="error-icon" />
                 <p>{{ patchError }}</p>
