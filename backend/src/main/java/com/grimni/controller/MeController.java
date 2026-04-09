@@ -14,12 +14,16 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.grimni.domain.User;
+import com.grimni.dto.CreateCcpRecordRequest;
+import com.grimni.dto.CreateMyDeviationRequest;
 import com.grimni.dto.CertificateResponse;
 import com.grimni.dto.OrganizationResponse;
 import com.grimni.dto.UpdateUserRequest;
 import com.grimni.dto.UserResponse;
 import com.grimni.security.JwtUserPrinciple;
+import com.grimni.service.CcpLoggingService;
 import com.grimni.service.CertificateService;
+import com.grimni.service.DeviationService;
 import com.grimni.service.OrganizationService;
 import com.grimni.service.RoutineLoggingService;
 import com.grimni.service.UserService;
@@ -34,16 +38,22 @@ public class MeController {
     private final CertificateService certificateService;
     private final UserService userService;
     private final RoutineLoggingService routineLoggingService;
+    private final CcpLoggingService ccpLoggingService;
+    private final DeviationService deviationService;
 
     public MeController(
             OrganizationService organizationService,
             CertificateService certificateService,
             UserService userService,
-            RoutineLoggingService routineLoggingService) {
+            RoutineLoggingService routineLoggingService,
+            CcpLoggingService ccpLoggingService,
+            DeviationService deviationService) {
         this.organizationService = organizationService;
         this.certificateService = certificateService;
         this.userService = userService;
         this.routineLoggingService = routineLoggingService;
+        this.ccpLoggingService = ccpLoggingService;
+        this.deviationService = deviationService;
     }
 
     @GetMapping("/organizations")
@@ -103,6 +113,43 @@ public class MeController {
         JwtUserPrinciple principal = (JwtUserPrinciple) authentication.getPrincipal();
         return ResponseEntity.ok(
             routineLoggingService.completeRoutine(routineId, principal.userId(), principal.orgId())
+        );
+    }
+
+    @GetMapping("/ccps")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> getMyAssignedCcps(Authentication authentication) {
+        JwtUserPrinciple principal = (JwtUserPrinciple) authentication.getPrincipal();
+        return ResponseEntity.ok(
+            ccpLoggingService.getAssignedCcps(principal.userId(), principal.orgId())
+        );
+    }
+
+    @PostMapping("/ccps/{ccpId}/records")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> createCcpRecord(
+            @PathVariable Long ccpId,
+            @Valid @RequestBody CreateCcpRecordRequest request,
+            Authentication authentication) {
+        JwtUserPrinciple principal = (JwtUserPrinciple) authentication.getPrincipal();
+        return ResponseEntity.ok(
+            ccpLoggingService.createRecord(ccpId, request, principal.userId(), principal.orgId())
+        );
+    }
+
+    @PostMapping("/deviations")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> createDeviation(
+            @Valid @RequestBody CreateMyDeviationRequest request,
+            Authentication authentication) {
+        JwtUserPrinciple principal = (JwtUserPrinciple) authentication.getPrincipal();
+        return ResponseEntity.ok(
+            com.grimni.dto.DeviationResponse.fromEntity(
+                deviationService.createDeviation(
+                    request.toCreateDeviationRequest(principal.orgId()),
+                    principal.userId()
+                )
+            )
         );
     }
 }
