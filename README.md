@@ -3,9 +3,10 @@ Extensive project for fullstack covering both backend and frontend
 
 ## Getting started
 
-Run `docker compose up -d --build` to run everything
+Run `docker compose up -d --build` to run everything.
+Run `docker compose up -d seaweedfs` to just run one service (in this example seaweedfs).
 Run `docker compose down` to take down the app.
-
+Run `docker compose up -d --force-recreate db` to restart a service from the docker compose file. In this example we use `db`.
 
 Run `docker compose down --volumes` to remove all volumes (stored data).
 

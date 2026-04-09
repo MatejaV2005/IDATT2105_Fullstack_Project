@@ -1,20 +1,19 @@
 <script setup lang="ts">
 import MainNavbar from '@/components/desktop/navbar/MainNavbar.vue'
+import Loading from '@/components/desktop/shared/Loading.vue'
+import { delay } from '@/utils'
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 
-const name = ref('')
-const address = ref('')
-const orgNumber = ref('')
-const isGoingToServeAlcohol = ref(false)
-const isGoingToServeFood = ref(false)
+const email = ref('')
+const password = ref('')
 const isLoading = ref(false)
 const errorMessage = ref('')
 
 const router = useRouter()
 
 async function handleSubmit() {
-  if (!name.value || !address.value || !orgNumber.value || isLoading.value) {
+  if (!email.value || !password.value || isLoading.value) {
     return
   }
 
@@ -22,32 +21,28 @@ async function handleSubmit() {
   isLoading.value = true
 
   const payload = {
-    name: name.value,
-    address: address.value,
-    orgNumber: orgNumber.value,
-    isGoingToServeAlcohol: isGoingToServeAlcohol.value,
-    isGoingToServeFood: isGoingToServeFood.value,
+    email: email.value,
+    password: password.value,
   }
 
   try {
-    const response = await fetch('/api/organizations', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    })
+    // const response = await fetch('/api/auth/login', {
+    //   method: 'POST',
+    //   headers: {
+    //     'Content-Type': 'application/json',
+    //   },
+    //   body: JSON.stringify(payload),
+    // })
+    await delay(2000)
+    const response = { ok: true }
 
     if (!response.ok) {
-      errorMessage.value = 'Klarte ikke å lage organisasjonen. Prøv igjen.'
+      errorMessage.value = 'Klarte ikke å logge inn. Prøv igjen.'
       return
     }
 
-    name.value = ''
-    address.value = ''
-    orgNumber.value = ''
-    isGoingToServeAlcohol.value = false
-    isGoingToServeFood.value = false
+    email.value = ''
+    password.value = ''
 
     await router.push('/desktop')
   } catch {
@@ -62,55 +57,30 @@ async function handleSubmit() {
   <main>
     <form @submit.prevent="handleSubmit">
       <h1 class="instrument-serif-regular no-margin">
-        Legg til organisasjon
+        Logg inn
       </h1>
       <hr class="no-margin">
       <label>
-        *Navn<br>
+        *Email<br>
         <input
-          v-model="name"
+          v-model="email"
+          type="email"
           required
           class="simple-text-input"
-          placeholder="Per & Pål bolleklubb"
+          placeholder="ada@lovelace.uk"
           :disabled="isLoading"
         >
       </label>
       <label>
-        *Addresse<br>
+        *Passord<br>
         <input
-          v-model="address"
+          v-model="password"
           required
           class="simple-text-input"
-          placeholder="Bolleveien 7, 0912 Oslo Norge"
+          placeholder="Skriv passord"
+          type="password"
           :disabled="isLoading"
         >
-      </label>
-      <label>
-        *Org nummer<br>
-        <input
-          v-model="orgNumber"
-          required
-          class="simple-text-input"
-          placeholder="123456789"
-          type="number"
-          :disabled="isLoading"
-        >
-      </label>
-      <label>
-        <input
-          v-model="isGoingToServeAlcohol"
-          type="checkbox"
-          :disabled="isLoading"
-        >
-        Vi kommer til å servere alkohol
-      </label>
-      <label>
-        <input
-          v-model="isGoingToServeFood"
-          type="checkbox"
-          :disabled="isLoading"
-        >
-        Vi kommer til å servere mat
       </label>
       <p
         v-if="errorMessage"
@@ -122,9 +92,7 @@ async function handleSubmit() {
         class="transition"
         type="submit"
       >
-        <span class="no-margin">
-          {{ isLoading ? 'Lager organisasjon...' : 'Lag organisasjon' }}
-        </span>
+        <span v-if="!isLoading"> Logg inn </span>
         <svg
           v-if="!isLoading"
           xmlns="http://www.w3.org/2000/svg"
@@ -142,10 +110,7 @@ async function handleSubmit() {
           />
           <path d="M6 12h16" />
         </svg>
-        <span
-          v-else
-          class="loading-spinner"
-        />
+        <Loading v-else />
       </button>
     </form>
   </main>
@@ -179,7 +144,7 @@ main {
     input {
       accent-color: var(--blue-navy);
     }
-
+    
     /* 
       Noe greier jeg fant på nett. Skal bytte til standard component senere
     */

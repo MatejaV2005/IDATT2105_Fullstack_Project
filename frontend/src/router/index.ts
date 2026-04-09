@@ -1,13 +1,19 @@
 import DesktopLayout from '@/layouts/DesktopLayout.vue'
 import MobileLayout from '@/layouts/MobileLayout.vue'
+import CcpLogsView from '@/views/desktop/CcpLogsView.vue'
 import CreateOrgView from '@/views/desktop/CreateOrgView.vue'
 import CriticalControlPointsView from '@/views/desktop/CriticalControlPointsView.vue'
 import DeviationHandlingView from '@/views/desktop/DeviationHandlingView.vue'
 import DangerAnalysisView from '@/views/desktop/DangerAnalysisView.vue'
+import DeviationLogsView from '@/views/desktop/DeviationLogsView.vue'
 import HaccpView from '@/views/desktop/HaccpView.vue'
 import LearningView from '@/views/desktop/LearningView.vue'
 import MappingAndMeasuresView from '@/views/desktop/MappingAndMeasuresView.vue'
+import MeView from '@/views/desktop/MeView.vue'
 import PrerequisitesView from '@/views/desktop/PrerequisitesView.vue'
+import SignInView from '@/views/desktop/SignInView.vue'
+import SignUpView from '@/views/desktop/SignUpView.vue'
+import TasksView from '@/views/desktop/TasksView.vue'
 import TeamView from '@/views/desktop/TeamView.vue'
 import DeviationsView from '@/views/mobile/DeviationsView.vue'
 import LoggingView from '@/views/mobile/LoggingView.vue'
@@ -25,51 +31,80 @@ const router = createRouter({
       children: [
         {
           path: 'create-org',
-          component: CreateOrgView
+          component: CreateOrgView,
         },
         {
           path: 'bedrift-teamsammensetning',
-          component: TeamView
+          component: TeamView,
+        },
+        {
+          path: 'sign-in',
+          component: SignInView,
+        },
+        {
+          path: 'sign-up',
+          component: SignUpView,
+        },
+        {
+          path: 'users',
+          children: [
+            {
+              path: 'me',
+              component: MeView,
+            },
+          ],
+        },
+        {
+          path: 'oppgaver-oversikt',
+          children: [
+            {
+              path: '',
+              component: TasksView,
+            },
+            {
+              path: 'kontrollpunkt-logger',
+              component: CcpLogsView,
+            },
+            {
+              path: 'avvik',
+              component: DeviationLogsView,
+            },
+          ],
         },
         {
           path: 'haccp',
           children: [
             {
               path: '',
-              component: HaccpView
+              component: HaccpView,
             },
             {
               path: 'prerequisites',
-              component: PrerequisitesView
+              component: PrerequisitesView,
             },
             {
               path: 'danger-analysis',
-              component: DangerAnalysisView
+              component: DangerAnalysisView,
             },
             {
               path: 'ccps',
-              component: CriticalControlPointsView
+              component: CriticalControlPointsView,
             },
-
-          ]
+          ],
         },
         {
           path: 'ik-alkohol-kartlegging-og-tiltak',
           children: [
             {
               path: '',
-              component: MappingAndMeasuresView
+              component: MappingAndMeasuresView,
             },
-          ]
+          ],
         },
         {
           path: 'bedrift-opplaering',
-          component: LearningView
+          component: LearningView,
         },
-        {
-          path: 'deviations',
-          component: DeviationHandlingView
-        }
       ],
     },
     {

@@ -2,12 +2,16 @@
 import SidebarPageContainer from '@/components/desktop/sidebar/SidebarPageContainer.vue'
 import Badge from '@/components/desktop/shared/Badge.vue'
 import DesktopButton from '@/components/desktop/shared/DesktopButton.vue'
+import type { TeamAllInfo } from '@/interfaces/api-interfaces'
+import { delay } from '@/utils'
 import { Edit2 } from '@lucide/vue'
+import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import Loading from '@/components/desktop/shared/Loading.vue'
 
 const router = useRouter()
 
-const users = [
+const mockData: TeamAllInfo = [
   {
     userId: 11,
     legalName: 'Mona Jul',
@@ -106,6 +110,29 @@ const users = [
   },
 ]
 
+const resource = ref<TeamAllInfo>([])
+const loading = ref(true)
+const error = ref<boolean | null>(null)
+
+onMounted(async () => {
+  try {
+    // const response = await fetch('/api/users/team')
+    // const data = await response.json()
+    await delay(2000)
+    const data = mockData
+    resource.value = data
+    loading.value = false
+    error.value = false
+  } catch (err) {
+    if (err instanceof Error) {
+      console.error(err.message)
+    } else {
+      console.error('Unknown error occurred')
+    }
+    error.value = true
+  }
+})
+
 function goToUser(userId: number) {
   router.push(`/desktop/users/${userId}`)
 }
@@ -117,8 +144,9 @@ function goToUser(userId: number) {
       <h1 class="instrument-serif-regular no-margin">
         Teamsammensettning
       </h1>
+      <Loading v-if="loading" />
       <div
-        v-for="user in users"
+        v-for="user in resource"
         :key="user.userId"
         class="team-user"
       >

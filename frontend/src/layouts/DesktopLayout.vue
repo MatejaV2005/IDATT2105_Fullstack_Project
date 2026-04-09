@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import MainNavbar from '@/components/desktop/navbar/MainNavbar.vue';
+import MainNavbar from '@/components/desktop/navbar/MainNavbar.vue'
 import { RouterView } from 'vue-router'
 </script>
 

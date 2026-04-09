@@ -1,6 +1,16 @@
 <script setup lang="ts">
 import SidebarMenuOption from './SidebarMenuOption.vue'
-import { FileCheck2, ChartColumnIncreasing, PersonStanding, Brain, Settings, AlertTriangle } from '@lucide/vue'
+import {
+  FileCheck2,
+  ChartColumnIncreasing,
+  PersonStanding,
+  Brain,
+  Settings,
+  Beer,
+  CookingPot,
+  CheckCheck,
+  AlertTriangle,
+} from '@lucide/vue'
 
 defineProps<{
   activePage?: string
@@ -12,34 +22,18 @@ defineProps<{
     <div class="sidebar">
       <div>
         <div>
-          <span class="accent-title"> IK MAT </span>
+          <span class="accent-title"> Regulering </span>
           <SidebarMenuOption
             to="/desktop/haccp"
             name="HACCP"
             :is-selected="activePage === '/desktop/haccp'"
-            :icon="FileCheck2"
+            :icon="CookingPot"
           />
-          <SidebarMenuOption
-            to="/desktop/ik-mat-analyse"
-            name="Analyse"
-            :is-selected="activePage === '/desktop/ik-mat-analyse'"
-            :icon="ChartColumnIncreasing"
-          />
-        </div>
-        <hr class="no-margin">
-        <div>
-          <span class="accent-title"> IK ALKOHOL </span>
           <SidebarMenuOption
             to="/desktop/ik-alkohol-kartlegging-og-tiltak"
             name="Kartlegging & tiltak"
             :is-selected="activePage === '/desktop/ik-alkohol-kartlegging-og-tiltak'"
-            :icon="FileCheck2"
-          />
-          <SidebarMenuOption
-            to="/desktop/ik-alkohol-analyse"
-            name="Analyse"
-            :is-selected="activePage === '/desktop/ik-alkohol-analyse'"
-            :icon="ChartColumnIncreasing"
+            :icon="Beer"
           />
         </div>
         <hr class="no-margin">
@@ -70,10 +64,20 @@ defineProps<{
             :icon="AlertTriangle"
           />
         </div>
+        <hr class="no-margin">
+        <div>
+          <span class="accent-title">Meg</span>
+          <SidebarMenuOption
+            to="/desktop/oppgaver-oversikt"
+            name="Mine oppgaver"
+            :is-selected="activePage === '/desktop/oppgaver-oversikt'"
+            :icon="CheckCheck"
+          />
+        </div>
       </div>
       <SidebarMenuOption
         to="/desktop/bedrift-innstillinger"
-        name="Innstillinger"
+        name="Bedrift Innstillinger"
         :is-selected="activePage === '/desktop/bedrift-innstillinger'"
         :icon="Settings"
       />
