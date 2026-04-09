@@ -1,21 +1,33 @@
 <script setup lang="ts">
 import type { Component } from 'vue'
 
-defineProps<{
+const props = defineProps<{
   isLoading?: boolean
   loadingText?: string
   content: string
   icon: Component
   onClick?: () => any
-  buttonColor?: 'navy' | 'cherry' | 'blue-decor'
+  buttonColor?: 'navy' | 'cherry' | 'blue-decor' | 'boring-ghost'
+  disabled?: boolean
 }>()
+
+function click() {
+  if (!props.disabled && props.onClick) {
+    props.onClick()
+  }
+}
 </script>
 
 <template>
   <button
-    :class="'transition navy-button navy-button--' + (buttonColor || 'navy')"
+    :class="
+      'transition desktop-button desktop-button--' +
+        (buttonColor || 'navy') +
+        (disabled ? ' disabled-classy' : '')
+    "
     v-bind="$attrs"
-    @click="onClick"
+    :disabled="Boolean(disabled)"
+    @click="click"
   >
     <component
       :is="icon"
@@ -36,7 +48,7 @@ defineProps<{
   width: 1rem;
   height: 1rem;
 }
-.navy-button {
+.desktop-button {
   border-radius: 0.5rem;
   color: var(--white-greek);
   display: flex;
@@ -50,57 +62,79 @@ defineProps<{
   stroke: var(--white-greek);
   /* font-size: x-large; */
 }
+.desktop-button:disabled {
+  opacity: 40%;
+  cursor: auto !important;
+}
 
-.navy-button--navy {
+.desktop-button--navy {
   background-color: var(--blue-navy);
   border: 1px solid var(--blue-navy);
 }
-.navy-button--navy:hover,
-.navy-button--navy:focus {
+.desktop-button--navy:not(.disabled-classy):hover,
+.desktop-button--navy:not(.disabled-classy):focus {
   background-color: var(--blue-navy-20);
   color: var(--blue-navy);
   svg {
     stroke: var(--blue-navy);
   }
 }
-.navy-button--navy:hover .loading-spinner,
-.navy-button--navy:focus .loading-spinner {
+.desktop-button--navy:not(.disabled-classy):hover .loading-spinner,
+.desktop-button--navy:not(.disabled-classy):focus .loading-spinner {
   border-color: var(--blue-navy);
   border-bottom-color: transparent;
 }
 
-.navy-button--cherry {
+.desktop-button--cherry {
   background-color: var(--red-cherry);
   border: 1px solid var(--red-cherry);
 }
-.navy-button--cherry:hover,
-.navy-button--cherry:focus {
+.desktop-button--cherry:not(.disabled-classy):hover,
+.desktop-button--cherry:not(.disabled-classy):focus {
   background-color: var(--red-cherry-20);
   color: var(--red-cherry);
   svg {
     stroke: var(--red-cherry);
   }
 }
-.navy-button--cherry:hover .loading-spinner,
-.navy-button--cherry:focus .loading-spinner {
+.desktop-button--cherry:not(.disabled-classy):hover .loading-spinner,
+.desktop-button--cherry:not(.disabled-classy):focus .loading-spinner {
   border-color: var(--red-cherry);
   border-bottom-color: transparent;
 }
 
-.navy-button--blue-decor {
+.desktop-button--boring-ghost {
+  background-color: transparent;
+  color: var(--black-no-face);
+}
+.desktop-button--boring-ghost:not(.disabled-classy):hover,
+.desktop-button--boring-ghost:not(.disabled-classy):focus {
+  background-color: var(--black-no-face-20);
+  color: var(--black-no-face);
+  svg {
+    stroke: var(--black-no-face);
+  }
+}
+.desktop-button--boring-ghost:not(.disabled-classy):hover .loading-spinner,
+.desktop-button--boring-ghost:not(.disabled-classy):focus .loading-spinner {
+  border-color: var(--black-no-face);
+  border-bottom-color: transparent;
+}
+
+.desktop-button--blue-decor {
   background-color: var(--blue-decor);
   border: 1px solid var(--blue-decor);
 }
-.navy-button--blue-decor:hover,
-.navy-button--blue-decor:focus {
+.desktop-button--blue-decor:not(.disabled-classy):hover,
+.desktop-button--blue-decor:not(.disabled-classy):focus {
   background-color: var(--blue-decor-20);
   color: var(--blue-decor);
   svg {
     stroke: var(--blue-decor);
   }
 }
-.navy-button--blue-decor:hover .loading-spinner,
-.navy-button--blue-decor:focus .loading-spinner {
+.desktop-button--blue-decor:not(.disabled-classy):hover .loading-spinner,
+.desktop-button--blue-decor:not(.disabled-classy):focus .loading-spinner {
   border-color: var(--blue-decor);
   border-bottom-color: transparent;
 }

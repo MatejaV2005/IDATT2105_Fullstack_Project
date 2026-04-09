@@ -242,7 +242,7 @@ function sayHello() {
           <div class="ccp-grid">
             <div class="info-card">
               <h3 class="no-margin">
-                Hvordan overvakes det
+                Hvordan overvåkes det
               </h3>
               <span>{{ ccp.how }}</span>
             </div>
@@ -276,7 +276,7 @@ function sayHello() {
             class="info-card"
           >
             <h3 class="no-margin">
-              Hva overvakes
+              Hva overvåkes
             </h3>
             <span>{{ ccp.monitoredDescription }}</span>
           </div>

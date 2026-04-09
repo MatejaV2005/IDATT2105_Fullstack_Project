@@ -144,7 +144,7 @@ function goToUser(userId: number) {
       <h1 class="instrument-serif-regular no-margin">
         Teamsammensettning
       </h1>
-      <Loading v-if="loading"/>
+      <Loading v-if="loading" />
       <div
         v-for="user in resource"
         :key="user.userId"

@@ -20,13 +20,13 @@ onMounted(async () => {
   try {
     // const response = await fetch('/api/haccp/danger-analysis/collaborators')
     // if (!response.ok) {
-    //     throw new Error(`Failed to update user (${response.status})`)
+    //     throw new Error(`Failed to complete request... (${response.status})`)
     // }
     // const data = await response.json()
     await delay(2000)
     const data: DangerAnalysisCollaboratorsAllInfo = [
       { userId: 123, legalName: 'Einar Gerherdsen' },
-      { userId: 456, legalName: 'Kari Naess Northun' },
+      { userId: 456, legalName: 'Kari Nessa Nordtun' },
     ]
     resource.value = data
     loading.value = false
@@ -80,7 +80,10 @@ onMounted(async () => {
             Fareanalyse
           </div>
           <div class="user-container">
-            <Loading v-if="loading" class="loading-in-user-container" />
+            <Loading
+              v-if="loading"
+              class="loading-in-user-container"
+            />
             <span v-else-if="error">Kunne ikke hente medlemmer</span>
             <UserBadge
               v-for="collaborator in resource"
@@ -88,7 +91,10 @@ onMounted(async () => {
               :name="collaborator.legalName"
               :user-id="collaborator.userId"
             />
-            <div v-if="resource.length > 0" class="vertical-divider" />
+            <div
+              v-if="resource.length > 0"
+              class="vertical-divider"
+            />
             <DesktopButton
               :on-click="hello"
               content="Legg til medlem"
@@ -144,7 +150,7 @@ onMounted(async () => {
   justify-content: center;
   align-items: center;
   .loading-in-user-container {
-    margin-right: .5rem;
+    margin-right: 0.5rem;
   }
 }
 .haccp-area-container {

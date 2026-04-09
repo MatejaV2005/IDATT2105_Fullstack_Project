@@ -50,7 +50,10 @@ async function signOut() {
       button-color="cherry"
       :on-click="signOut"
     />
-    <p v-if="signOutError" class="error-message">
+    <p
+      v-if="signOutError"
+      class="error-message"
+    >
       Kunne ikke logge ut.
     </p>
   </div>

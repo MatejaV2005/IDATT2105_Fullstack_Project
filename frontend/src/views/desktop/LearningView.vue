@@ -10,119 +10,119 @@ import { onMounted, ref } from 'vue'
 
 const mockData: LearningAllInfo = {
   allCourses: [
-  {
-    name: 'Serveringskurs',
-    description:
-      'Dere må lese here pdf\'en & skrive en oppsummering. Dere må også gjøre alle oppgaver i NDLA sitt kurs og levere det inn til oss.',
-    resources: [
-      {
-        name: 'www.ndla.no/random_stuff',
-        type: 'link',
-      },
-      {
-        name: 'erna_sin_spise_guide.pdf',
-        type: 'file',
-      },
-    ],
-    responsible: ['Simen Velle', 'Vedum'],
-    uniqueId: 1234,
-  },
-  {
-    name: 'Drikkekurs',
-    description:
-      'Dere må lese here pdf\'en & skrive en oppsummering. Dere må også gjøre alle oppgaver i NDLA sitt kurs og levere det inn til oss.',
-    resources: [
-      {
-        name: 'www.ndla.no/random_stuff',
-        type: 'link',
-      },
-      {
-        name: 'erna_sin_spise_guide.pdf',
-        type: 'file',
-      },
-    ],
-    responsible: ['Simen Velle', 'Ola svenneby'],
-    uniqueId: 9876,
-  },
-  {
-    name: 'Drikkekurs',
-    description:
-      'Dere må lese here pdf\'en & skrive en oppsummering. Dere må også gjøre alle oppgaver i NDLA sitt kurs og levere det inn til oss.',
-    resources: [
-      {
-        name: 'www.ndla.no/random_stuff',
-        type: 'link',
-      },
-      {
-        name: 'erna_sin_spise_guide.pdf',
-        type: 'file',
-      },
-    ],
-    responsible: ['Simen Velle', 'Ola svenneby'],
-    uniqueId: 9816,
-  },
+    {
+      name: 'Serveringskurs',
+      description:
+        "Dere må lese here pdf'en & skrive en oppsummering. Dere må også gjøre alle oppgaver i NDLA sitt kurs og levere det inn til oss.",
+      resources: [
+        {
+          name: 'www.ndla.no/random_stuff',
+          type: 'link',
+        },
+        {
+          name: 'erna_sin_spise_guide.pdf',
+          type: 'file',
+        },
+      ],
+      responsible: ['Simen Velle', 'Vedum'],
+      uniqueId: 1234,
+    },
+    {
+      name: 'Drikkekurs',
+      description:
+        "Dere må lese here pdf'en & skrive en oppsummering. Dere må også gjøre alle oppgaver i NDLA sitt kurs og levere det inn til oss.",
+      resources: [
+        {
+          name: 'www.ndla.no/random_stuff',
+          type: 'link',
+        },
+        {
+          name: 'erna_sin_spise_guide.pdf',
+          type: 'file',
+        },
+      ],
+      responsible: ['Simen Velle', 'Ola svenneby'],
+      uniqueId: 9876,
+    },
+    {
+      name: 'Drikkekurs',
+      description:
+        "Dere må lese here pdf'en & skrive en oppsummering. Dere må også gjøre alle oppgaver i NDLA sitt kurs og levere det inn til oss.",
+      resources: [
+        {
+          name: 'www.ndla.no/random_stuff',
+          type: 'link',
+        },
+        {
+          name: 'erna_sin_spise_guide.pdf',
+          type: 'file',
+        },
+      ],
+      responsible: ['Simen Velle', 'Ola svenneby'],
+      uniqueId: 9816,
+    },
   ],
   userProgress: [
-  {
-    name: 'Mona Jul',
-    courses: [
-      {
-        name: 'Serveringskurs',
-        completed: true,
-        uniqueId: 1234,
-      },
-      {
-        name: 'Drikkekurs',
-        completed: false,
-        uniqueId: 9876,
-      },
-    ],
-  },
-  {
-    name: 'Jagland',
-    courses: [
-      {
-        name: 'Serveringskurs',
-        completed: true,
-        uniqueId: 1234,
-      },
-      {
-        name: 'Drikkekurs',
-        completed: true,
-        uniqueId: 9876,
-      },
-    ],
-  },
-  {
-    name: 'Bent Høie',
-    courses: [
-      {
-        name: 'Serveringskurs',
-        completed: false,
-        uniqueId: 1234,
-      },
-      {
-        name: 'Drikkekurs',
-        completed: true,
-        uniqueId: 9876,
-      },
-    ],
-  },
-  {
-    name: 'Bondevik',
-    courses: [
-      {
-        name: 'Serveringskurs',
-        completed: false,
-        uniqueId: 1234,
-      },
-      {
-        name: 'Drikkekurs',
-        completed: false,
-        uniqueId: 9876,
-      },
-    ],
-  },
+    {
+      name: 'Mona Jul',
+      courses: [
+        {
+          name: 'Serveringskurs',
+          completed: true,
+          uniqueId: 1234,
+        },
+        {
+          name: 'Drikkekurs',
+          completed: false,
+          uniqueId: 9876,
+        },
+      ],
+    },
+    {
+      name: 'Jagland',
+      courses: [
+        {
+          name: 'Serveringskurs',
+          completed: true,
+          uniqueId: 1234,
+        },
+        {
+          name: 'Drikkekurs',
+          completed: true,
+          uniqueId: 9876,
+        },
+      ],
+    },
+    {
+      name: 'Bent Høie',
+      courses: [
+        {
+          name: 'Serveringskurs',
+          completed: false,
+          uniqueId: 1234,
+        },
+        {
+          name: 'Drikkekurs',
+          completed: true,
+          uniqueId: 9876,
+        },
+      ],
+    },
+    {
+      name: 'Bondevik',
+      courses: [
+        {
+          name: 'Serveringskurs',
+          completed: false,
+          uniqueId: 1234,
+        },
+        {
+          name: 'Drikkekurs',
+          completed: false,
+          uniqueId: 9876,
+        },
+      ],
+    },
   ],
 }
 
@@ -159,7 +159,7 @@ function hasCompletedCourse(
   return user.courses.some((course) => course.uniqueId === courseId && course.completed)
 }
 function sayHello() {
-  alert("HELLO THERE!")
+  alert('HELLO THERE!')
 }
 </script>
 
@@ -171,12 +171,15 @@ function sayHello() {
       </h1>
       <span class="navy-subtitle">Godkjenning</span>
       <Loading v-if="loading" />
-      <div class="course-completion" v-if="!loading">
+      <div
+        v-if="!loading"
+        class="course-completion"
+      >
         <table>
           <thead>
             <tr>
               <th>Bruker</th>
-                <th
+              <th
                 v-for="course in resource.allCourses"
                 :key="course.uniqueId"
               >
@@ -185,7 +188,7 @@ function sayHello() {
             </tr>
           </thead>
           <tbody>
-              <tr
+            <tr
               v-for="user in resource.userProgress"
               :key="user.name"
             >

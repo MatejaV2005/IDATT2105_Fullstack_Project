@@ -120,34 +120,53 @@ function cancelEditing() {
       </h1>
 
       <Loading v-if="loading" />
-      <p v-else-if="error" class="error-message">
+      <p
+        v-else-if="error"
+        class="error-message"
+      >
         Klarte ikke å hente brukerdata.
       </p>
 
-      <div v-else-if="resource" class="profile-card">
+      <div
+        v-else-if="resource"
+        class="profile-card"
+      >
         <div class="useless-data-container">
-            <div class="row">
-              <span class="navy-subtitle">Bruker-ID</span>
-              <span>{{ resource.id }}</span>
-            </div>
-            <div class="row">
-              <span class="navy-subtitle">Opprettet</span>
-              <span>{{ resource.createdAt }}</span>
-            </div>
+          <div class="row">
+            <span class="navy-subtitle">Bruker-ID</span>
+            <span>{{ resource.id }}</span>
+          </div>
+          <div class="row">
+            <span class="navy-subtitle">Opprettet</span>
+            <span>{{ resource.createdAt }}</span>
+          </div>
         </div>
 
         <label class="field">
           <span class="navy-subtitle">Juridisk navn</span>
-          <input v-model="legalName" class="simple-text-input" type="text" :disabled="!isEditing || isSaving">
+          <input
+            v-model="legalName"
+            class="simple-text-input"
+            type="text"
+            :disabled="!isEditing || isSaving"
+          >
         </label>
 
         <label class="field">
           <span class="navy-subtitle">E-post</span>
-          <input v-model="email" class="simple-text-input" type="email" :disabled="!isEditing || isSaving">
+          <input
+            v-model="email"
+            class="simple-text-input"
+            type="email"
+            :disabled="!isEditing || isSaving"
+          >
         </label>
 
         <Loading v-if="isSaving" />
-        <div v-else class="actions">
+        <div
+          v-else
+          class="actions"
+        >
           <DesktopButton
             v-if="!isEditing"
             :icon="Edit2"
@@ -170,7 +189,10 @@ function cancelEditing() {
           <SignOutButton v-if="!isEditing" />
         </div>
 
-        <p v-if="saveError" class="error-message">
+        <p
+          v-if="saveError"
+          class="error-message"
+        >
           Kunne ikke oppdatere profil.
         </p>
       </div>
@@ -207,9 +229,9 @@ function cancelEditing() {
   gap: 0.75rem;
   width: 100%;
   background-color: var(--blue-decor-10);
-  padding: .5rem 1.5rem;
+  padding: 0.5rem 1.5rem;
   border-radius: 1rem;
-  border: 1px solid var(--blue-decor-40)
+  border: 1px solid var(--blue-decor-40);
 }
 
 .field {
@@ -229,10 +251,10 @@ function cancelEditing() {
 }
 
 .useless-data-container {
-    display: flex;
-    gap: 1rem;
-    width: 100%;
-    justify-content: stretch;
+  display: flex;
+  gap: 1rem;
+  width: 100%;
+  justify-content: stretch;
 }
 
 @media (max-width: 1200px) {
@@ -240,7 +262,7 @@ function cancelEditing() {
     margin-top: 1rem;
     padding: 0.75rem;
     .useless-data-container {
-        flex-direction: column;
+      flex-direction: column;
     }
   }
   .actions {

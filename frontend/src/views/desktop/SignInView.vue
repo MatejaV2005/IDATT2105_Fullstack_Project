@@ -144,6 +144,10 @@ main {
     input {
       accent-color: var(--blue-navy);
     }
+    
+    /* 
+      Noe greier jeg fant på nett. Skal bytte til standard component senere
+    */
     input[type='number']::-webkit-inner-spin-button,
     input[type='number']::-webkit-outer-spin-button {
       -webkit-appearance: none;

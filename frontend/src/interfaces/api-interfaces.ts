@@ -95,8 +95,8 @@ export interface MappingPoint {
   title: string
   challenges: string
   measures: string
-  responsible: string[]
   responsibleText: string
+  id: number
 }
 
 export type MappingPointAllInfo = MappingPoint[]
@@ -140,6 +140,38 @@ export interface DangerAnalysisCollaborator {
 }
 
 export type DangerAnalysisCollaboratorsAllInfo = DangerAnalysisCollaborator[]
+// #endregion
+
+// #region TasksView
+export interface TasksOverviewInfo {
+  remainingCcpVerifications: number
+  remainingDeviationReviews: number
+}
+// #endregion
+
+// #region CcpLogsView
+export type VerificationStatus = 'SKIPPED' | 'VERIFIED' | 'REJECTED' | 'WAITING'
+
+export interface CcpLogRecord {
+  id: number
+  value: number
+  min: number
+  max: number
+  unit: string
+  comment: string
+  performedBy: {
+    id: number
+    legalName: string
+  }
+}
+
+export interface CcpLogsGroup {
+  id: number
+  name: string
+  records: CcpLogRecord[]
+}
+
+export type CcpLogsAllInfo = CcpLogsGroup[]
 // #endregion
 
 // #region MeView

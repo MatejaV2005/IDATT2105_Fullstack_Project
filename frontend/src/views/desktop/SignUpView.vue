@@ -117,7 +117,7 @@ async function handleSubmit() {
           stroke-linecap="round"
           stroke-linejoin="round"
           class="lucide lucide-send-horizontal-icon lucide-send-horizontal"
-        >
+        >loading
           <path
             d="M3.714 3.048a.498.498 0 0 0-.683.627l2.843 7.627a2 2 0 0 1 0 1.396l-2.842 7.627a.498.498 0 0 0 .682.627l18-8.5a.5.5 0 0 0 0-.904z"
           />
@@ -159,7 +159,7 @@ main {
     }
 
     /* 
-      Noe greier jeg fant på nett. Skal bytte til standard loading component senere
+      Noe greier jeg fant på nett. Skal bytte til standard component senere
     */
     input[type='number']::-webkit-inner-spin-button,
     input[type='number']::-webkit-outer-spin-button {
