@@ -6,6 +6,7 @@ public record RoutinePrerequisitePointResponse(
     Long id,
     String title,
     String type,
+    String description,
     String measures,
     String repeatText,
     PrerequisiteIntervalResponse interval,

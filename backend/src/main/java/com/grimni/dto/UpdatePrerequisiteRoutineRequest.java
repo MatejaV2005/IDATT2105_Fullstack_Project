@@ -8,6 +8,9 @@ public record UpdatePrerequisiteRoutineRequest(
     @Size(min = 1, message = "Title cannot be empty")
     String title,
 
+    @Size(min = 1, message = "Description cannot be empty")
+    String description,
+
     @Size(min = 1, message = "Measures cannot be empty")
     String measures,
 

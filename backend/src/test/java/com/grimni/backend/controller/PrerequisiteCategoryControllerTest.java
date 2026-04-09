@@ -97,6 +97,7 @@ public class PrerequisiteCategoryControllerTest {
                 17L,
                 "Vask gulvene",
                 "routine",
+                "Vask gulvene etter stengetid.",
                 "Vask ekstra godt neste gang",
                 "Starts 2025-12-05 17:00, repeats every 1 week",
                 new PrerequisiteIntervalResponse(9L, 1764950400L, 604800L),
@@ -142,6 +143,7 @@ public class PrerequisiteCategoryControllerTest {
             String requestBody = """
                 {
                   "title": "Vask gulvene",
+                  "description": "Vask gulvene etter stengetid.",
                   "measures": "Vask ekstra godt neste gang",
                   "intervalStart": 1764950400,
                   "intervalRepeatTime": 604800,
@@ -157,6 +159,7 @@ public class PrerequisiteCategoryControllerTest {
                     17L,
                     "Vask gulvene",
                     "routine",
+                    "Vask gulvene etter stengetid.",
                     "Vask ekstra godt neste gang",
                     "Starts 2025-12-05 17:00, repeats every 1 week",
                     new PrerequisiteIntervalResponse(9L, 1764950400L, 604800L),
@@ -174,6 +177,7 @@ public class PrerequisiteCategoryControllerTest {
                     .with(csrf()))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(17))
+                .andExpect(jsonPath("$.description").value("Vask gulvene etter stengetid."))
                 .andExpect(jsonPath("$.type").value("routine"));
         }
     }

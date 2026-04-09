@@ -242,6 +242,7 @@ CREATE TABLE prerequisite_routine ( -- A routine to meet "grunnforutsetninger"
     id INT AUTO_INCREMENT PRIMARY KEY,
     immediate_corrective_action TEXT NOT NULL,
     title TEXT NOT NULL,
+    prerequisite_description TEXT NOT NULL,
     prerequisite_category_id INT,
     org_id INT,
     interval_id INT,

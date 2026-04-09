@@ -116,6 +116,7 @@ public class PrerequisiteCategoryServiceTest {
         routine = new PrerequisiteRoutine();
         ReflectionTestUtils.setField(routine, "id", 20L);
         routine.setTitle("Vask gulvene");
+        routine.setDescription("Vask gulvene etter stengetid.");
         routine.setImmediateCorrectiveAction("Vask ekstra godt neste gang");
         routine.setOrganization(organization);
         routine.setPrerequisiteCategory(category);
@@ -185,6 +186,7 @@ public class PrerequisiteCategoryServiceTest {
         void createRoutine_success() {
             CreatePrerequisiteRoutineRequest request = new CreatePrerequisiteRoutineRequest(
                 "Vask gulvene",
+                "Vask gulvene etter stengetid.",
                 "Vask ekstra godt neste gang",
                 1764950400L,
                 604800L,
@@ -216,6 +218,7 @@ public class PrerequisiteCategoryServiceTest {
             RoutinePrerequisitePointResponse result = prerequisiteCategoryService.createRoutine(12L, request, 99L, 10L);
 
             assertEquals(20L, result.id());
+            assertEquals("Vask gulvene etter stengetid.", result.description());
             assertEquals(30L, result.interval().intervalId());
             assertEquals(1, result.verifiers().size());
             assertEquals(1, result.performers().size());
@@ -235,6 +238,7 @@ public class PrerequisiteCategoryServiceTest {
         void updateRoutine_doesNotTouchAssignments() {
             UpdatePrerequisiteRoutineRequest request = new UpdatePrerequisiteRoutineRequest(
                 "Ny tittel",
+                "Oppdatert beskrivelse",
                 null,
                 null,
                 null,
@@ -251,6 +255,7 @@ public class PrerequisiteCategoryServiceTest {
             RoutinePrerequisitePointResponse result = prerequisiteCategoryService.updateRoutine(20L, request, 99L, 10L);
 
             assertEquals("Ny tittel", result.title());
+            assertEquals("Oppdatert beskrivelse", result.description());
             assertEquals(1, result.verifiers().size());
             verify(routineUserBridgeRepository, never()).deleteByRoutine_Id(any());
             verify(routineUserBridgeRepository, never()).saveAll(anyCollection());
