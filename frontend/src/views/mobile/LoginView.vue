@@ -1,13 +1,65 @@
 <script setup lang="ts">
-import { reactive } from 'vue'
+import { reactive, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 
 import PrimaryActionButton from '@/components/PrimaryActionButton.vue'
+import { setAuthToken } from '@/utils/auth'
 
 const loginForm = reactive({
-  identifier: '',
+  email: '',
   password: '',
 })
+
+const isLoading = ref(false)
+const errorMessage = ref('')
+
+async function tryLogin(endpoint: string) {
+  return fetch(endpoint, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      email: loginForm.email.trim(),
+      password: loginForm.password,
+    }),
+  })
+}
+
+async function handleSubmit() {
+  if (!loginForm.email.trim() || !loginForm.password || isLoading.value) {
+    return
+  }
+
+  isLoading.value = true
+  errorMessage.value = ''
+
+  try {
+    const response = await tryLogin('/api/auth/login')
+
+    if (!response.ok) {
+      const responseText = (await response.text()).trim()
+      errorMessage.value = responseText
+        ? `Kunne ikke logge inn (${response.status}). ${responseText}`
+        : `Kunne ikke logge inn (${response.status}). Sjekk e-post og passord.`
+      return
+    }
+
+    const token = (await response.text()).trim()
+    if (!token) {
+      errorMessage.value = 'Innlogging lyktes ikke: tomt token-svar fra server.'
+      return
+    }
+
+    setAuthToken(token)
+    window.location.assign('/mobile/rutiner')
+  } catch {
+    errorMessage.value = 'Det oppstod en feil under innlogging.'
+  } finally {
+    isLoading.value = false
+  }
+}
 </script>
 
 <template>
@@ -20,22 +72,22 @@ const loginForm = reactive({
         Logg inn for å åpne rutiner og logging
       </h1>
       <p class="card-copy">
-        Brukernavn eller e-post og passord kan senere kobles direkte til backend-autentisering.
+        Bruk e-postadressen og passordet som ligger i databasen for å logge inn.
       </p>
 
       <form
         class="login-form"
-        @submit.prevent
+        @submit.prevent="handleSubmit"
       >
         <label
           class="form-label"
-          for="identifier"
-        >Brukernavn / e-post</label>
+          for="email"
+        >E-post</label>
         <input
-          id="identifier"
-          v-model="loginForm.identifier"
+          id="email"
+          v-model="loginForm.email"
           class="field-shell__input login-form__input"
-          type="text"
+          type="email"
           autocomplete="username"
         >
 
@@ -52,16 +104,23 @@ const loginForm = reactive({
         >
 
         <PrimaryActionButton
-          label="Logg inn"
+          :label="isLoading ? 'Logger inn...' : 'Logg inn'"
           type="submit"
         />
       </form>
 
+      <p
+        v-if="errorMessage"
+        class="caption-note login-card__error"
+      >
+        {{ errorMessage }}
+      </p>
+
       <RouterLink
         class="login-card__back"
-        to="/rutiner"
+        to="/mobile/rutiner"
       >
-        Tilbake til demoen
+        Tilbake til rutiner
       </RouterLink>
     </article>
   </section>

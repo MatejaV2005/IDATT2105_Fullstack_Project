@@ -248,6 +248,12 @@ html {
   border: 1px solid rgba(15, 102, 152, 0.12);
 }
 
+.info-banner--danger {
+  background:
+    linear-gradient(135deg, rgba(194, 65, 87, 0.12), rgba(255, 255, 255, 0.96));
+  border-color: rgba(194, 65, 87, 0.2);
+}
+
 .stat-grid,
 .routine-grid,
 .metric-grid,
@@ -313,6 +319,10 @@ html {
 .routine-card__info {
   margin-top: 14px;
   padding: 14px 16px;
+}
+
+.routine-card__subheading {
+  margin-top: 16px;
 }
 
 .card-icon-button {
@@ -447,6 +457,10 @@ html {
   cursor: pointer;
 }
 
+.routine-checkbox input:disabled {
+  cursor: not-allowed;
+}
+
 .routine-checkbox__box {
   width: 28px;
   height: 28px;
@@ -460,6 +474,10 @@ html {
 
 .routine-checkbox input:checked + .routine-checkbox__box {
   background: var(--color-brand-700);
+}
+
+.routine-checkbox input:disabled + .routine-checkbox__box {
+  opacity: 0.72;
 }
 
 .routine-checkbox input:checked + .routine-checkbox__box::after {
@@ -864,6 +882,18 @@ html {
   transform: translateY(0);
 }
 
+.primary-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+  box-shadow: none;
+}
+
+.primary-action:disabled:hover,
+.primary-action:disabled:active {
+  filter: none;
+  transform: none;
+}
+
 .caption-note {
   margin: 12px 0 0;
   color: var(--color-ink-500);
@@ -910,6 +940,11 @@ html {
   margin-top: 18px;
   color: var(--color-brand-700);
   font: 700 14px/20px var(--font-body);
+}
+
+.login-card__error {
+  color: var(--color-danger);
+  text-align: left;
 }
 
 @media (min-width: 768px) {
@@ -990,4 +1025,3 @@ html {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
-

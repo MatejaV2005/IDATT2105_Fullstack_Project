@@ -2,10 +2,12 @@ package com.grimni.backend.controller;
 
 import com.grimni.controller.MeController;
 import com.grimni.domain.Organization;
+import com.grimni.dto.AssignedRoutineResponse;
 import com.grimni.security.JwtUserPrinciple;
 import com.grimni.security.SecurityConfig;
 import com.grimni.service.CertificateService;
 import com.grimni.service.OrganizationService;
+import com.grimni.service.RoutineLoggingService;
 import com.grimni.service.UserService;
 import com.grimni.util.JwtAuthFilter;
 import com.grimni.util.JwtUtil;
@@ -28,6 +30,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -51,6 +54,9 @@ public class MeControllerTest {
 
     @MockitoBean
     private UserService userService;
+
+    @MockitoBean
+    private RoutineLoggingService routineLoggingService;
 
     @MockitoBean
     private JwtUtil jwtUtil;
@@ -148,6 +154,81 @@ public class MeControllerTest {
                     .andExpect(status().isForbidden());
 
             verify(organizationService, never()).findOrganizationsByUserId(any());
+        }
+    }
+
+    @Nested
+    @DisplayName("GET /me/routines")
+    class GetMyRoutinesTests {
+
+        @Test
+        @DisplayName("returns assigned routines for the active user")
+        void getMyRoutines_success() throws Exception {
+            LocalDateTime dueAt = LocalDateTime.of(2026, 4, 10, 10, 0);
+            LocalDateTime lastCompletedAt = LocalDateTime.of(2026, 4, 9, 9, 15);
+
+            when(routineLoggingService.getAssignedRoutines(1L, 10L)).thenReturn(List.of(
+                new AssignedRoutineResponse(
+                    17L,
+                    "Vask gulvene",
+                    "Renhold av lokaler og utstyr",
+                    "Vask gulvene etter stengetid.",
+                    "Kontakt skiftleder hvis gulvvask ikke kan gjennomfores.",
+                    dueAt,
+                    false,
+                    null,
+                    lastCompletedAt
+                )
+            ));
+
+            mockMvc.perform(get("/me/routines")
+                    .with(authentication(authWithRole("WORKER"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].routineId").value(17))
+                .andExpect(jsonPath("$[0].title").value("Vask gulvene"))
+                .andExpect(jsonPath("$[0].description").value("Vask gulvene etter stengetid."))
+                .andExpect(jsonPath("$[0].completedForCurrentInterval").value(false));
+        }
+    }
+
+    @Nested
+    @DisplayName("POST /me/routines/{routineId}/records")
+    class CompleteRoutineTests {
+
+        @Test
+        @DisplayName("returns the updated assigned routine response after completion")
+        void completeRoutine_success() throws Exception {
+            LocalDateTime dueAt = LocalDateTime.of(2026, 4, 10, 10, 0);
+            LocalDateTime completedAt = LocalDateTime.of(2026, 4, 10, 8, 5);
+
+            when(routineLoggingService.completeRoutine(17L, 1L, 10L)).thenReturn(
+                new AssignedRoutineResponse(
+                    17L,
+                    "Vask gulvene",
+                    "Renhold av lokaler og utstyr",
+                    "Vask gulvene etter stengetid.",
+                    "Kontakt skiftleder hvis gulvvask ikke kan gjennomfores.",
+                    dueAt,
+                    true,
+                    completedAt,
+                    completedAt
+                )
+            );
+
+            mockMvc.perform(post("/me/routines/17/records")
+                    .with(authentication(authWithRole("WORKER"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.routineId").value(17))
+                .andExpect(jsonPath("$.completedForCurrentInterval").value(true));
+        }
+
+        @Test
+        @DisplayName("returns HTTP 403 when unauthenticated")
+        void completeRoutine_unauthenticated_returns403() throws Exception {
+            mockMvc.perform(post("/me/routines/17/records"))
+                .andExpect(status().isForbidden());
+
+            verify(routineLoggingService, never()).completeRoutine(any(), any(), any());
         }
     }
 }
