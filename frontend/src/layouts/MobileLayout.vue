@@ -8,6 +8,7 @@ const route = useRoute()
 const tabs = [
   { name: 'rutiner', label: 'Rutiner', to: '/mobile/rutiner' },
   { name: 'logging', label: 'Logging', to: '/mobile/logging' },
+  { name: 'kartlegging og tiltak', label: 'Kartlegging og tiltak', to: '/mobile/kartlegging-og-tiltak' },
   { name: 'avvik', label: 'Avvik', to: '/mobile/avvik' },
 ]
 

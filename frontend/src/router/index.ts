@@ -12,6 +12,7 @@ import TeamView from '@/views/desktop/TeamView.vue'
 import DeviationsView from '@/views/mobile/DeviationsView.vue'
 import LoggingView from '@/views/mobile/LoggingView.vue'
 import LoginView from '@/views/mobile/LoginView.vue'
+import MappingPointsView from '@/views/mobile/MappingPointsView.vue'
 import RoutinesView from '@/views/mobile/RoutinesView.vue'
 import { createRouter, createWebHistory } from 'vue-router'
 
@@ -88,6 +89,11 @@ const router = createRouter({
           path: 'logging',
           name: 'logging',
           component: LoggingView,
+        },
+        {
+          path: 'kartlegging-og-tiltak',
+          name: 'kartlegging-og-tiltak',
+          component: MappingPointsView,
         },
         {
           path: 'avvik',
