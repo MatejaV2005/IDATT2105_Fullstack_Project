@@ -14,7 +14,7 @@ const errorMessage = ref('')
 const router = useRouter()
 
 async function handleSubmit() {
-  if (!email.value || !legalName || !password.value || isLoading.value) {
+  if (!email.value || !legalName.value || !password.value || isLoading.value) {
     return
   }
 
@@ -24,7 +24,7 @@ async function handleSubmit() {
   const payload = {
     email: email.value,
     password: password.value,
-    legalName: legalName
+    legalName: legalName,
   }
 
   try {
@@ -35,8 +35,8 @@ async function handleSubmit() {
     //   },
     //   body: JSON.stringify(payload),
     // })
-    await delay(2000);
-    const response = { ok: true } 
+    await delay(2000)
+    const response = { ok: true }
 
     if (!response.ok) {
       errorMessage.value = 'Klarte ikke å registrere en bruker. Prøv igjen.'
@@ -65,8 +65,8 @@ async function handleSubmit() {
       <label>
         *Email<br>
         <input
-          type="email"
           v-model="email"
+          type="email"
           required
           class="simple-text-input"
           placeholder="ada@lovelace.uk"
@@ -105,9 +105,7 @@ async function handleSubmit() {
         class="transition"
         type="submit"
       >
-        <span v-if="!isLoading">
-          Registrer deg
-        </span>
+        <span v-if="!isLoading"> Registrer deg </span>
         <svg
           v-if="!isLoading"
           xmlns="http://www.w3.org/2000/svg"
@@ -159,15 +157,20 @@ main {
     input {
       accent-color: var(--blue-navy);
     }
-    input[type=number]::-webkit-inner-spin-button,
-    input[type=number]::-webkit-outer-spin-button {
-        -webkit-appearance: none;
-        margin: 0;
+
+    /* 
+      Noe greier jeg fant på nett. Skal bytte til standard loading component senere
+    */
+    input[type='number']::-webkit-inner-spin-button,
+    input[type='number']::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
     }
 
-    input[type=number] {
-        -moz-appearance: textfield;
+    input[type='number'] {
+      -moz-appearance: textfield;
     }
+
     .simple-text-input {
       width: 100%;
     }

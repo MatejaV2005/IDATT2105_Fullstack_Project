@@ -188,19 +188,9 @@ CREATE TABLE mapping_point ( -- For "IK alkohol" its a specific law, and how to 
     severity_dots TINYINT UNSIGNED,
     org_id INT,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    responsible_for_point TEXT NOT NULL,
     CONSTRAINT fk_mapping_point_org
         FOREIGN KEY (org_id) REFERENCES organization(id)
-);
-
-CREATE TABLE mapping_point_user_bridge ( -- The people responsible for this point (in IK alkohol)
-    mapping_point_id INT,
-    user_id INT,
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (user_id, mapping_point_id),
-    CONSTRAINT fk_mapping_point_user_bridge_mapping_point
-        FOREIGN KEY (mapping_point_id) REFERENCES mapping_point(id) ON DELETE CASCADE,
-    CONSTRAINT fk_mapping_point_user_bridge_user
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 CREATE TABLE interval_rule ( -- Info about something which has to repeat with some interval
@@ -254,6 +244,7 @@ CREATE TABLE prerequisite_routine ( -- A routine to meet "grunnforutsetninger"
     immediate_corrective_action TEXT NOT NULL,
     title TEXT NOT NULL,
     prerequisite_category_id INT,
+    prerequisite_description TEXT NOT NULL,
     org_id INT,
     interval_id INT,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -337,10 +328,6 @@ CREATE TABLE prerequisite_routine_record (
     result_status ENUM('COMPLETED', 'FAILED') NOT NULL,
     comment TEXT, -- by performer
 
-    last_verifier INT,
-    verification_status ENUM('SKIPPED', 'VERIFIED', 'REJECTED', 'WAITING') NOT NULL DEFAULT 'WAITING',
-    verified_at DATETIME,
-
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT fk_prerequisite_routine_record_org
@@ -398,4 +385,17 @@ CREATE TABLE certificates (
         FOREIGN KEY (file_id) REFERENCES file_object(id) ON DELETE CASCADE,
     CONSTRAINT fk_certificates_org
         FOREIGN KEY (org_id) REFERENCES organization(id) ON DELETE SET NULL
+);
+
+CREATE TABLE internal_control_review (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    org_id INT NOT NULL,
+    reviewed_by INT NOT NULL,
+    summary TEXT NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_internal_control_review_org
+        FOREIGN KEY (org_id) REFERENCES organization(id) ON DELETE CASCADE,
+    CONSTRAINT fk_internal_control_review_reviewed_by
+        FOREIGN KEY (reviewed_by) REFERENCES users(id) ON DELETE NO ACTION
 );
