@@ -48,7 +48,7 @@ public class MappingPointService {
         mappingPoint.setTitle(request.title());
         mappingPoint.setChallenges(request.challenges());
         mappingPoint.setMeasures(request.measures());
-        mappingPoint.setResponsibleForPoint(request.responsibleForPoint());
+        mappingPoint.setResponsibleText(request.responsibleText());
         mappingPoint.setOrganization(membership.getOrganization());
 
         return toResponse(mappingPointRepository.save(mappingPoint));
@@ -78,8 +78,8 @@ public class MappingPointService {
         if (request.measures() != null) {
             mappingPoint.setMeasures(request.measures());
         }
-        if (request.responsibleForPoint() != null) {
-            mappingPoint.setResponsibleForPoint(request.responsibleForPoint());
+        if (request.responsibleText() != null) {
+        mappingPoint.setResponsibleText(request.responsibleText());
         }
 
         return toResponse(mappingPointRepository.save(mappingPoint));
@@ -109,7 +109,7 @@ public class MappingPointService {
             mappingPoint.getTitle(),
             mappingPoint.getChallenges(),
             mappingPoint.getMeasures(),
-            mappingPoint.getResponsibleForPoint()
+            mappingPoint.getResponsibleText()
         );
     }
 }

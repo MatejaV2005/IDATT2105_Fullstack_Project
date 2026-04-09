@@ -108,7 +108,7 @@ public class MappingPointControllerTest {
                 .andExpect(jsonPath("$[0].id").value(17))
                 .andExpect(jsonPath("$[0].law").value("AL § 1-5"))
                 .andExpect(jsonPath("$[0].dots").value(8))
-                .andExpect(jsonPath("$[0].responsibleForPoint").value("Hvem enn som er i kassen ved gitt tidspunkt"));
+                .andExpect(jsonPath("$[0].responsibleText").value("Hvem enn som er i kassen ved gitt tidspunkt"));
         }
     }
 
@@ -136,7 +136,7 @@ public class MappingPointControllerTest {
                     request.title(),
                     request.challenges(),
                     request.measures(),
-                    request.responsibleForPoint()
+                    request.responsibleText()
                 )
             );
 
@@ -147,7 +147,7 @@ public class MappingPointControllerTest {
                     .with(csrf()))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(17))
-                .andExpect(jsonPath("$.responsibleForPoint").value("Hvem enn som er i kassen ved gitt tidspunkt"));
+                .andExpect(jsonPath("$.responsibleText").value("Hvem enn som er i kassen ved gitt tidspunkt"));
         }
 
         @Test
@@ -208,7 +208,7 @@ public class MappingPointControllerTest {
                     .with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.measures").value("Oppdatert tiltak"))
-                .andExpect(jsonPath("$.responsibleForPoint").value("Ny ansvarstekst"));
+                .andExpect(jsonPath("$.responsibleText").value("Ny ansvarstekst"));
         }
     }
 
