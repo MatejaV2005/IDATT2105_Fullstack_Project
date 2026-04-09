@@ -2,12 +2,10 @@ package com.grimni.backend.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.grimni.controller.OrganizationController;
-import com.grimni.controller.MeController;
 import com.grimni.domain.Organization;
 import com.grimni.dto.CreateOrganizationRequest;
 import com.grimni.dto.UpdateOrganizationRequest;
 import com.grimni.security.JwtUserPrinciple;
-import com.grimni.service.CertificateService;
 import com.grimni.service.OrganizationService;
 import org.springframework.context.annotation.Import;
 import com.grimni.security.SecurityConfig;
@@ -44,7 +42,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest({OrganizationController.class, MeController.class})
+@WebMvcTest(OrganizationController.class)
 @Import(SecurityConfig.class)
 public class OrganizationControllerTest {
 
@@ -59,9 +57,6 @@ public class OrganizationControllerTest {
 
     @MockitoBean
     private JwtAuthFilter jwtAuthFilter;
-
-    @MockitoBean
-    private CertificateService certificateService;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -183,71 +178,6 @@ public class OrganizationControllerTest {
                     .andExpect(status().isForbidden());
 
             verify(organizationService, never()).createOrganization(any(), any());
-        }
-    }
-
-    // -------------------------------------------------------------------------
-    // GET /me/organizations — success
-    // -------------------------------------------------------------------------
-    @Nested
-    @DisplayName("GET /me/organizations — success")
-    class GetMyOrganizationsSuccessTests {
-
-        @Test
-        @DisplayName("returns HTTP 200 and list of organization responses")
-        void getMyOrganizations_success() throws Exception {
-            Organization org1 = createOrg(1L, "Org A");
-            Organization org2 = createOrg(2L, "Org B");
-
-            when(organizationService.findOrganizationsByUserId(1L)).thenReturn(List.of(org1, org2));
-
-            mockMvc.perform(get("/me/organizations")
-                            .with(authentication(authWithRole("WORKER"))))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$[0].id").value(1))
-                    .andExpect(jsonPath("$[0].orgName").value("Org A"))
-                    .andExpect(jsonPath("$[1].id").value(2))
-                    .andExpect(jsonPath("$[1].orgName").value("Org B"));
-        }
-
-        @Test
-        @DisplayName("returns HTTP 200 and empty list when user has no organizations")
-        void getMyOrganizations_empty() throws Exception {
-            when(organizationService.findOrganizationsByUserId(1L)).thenReturn(List.of());
-
-            mockMvc.perform(get("/me/organizations")
-                            .with(authentication(authWithRole("WORKER"))))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$").isEmpty());
-        }
-    }
-
-    // -------------------------------------------------------------------------
-    // GET /me/organizations — failure
-    // -------------------------------------------------------------------------
-    @Nested
-    @DisplayName("GET /me/organizations — failure")
-    class GetMyOrganizationsFailureTests {
-
-        @Test
-        @DisplayName("returns HTTP 404 when service throws EntityNotFoundException")
-        void getMyOrganizations_serviceThrows_returns404() throws Exception {
-            when(organizationService.findOrganizationsByUserId(1L))
-                    .thenThrow(new EntityNotFoundException("Not found"));
-
-            mockMvc.perform(get("/me/organizations")
-                            .with(authentication(authWithRole("WORKER"))))
-                    .andExpect(status().isNotFound())
-                    .andExpect(jsonPath("$.error").value("Not found"));
-        }
-
-        @Test
-        @DisplayName("returns HTTP 403 when unauthenticated")
-        void getMyOrganizations_unauthenticated_returns403() throws Exception {
-            mockMvc.perform(get("/me/organizations"))
-                    .andExpect(status().isForbidden());
-
-            verify(organizationService, never()).findOrganizationsByUserId(any());
         }
     }
 
