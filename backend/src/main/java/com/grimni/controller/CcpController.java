@@ -23,6 +23,7 @@ import com.grimni.service.CcpService;
 
 import jakarta.validation.Valid;
 
+
 @RestController
 public class CcpController {
 
@@ -60,7 +61,7 @@ public class CcpController {
         } catch (RuntimeException exception) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(exception.getMessage());
         }
-    }
+    }    
 
     @PostMapping("/haccp/critical-control-points")
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
