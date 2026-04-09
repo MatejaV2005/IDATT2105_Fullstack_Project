@@ -20,7 +20,7 @@ public class MappingPoint extends CreatedAtEntity {
     private String measures;
 
     @Column(name = "responsible_for_point", columnDefinition = "TEXT")
-    private String responsibleForPoint;
+    private String responsibleText;
 
     @Column(name = "law", length = 25)
     private String law;
@@ -67,12 +67,12 @@ public class MappingPoint extends CreatedAtEntity {
         this.measures = measures;
     }
 
-    public String getResponsibleForPoint() {
-        return responsibleForPoint;
+    public String getResponsibleText() {
+        return responsibleText;
     }
 
-    public void setResponsibleForPoint(String responsibleForPoint) {
-        this.responsibleForPoint = responsibleForPoint;
+    public void setResponsibleText(String responsibleText) {
+        this.responsibleText = responsibleText;
     }
 
     public String getLaw() {

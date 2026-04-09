@@ -7,5 +7,5 @@ public record MappingPointResponse(
     String title,
     String challenges,
     String measures,
-    String responsibleForPoint
+    String responsibleText
 ) {}

@@ -21,6 +21,6 @@ public record CreateMappingPointRequest(
     @NotBlank(message = "Measures cannot be blank")
     String measures,
 
-    @NotBlank(message = "Responsible for point cannot be blank")
-    String responsibleForPoint
+    @NotBlank(message = "Responsible text cannot be blank")
+    String responsibleText
 ) {}
