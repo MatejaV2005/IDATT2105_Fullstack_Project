@@ -1,3 +1,6 @@
+@import './base.css';
+@import './main.css';
+
 :root {
   --font-display:
     Manrope, 'Avenir Next', 'Segoe UI', 'Helvetica Neue', sans-serif;
@@ -61,9 +64,6 @@ html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
-
-@import './base-app.css';
-@import './main.css';
 
 #app {
   min-height: 100vh;
@@ -354,6 +354,30 @@ html {
   flex: 0 0 auto;
 }
 
+.inline-text-button,
+.inline-action-button {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.inline-text-button {
+  padding: 0;
+  align-self: flex-start;
+  color: var(--color-brand-700);
+  font: 700 13px/18px var(--font-body);
+}
+
+.inline-action-button {
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: rgba(194, 65, 87, 0.12);
+  color: var(--color-danger);
+  font: 800 12px/16px var(--font-body);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
 .info-popover {
   padding: 18px 20px;
   border: 1px solid rgba(15, 102, 152, 0.1);
@@ -437,6 +461,15 @@ html {
   margin: 0;
   color: var(--color-ink-950);
   font: 700 13px/18px var(--font-body);
+  text-align: right;
+}
+
+.detail-list__item--stacked {
+  align-items: flex-start;
+}
+
+.detail-list__item--stacked dd {
+  max-width: 62%;
   text-align: right;
 }
 
@@ -617,6 +650,40 @@ html {
 
 .timed-task__field {
   flex: 1 1 auto;
+}
+
+.logging-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.logging-card__inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.logging-card__textarea {
+  min-height: 108px;
+}
+
+.logging-card__action,
+.logging-card__warning {
+  margin-top: 0;
+}
+
+.logging-card__warning {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.logging-card__warning-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .timed-task__input {

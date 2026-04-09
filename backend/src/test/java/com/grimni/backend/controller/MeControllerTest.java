@@ -1,11 +1,19 @@
 package com.grimni.backend.controller;
 
 import com.grimni.controller.MeController;
+import com.grimni.domain.Deviation;
 import com.grimni.domain.Organization;
+import com.grimni.domain.User;
+import com.grimni.domain.enums.DeviationCategory;
+import com.grimni.domain.enums.ReviewStatus;
+import com.grimni.dto.AssignedCcpResponse;
 import com.grimni.dto.AssignedRoutineResponse;
+import com.grimni.dto.SubmittedCcpRecordResponse;
 import com.grimni.security.JwtUserPrinciple;
 import com.grimni.security.SecurityConfig;
+import com.grimni.service.CcpLoggingService;
 import com.grimni.service.CertificateService;
+import com.grimni.service.DeviationService;
 import com.grimni.service.OrganizationService;
 import com.grimni.service.RoutineLoggingService;
 import com.grimni.service.UserService;
@@ -57,6 +65,12 @@ public class MeControllerTest {
 
     @MockitoBean
     private RoutineLoggingService routineLoggingService;
+
+    @MockitoBean
+    private CcpLoggingService ccpLoggingService;
+
+    @MockitoBean
+    private DeviationService deviationService;
 
     @MockitoBean
     private JwtUtil jwtUtil;
@@ -229,6 +243,134 @@ public class MeControllerTest {
                 .andExpect(status().isForbidden());
 
             verify(routineLoggingService, never()).completeRoutine(any(), any(), any());
+        }
+    }
+
+    @Nested
+    @DisplayName("GET /me/ccps")
+    class GetMyCcpsTests {
+
+        @Test
+        @DisplayName("returns assigned critical control points for the active user")
+        void getMyCcps_success() throws Exception {
+            LocalDateTime dueAt = LocalDateTime.of(2026, 4, 10, 11, 0);
+            LocalDateTime lastCompletedAt = LocalDateTime.of(2026, 4, 9, 8, 30);
+
+            when(ccpLoggingService.getAssignedCcps(1L, 10L)).thenReturn(List.of(
+                new AssignedCcpResponse(
+                    41L,
+                    "Kjolerom",
+                    "Temperatur i kjolerom",
+                    java.math.BigDecimal.ZERO,
+                    java.math.BigDecimal.valueOf(4),
+                    "C",
+                    "Starts 2026-04-09 10:00, repeats every 1 day",
+                    dueAt,
+                    false,
+                    null,
+                    lastCompletedAt,
+                    java.math.BigDecimal.valueOf(3.5),
+                    "Flytt varer til reservekjol."
+                )
+            ));
+
+            mockMvc.perform(get("/me/ccps")
+                    .with(authentication(authWithRole("WORKER"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].ccpId").value(41))
+                .andExpect(jsonPath("$[0].name").value("Kjolerom"))
+                .andExpect(jsonPath("$[0].completedForCurrentInterval").value(false));
+        }
+    }
+
+    @Nested
+    @DisplayName("POST /me/ccps/{ccpId}/records")
+    class CreateCcpRecordTests {
+
+        @Test
+        @DisplayName("returns the updated assigned CCP response after submission")
+        void createCcpRecord_success() throws Exception {
+            AssignedCcpResponse response = new AssignedCcpResponse(
+                41L,
+                "Kjolerom",
+                "Temperatur i kjolerom",
+                java.math.BigDecimal.ZERO,
+                java.math.BigDecimal.valueOf(4),
+                "C",
+                "Starts 2026-04-09 10:00, repeats every 1 day",
+                LocalDateTime.of(2026, 4, 10, 11, 0),
+                true,
+                LocalDateTime.of(2026, 4, 10, 10, 15),
+                LocalDateTime.of(2026, 4, 10, 10, 15),
+                java.math.BigDecimal.valueOf(5.5),
+                "Flytt varer til reservekjol."
+            );
+
+            when(ccpLoggingService.createRecord(eq(41L), any(), eq(1L), eq(10L))).thenReturn(
+                new SubmittedCcpRecordResponse(response, 88L, true)
+            );
+
+            mockMvc.perform(post("/me/ccps/41/records")
+                    .with(authentication(authWithRole("WORKER")))
+                    .contentType("application/json")
+                    .content("""
+                        {
+                          "measuredValue": 5.5,
+                          "comment": "For hoy verdi"
+                        }
+                        """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.recordId").value(88))
+                .andExpect(jsonPath("$.outsideCriticalRange").value(true))
+                .andExpect(jsonPath("$.ccp.ccpId").value(41))
+                .andExpect(jsonPath("$.ccp.completedForCurrentInterval").value(true));
+        }
+    }
+
+    @Nested
+    @DisplayName("POST /me/deviations")
+    class CreateMyDeviationTests {
+
+        @Test
+        @DisplayName("creates a deviation using the authenticated user's organization")
+        void createMyDeviation_success() throws Exception {
+            Deviation deviation = new Deviation();
+            ReflectionTestUtils.setField(deviation, "id", 501L);
+            deviation.setCategory(DeviationCategory.IK_MAT);
+            deviation.setReviewStatus(ReviewStatus.OPEN);
+            deviation.setWhatWentWrong("Temperaturen var for hoy");
+            deviation.setImmediateActionTaken("Flyttet varene");
+            deviation.setPotentialCause("Feil pa kjolen");
+            deviation.setPotentialPreventativeMeasure("Sjekk kjolen daglig");
+
+            Organization organization = createOrg(10L, "Org A");
+            deviation.setOrganization(organization);
+
+            User reporter = new User();
+            reporter.setId(1L);
+            reporter.setLegalName("Alice");
+            deviation.setReportedBy(reporter);
+            ReflectionTestUtils.setField(deviation, "createdAt", LocalDateTime.now());
+
+            when(deviationService.createDeviation(any(), eq(1L))).thenReturn(deviation);
+
+            mockMvc.perform(post("/me/deviations")
+                    .with(authentication(authWithRole("WORKER")))
+                    .contentType("application/json")
+                    .content("""
+                        {
+                          "ccpRecordId": 88,
+                          "category": "IK_MAT",
+                          "whatWentWrong": "Temperaturen var for hoy",
+                          "immediateActionTaken": "Flyttet varene",
+                          "potentialCause": "Feil pa kjolen",
+                          "potentialPreventativeMeasure": "Sjekk kjolen daglig"
+                        }
+                        """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(501))
+                .andExpect(jsonPath("$.organizationId").value(10))
+                .andExpect(jsonPath("$.category").value("IK_MAT"));
         }
     }
 }

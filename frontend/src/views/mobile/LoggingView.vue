@@ -1,146 +1,452 @@
 <script setup lang="ts">
-import { reactive } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 
-import PhotoUploadControl from '@/components/PhotoUploadControl.vue'
 import PrimaryActionButton from '@/components/PrimaryActionButton.vue'
 import SectionHeading from '@/components/SectionHeading.vue'
-import { humidityMetrics, temperatureMetrics, timedLogs } from '@/data/mockHaccp'
-import type { UploadedPhoto } from '@/types/uploads'
+import type { AssignedCcp, SubmittedCcpRecordResponse } from '@/types/ccps'
+import { clearAuthToken, createAuthHeaders, getAuthToken } from '@/utils/auth'
 
-const loggingState = reactive({
-  temperatureMetrics: temperatureMetrics.map((metric) => ({
-    ...metric,
+interface CcpCard extends AssignedCcp {
+  key: string
+  value: string
+  comment: string
+  noteExpanded: boolean
+  recordId: number | null
+  outsideCriticalRange: boolean
+}
+
+const router = useRouter()
+
+const ccps = ref<CcpCard[]>([])
+const loading = ref(true)
+const submitting = ref(false)
+const errorMessage = ref<string | null>(null)
+const infoMessage = ref<string | null>(null)
+const hasAuthenticatedSession = ref(Boolean(getAuthToken()))
+
+const ccpCountLabel = computed(() => {
+  if (loading.value) {
+    return 'Laster logging'
+  }
+
+  return `${ccps.value.length} tildelte CCP-er`
+})
+
+const filledCcpCount = computed(() =>
+  ccps.value.filter((ccp) => !ccp.completedForCurrentInterval && ccp.value.trim()).length,
+)
+
+const primaryActionLabel = computed(() => {
+  if (submitting.value) {
+    return 'Sender inn...'
+  }
+
+  if (!hasAuthenticatedSession.value) {
+    return 'Logg inn for å sende inn'
+  }
+
+  if (filledCcpCount.value === 0) {
+    return 'Fyll inn minst en måling'
+  }
+
+  return `Send inn ${filledCcpCount.value} målinger`
+})
+
+const helperText = computed(() => {
+  if (!hasAuthenticatedSession.value) {
+    return 'Logg inn for å hente tildelte CCP-kontroller og sende inn målinger.'
+  }
+
+  return 'Fyll inn målingene du har utført i denne perioden. Målinger utenfor kritisk grense blir lagret og kan følges opp som avvik.'
+})
+
+function mapAssignedCcp(ccp: AssignedCcp, overrides: Partial<CcpCard> = {}): CcpCard {
+  return {
+    ...ccp,
+    key: `ccp-${ccp.ccpId}`,
     value: '',
-    photos: [] as UploadedPhoto[],
-  })),
-  timedLogs: timedLogs.map((item) => ({
-    ...item,
-    durationMinutes: '',
-    photos: [] as UploadedPhoto[],
-  })),
-  humidityMetrics: humidityMetrics.map((metric) => ({
-    ...metric,
-    value: '',
-    photos: [] as UploadedPhoto[],
-  })),
+    comment: '',
+    noteExpanded: false,
+    recordId: null,
+    outsideCriticalRange: false,
+    ...overrides,
+  }
+}
+
+function formatDateTime(value: string | null): string {
+  if (!value) {
+    return 'Ikke registrert'
+  }
+
+  return new Date(value).toLocaleString('nb-NO', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+function formatMeasurement(value: number | null, unit: string | null): string {
+  if (value === null || Number.isNaN(value)) {
+    return 'Ikke registrert'
+  }
+
+  return `${value}${unit ? ` ${unit}` : ''}`
+}
+
+async function readErrorMessage(response: Response, fallback: string) {
+  const bodyText = (await response.text()).trim()
+
+  if (!bodyText) {
+    return fallback
+  }
+
+  try {
+    const parsed = JSON.parse(bodyText) as { error?: string }
+    return typeof parsed.error === 'string' ? parsed.error : bodyText
+  } catch {
+    return bodyText
+  }
+}
+
+async function fetchCcps() {
+  hasAuthenticatedSession.value = Boolean(getAuthToken())
+  errorMessage.value = null
+  infoMessage.value = null
+
+  if (!hasAuthenticatedSession.value) {
+    ccps.value = []
+    loading.value = false
+    infoMessage.value = 'Logg inn for å se tildelte CCP-målinger.'
+    return
+  }
+
+  loading.value = true
+
+  try {
+    const response = await fetch('/api/me/ccps', {
+      credentials: 'same-origin',
+      headers: createAuthHeaders(),
+    })
+
+    if (response.status === 401 || response.status === 403) {
+      clearAuthToken()
+      hasAuthenticatedSession.value = false
+      ccps.value = []
+      infoMessage.value = 'Innloggingen er utløpt. Logg inn igjen for å hente tildelte CCP-er.'
+      return
+    }
+
+    if (!response.ok) {
+      throw new Error(await readErrorMessage(response, 'Kunne ikke hente tildelte CCP-er.'))
+    }
+
+    ccps.value = ((await response.json()) as AssignedCcp[]).map((ccp) => mapAssignedCcp(ccp))
+    infoMessage.value = ccps.value.length === 0 ? 'Du har ingen CCP-kontroller tildelt akkurat nå.' : null
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : 'Kunne ikke hente tildelte CCP-er.'
+    ccps.value = []
+  } finally {
+    loading.value = false
+  }
+}
+
+function updateCard(cardId: number, updates: Partial<CcpCard>) {
+  ccps.value = ccps.value.map((ccp) =>
+    ccp.ccpId === cardId
+      ? {
+          ...ccp,
+          ...updates,
+        }
+      : ccp,
+  )
+}
+
+function toggleComment(card: CcpCard) {
+  updateCard(card.ccpId, { noteExpanded: !card.noteExpanded })
+}
+
+function openDeviation(card: CcpCard) {
+  if (!card.recordId) {
+    return
+  }
+
+  void router.push({
+    name: 'avvik',
+    query: {
+      ccpRecordId: String(card.recordId),
+      category: 'IK_MAT',
+      ccpName: card.name,
+      measuredValue: card.lastMeasuredValue !== null ? String(card.lastMeasuredValue) : '',
+      unit: card.unit ?? '',
+    },
+  })
+}
+
+async function handlePrimaryAction() {
+  if (!hasAuthenticatedSession.value) {
+    await router.push('/mobile/login')
+    return
+  }
+
+  const pendingEntries = ccps.value.filter((ccp) => !ccp.completedForCurrentInterval && ccp.value.trim())
+  if (pendingEntries.length === 0) {
+    return
+  }
+
+  submitting.value = true
+  errorMessage.value = null
+  infoMessage.value = null
+
+  try {
+    const updatedCards = new Map<number, CcpCard>()
+    let outsideRangeCount = 0
+
+    for (const ccp of pendingEntries) {
+      const response = await fetch(`/api/me/ccps/${ccp.ccpId}/records`, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: createAuthHeaders({
+          'Content-Type': 'application/json',
+        }),
+        body: JSON.stringify({
+          measuredValue: ccp.value.trim(),
+          comment: ccp.comment.trim() || null,
+        }),
+      })
+
+      if (response.status === 401 || response.status === 403) {
+        clearAuthToken()
+        hasAuthenticatedSession.value = false
+        throw new Error('Innloggingen er utløpt. Logg inn igjen for å sende inn målinger.')
+      }
+
+      if (!response.ok) {
+        throw new Error(await readErrorMessage(response, 'Kunne ikke registrere målingen.'))
+      }
+
+      const updated = (await response.json()) as SubmittedCcpRecordResponse
+      if (updated.outsideCriticalRange) {
+        outsideRangeCount += 1
+      }
+
+      updatedCards.set(
+        updated.ccp.ccpId,
+        mapAssignedCcp(updated.ccp, {
+          recordId: updated.recordId,
+          outsideCriticalRange: updated.outsideCriticalRange,
+        }),
+      )
+    }
+
+    ccps.value = ccps.value.map((ccp) => updatedCards.get(ccp.ccpId) ?? ccp)
+
+    infoMessage.value =
+      outsideRangeCount > 0
+        ? `${updatedCards.size} målinger ble lagret. ${outsideRangeCount} målinger trenger avviksvurdering.`
+        : `${updatedCards.size} målinger ble lagret.`
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : 'Kunne ikke registrere målingene.'
+  } finally {
+    submitting.value = false
+  }
+}
+
+onMounted(() => {
+  void fetchCcps()
 })
 </script>
 
 <template>
   <section class="page-layout page-layout--logging">
-    <div class="section-stack">
-      <SectionHeading
-        title="Temperatur"
-        icon="temperature"
-      />
+    <SectionHeading
+      title="Logging"
+      :subtitle="ccpCountLabel"
+      icon="temperature"
+    />
 
-      <div class="metric-grid metric-grid--single">
-        <article
-          v-for="metric in loggingState.temperatureMetrics"
-          :key="metric.id"
-          class="metric-card"
-        >
-          <div class="metric-card__header">
+    <article
+      v-if="errorMessage"
+      class="info-banner info-banner--danger"
+    >
+      <p class="card-copy">
+        {{ errorMessage }}
+      </p>
+    </article>
+
+    <article
+      v-if="!loading && infoMessage"
+      class="info-banner"
+    >
+      <p class="card-copy">
+        {{ infoMessage }}
+      </p>
+    </article>
+
+    <article
+      v-if="loading"
+      class="surface-card"
+    >
+      <p class="card-copy">
+        Laster CCP-logging...
+      </p>
+    </article>
+
+    <article
+      v-else-if="ccps.length === 0"
+      class="surface-card"
+    >
+      <p class="card-copy">
+        {{ hasAuthenticatedSession ? 'Ingen tildelte CCP-kontroller akkurat nå.' : 'Du må logge inn for å se CCP-logging.' }}
+      </p>
+    </article>
+
+    <div
+      v-else
+      class="metric-grid metric-grid--single"
+    >
+      <article
+        v-for="ccp in ccps"
+        :key="ccp.key"
+        class="metric-card logging-card"
+      >
+        <div class="metric-card__header">
+          <div>
             <p class="eyebrow">
-              {{ metric.label }}
+              {{ ccp.monitoredDescription || 'Kritisk kontrollpunkt' }}
             </p>
-            <PhotoUploadControl
-              v-model="metric.photos"
-              :label="`Legg ved bilde for ${metric.label}`"
-            />
+            <h3 class="card-title">
+              {{ ccp.name }}
+            </h3>
           </div>
 
+          <p
+            class="status-pill"
+            :class="
+              ccp.outsideCriticalRange
+                ? 'status-pill--danger'
+                : ccp.completedForCurrentInterval
+                  ? 'status-pill--success'
+                  : 'status-pill--warning'
+            "
+          >
+            {{
+              ccp.outsideCriticalRange
+                ? 'Trenger avvik'
+                : ccp.completedForCurrentInterval
+                  ? 'Utført i denne perioden'
+                  : 'Venter på måling'
+            }}
+          </p>
+        </div>
+
+        <dl class="detail-list">
+          <div class="detail-list__item">
+            <dt>Kritisk grense</dt>
+            <dd>{{ ccp.criticalMin }} - {{ ccp.criticalMax }} {{ ccp.unit }}</dd>
+          </div>
+          <div class="detail-list__item">
+            <dt>Frist</dt>
+            <dd>{{ formatDateTime(ccp.dueAt) }}</dd>
+          </div>
+          <div class="detail-list__item">
+            <dt>Sist logget</dt>
+            <dd>{{ formatMeasurement(ccp.lastMeasuredValue, ccp.unit) }}</dd>
+          </div>
+          <div class="detail-list__item">
+            <dt>Sist tidspunkt</dt>
+            <dd>{{ formatDateTime(ccp.lastCompletedAt) }}</dd>
+          </div>
+          <div
+            v-if="ccp.repeatText"
+            class="detail-list__item detail-list__item--stacked"
+          >
+            <dt>Intervall</dt>
+            <dd>{{ ccp.repeatText }}</dd>
+          </div>
+        </dl>
+
+        <div
+          v-if="!ccp.completedForCurrentInterval"
+          class="logging-card__inputs"
+        >
           <label class="field-shell">
             <input
-              v-model="metric.value"
-              :placeholder="metric.exampleValue"
+              :value="ccp.value"
+              :placeholder="ccp.unit === 'C' ? '0.0' : '0'"
               class="field-shell__input field-shell__input--with-suffix"
               inputmode="decimal"
+              @input="updateCard(ccp.ccpId, { value: ($event.target as HTMLInputElement).value })"
             >
-            <span class="field-shell__suffix">{{ metric.unit }}</span>
+            <span class="field-shell__suffix">{{ ccp.unit }}</span>
           </label>
+
+          <button
+            class="inline-text-button"
+            type="button"
+            @click="toggleComment(ccp)"
+          >
+            {{ ccp.noteExpanded ? 'Skjul kommentar' : 'Legg til kommentar' }}
+          </button>
+
+          <label
+            v-if="ccp.noteExpanded"
+            class="field-shell"
+          >
+            <textarea
+              :value="ccp.comment"
+              class="field-shell__textarea logging-card__textarea"
+              placeholder="Noter observasjon eller forklaring"
+              @input="updateCard(ccp.ccpId, { comment: ($event.target as HTMLTextAreaElement).value })"
+            />
+          </label>
+        </div>
+
+        <article class="info-popover logging-card__action">
+          <p class="info-popover__title">
+            Hvis målingen er utenfor grensen
+          </p>
+          <p class="card-copy">
+            {{ ccp.immediateCorrectiveAction }}
+          </p>
         </article>
-      </div>
-    </div>
 
-    <div class="section-stack">
-      <SectionHeading
-        title="Tid"
-        icon="clock"
-      />
-
-      <article class="surface-card">
-        <div
-          v-for="item in loggingState.timedLogs"
-          :key="item.id"
-          class="timed-task"
+        <article
+          v-if="ccp.outsideCriticalRange"
+          class="info-banner info-banner--danger logging-card__warning"
         >
-          <div class="timed-task__copy">
-            <h3 class="timed-task__title">
-              {{ item.title }}
-            </h3>
-            <p class="timed-task__meta">
-              {{ item.description }}
+          <div class="logging-card__warning-copy">
+            <p class="info-popover__title">
+              Målingen er lagret utenfor kritisk grense
+            </p>
+            <p class="card-copy">
+              Registrer et avvik for å dokumentere hva som skjedde og hvilke tiltak som ble gjort.
             </p>
           </div>
 
-          <div class="timed-task__controls">
-            <label class="field-shell timed-task__field">
-              <input
-                v-model="item.durationMinutes"
-                :placeholder="item.exampleDurationMinutes"
-                class="field-shell__input field-shell__input--with-suffix timed-task__input"
-                inputmode="numeric"
-              >
-              <span class="field-shell__suffix timed-task__suffix">
-                min
-              </span>
-            </label>
-
-            <PhotoUploadControl
-              v-model="item.photos"
-              :label="`Legg ved bilde for ${item.title}`"
-            />
-          </div>
-        </div>
+          <button
+            class="inline-action-button"
+            type="button"
+            @click="openDeviation(ccp)"
+          >
+            Registrer avvik
+          </button>
+        </article>
       </article>
     </div>
 
-    <div class="section-stack">
-      <SectionHeading
-        title="Luftfuktighet"
-        icon="humidity"
+    <div v-if="!loading">
+      <PrimaryActionButton
+        :disabled="submitting || (hasAuthenticatedSession && filledCcpCount === 0)"
+        :label="primaryActionLabel"
+        type="button"
+        @click="handlePrimaryAction"
       />
-
-      <div class="metric-grid">
-        <article
-          v-for="metric in loggingState.humidityMetrics"
-          :key="metric.id"
-          class="metric-card"
-        >
-          <div class="metric-card__header">
-            <p class="eyebrow">
-              {{ metric.label }}
-            </p>
-            <PhotoUploadControl
-              v-model="metric.photos"
-              :label="`Legg ved bilde for ${metric.label}`"
-            />
-          </div>
-
-          <label class="field-shell">
-            <input
-              v-model="metric.value"
-              :placeholder="metric.exampleValue"
-              class="field-shell__input field-shell__input--with-suffix"
-              inputmode="numeric"
-            >
-            <span class="field-shell__suffix">{{ metric.unit }}</span>
-          </label>
-        </article>
-      </div>
+      <p class="caption-note">
+        {{ helperText }}
+      </p>
     </div>
-
-    <PrimaryActionButton label="Send inn logg" />
   </section>
 </template>
