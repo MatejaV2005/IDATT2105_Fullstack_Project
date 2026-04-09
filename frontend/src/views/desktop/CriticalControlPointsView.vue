@@ -1,37 +1,18 @@
 <script setup lang="ts">
-import CorrectiveMeasures from '@/components/desktop/criticalpoints/CorrectiveMeasures.vue'
+import CcpCard from '@/components/desktop/criticalpoints/CcpCard.vue'
+import CcpCreateForm from '@/components/desktop/criticalpoints/CcpCreateForm.vue'
 import { getMockProductCategoryName } from '@/data/mockProductCategories'
+import { getMockUserNameById } from '@/data/mockUsers'
 import DesktopButton from '@/components/desktop/shared/DesktopButton.vue'
 import Loading from '@/components/desktop/shared/Loading.vue'
 import Paginator from '@/components/desktop/shared/Paginator.vue'
-import UserBadge from '@/components/desktop/shared/UserBadge.vue'
 import type {
   CriticalControlPointAllInfo,
   NewCriticalControlPoint,
 } from '@/interfaces/api-interfaces'
 import { delay } from '@/utils'
-import { Edit2, Plus, Save, X } from '@lucide/vue'
-import { computed, onMounted, ref } from 'vue'
-
-const expandedMeasures = ref<Record<string, boolean>>({})
-
-function getMeasureKey(ccpIndex: number, measureIndex: number) {
-  return `${ccpIndex}-${measureIndex}`
-}
-
-function toggleMeasure(ccpIndex: number, measureIndex: number) {
-  const key = getMeasureKey(ccpIndex, measureIndex)
-  expandedMeasures.value[key] = !expandedMeasures.value[key]
-}
-
-function getMeasureDescription(ccpIndex: number, measureIndex: number, text: string) {
-  const key = getMeasureKey(ccpIndex, measureIndex)
-  if (expandedMeasures.value[key] || text.length <= 220) {
-    return text
-  }
-
-  return `${text.slice(0, 220)}...`
-}
+import { Plus } from '@lucide/vue'
+import { onMounted, ref } from 'vue'
 
 const mockData: CriticalControlPointAllInfo = [
   {
@@ -221,50 +202,6 @@ const isCreating = ref(false)
 const isCreatingCcp = ref(false)
 const createError = ref(false)
 
-const name = ref('')
-const how = ref('')
-const equipment = ref('')
-const instructionsAndCalibration = ref('')
-const immediateCorrectiveAction = ref('')
-const criticalMin = ref(0)
-const criticalMax = ref(0)
-const unit = ref('C')
-const monitoredDescription = ref('')
-const correctiveMeasures = ref<NewCriticalControlPoint['ccpCorrectiveMeasure']>([])
-
-const canSaveNewCcp = computed(() => {
-  return (
-    name.value.trim().length > 0 &&
-    how.value.trim().length > 0 &&
-    equipment.value.trim().length > 0 &&
-    instructionsAndCalibration.value.trim().length > 0 &&
-    immediateCorrectiveAction.value.trim().length > 0 &&
-    unit.value.trim().length > 0 &&
-    monitoredDescription.value.trim().length > 0 &&
-    Number.isFinite(criticalMin.value) &&
-    Number.isFinite(criticalMax.value) &&
-    correctiveMeasures.value.length > 0 &&
-    criticalMin.value <= criticalMax.value
-  )
-})
-
-function resetCreateForm() {
-  name.value = ''
-  how.value = ''
-  equipment.value = ''
-  instructionsAndCalibration.value = ''
-  immediateCorrectiveAction.value = ''
-  criticalMin.value = 0
-  criticalMax.value = 0
-  unit.value = 'C'
-  monitoredDescription.value = ''
-  correctiveMeasures.value = []
-}
-
-function setCorrectiveMeasures(measures: NewCriticalControlPoint['ccpCorrectiveMeasure']) {
-  correctiveMeasures.value = measures
-}
-
 function startCreating() {
   if (isCreatingCcp.value) {
     return
@@ -281,7 +218,6 @@ function cancelCreating() {
 
   isCreating.value = false
   createError.value = false
-  resetCreateForm()
 }
 
 async function fetchCcps() {
@@ -307,6 +243,15 @@ async function createCcp(payload: NewCriticalControlPoint) {
 
   await delay(700)
 
+  function mapUsersByIds(ids: number[]) {
+    return ids.map((id) => {
+      return {
+        userId: id,
+        userName: getMockUserNameById(id),
+      }
+    })
+  }
+
   const newCcp = {
     id: Math.floor(Math.random() * 1000000),
     name: payload.name,
@@ -318,10 +263,10 @@ async function createCcp(payload: NewCriticalControlPoint) {
     criticalMax: payload.criticalMax,
     unit: payload.unit,
     monitoredDescription: payload.monitoredDescription,
-    verifiers: [],
-    deviationRecievers: [],
-    performers: [],
-    deputy: [],
+    verifiers: mapUsersByIds(payload.verifiers),
+    deviationRecievers: mapUsersByIds(payload.deviationRecievers),
+    performers: mapUsersByIds(payload.performers),
+    deputy: mapUsersByIds(payload.deputy),
     ccpCorrectiveMeasure: payload.ccpCorrectiveMeasure.map((measure) => ({
       id: Math.floor(Math.random() * 1000000),
       productCategoryId: measure.productCategoryId,
@@ -349,36 +294,18 @@ onMounted(async () => {
   }
 })
 
-async function addCcp() {
-  if (isCreatingCcp.value || !canSaveNewCcp.value) {
+async function addCcp(payload: NewCriticalControlPoint) {
+  if (isCreatingCcp.value) {
     return
   }
 
   isCreatingCcp.value = true
   createError.value = false
 
-  const payload: NewCriticalControlPoint = {
-    name: name.value.trim(),
-    how: how.value.trim(),
-    equipment: equipment.value.trim(),
-    instructionsAndCalibration: instructionsAndCalibration.value.trim(),
-    immediateCorrectiveAction: immediateCorrectiveAction.value.trim(),
-    criticalMin: criticalMin.value,
-    criticalMax: criticalMax.value,
-    unit: unit.value.trim(),
-    monitoredDescription: monitoredDescription.value.trim(),
-    verifiers: [],
-    deviationRecievers: [],
-    performers: [],
-    deputy: [],
-    ccpCorrectiveMeasure: correctiveMeasures.value,
-  }
-
   try {
     await createCcp(payload)
     await fetchCcps()
     isCreating.value = false
-    resetCreateForm()
   } catch (err) {
     if (err instanceof Error) {
       console.error(err.message)
@@ -416,288 +343,19 @@ async function addCcp() {
         </p>
 
         <template v-else>
-          <div
+          <CcpCreateForm
             v-if="isCreating"
-            class="create-ccp"
-          >
-            <div class="ccp-header">
-              <h2 class="no-margin">
-                Nytt kritisk kontrollpunkt
-              </h2>
-              <div class="create-actions">
-                <DesktopButton
-                  :icon="Save"
-                  :is-loading="isCreatingCcp"
-                  loading-text="Lagrer"
-                  content="Lagre"
-                  :on-click="addCcp"
-                  :disabled="!canSaveNewCcp || isCreatingCcp"
-                />
-                <DesktopButton
-                  :icon="X"
-                  content="Avbryt"
-                  button-color="cherry"
-                  :on-click="cancelCreating"
-                  :disabled="isCreatingCcp"
-                />
-              </div>
-            </div>
+            :is-creating-ccp="isCreatingCcp"
+            :create-error="createError"
+            @create="addCcp"
+            @cancel="cancelCreating"
+          />
 
-            <div class="ccp-grid">
-              <label class="form-field">
-                <span class="navy-subtitle">Navn</span>
-                <input
-                  v-model="name"
-                  class="simple-text-input"
-                  type="text"
-                  :disabled="isCreatingCcp"
-                  placeholder="F.eks. kjøledisk fisk"
-                >
-              </label>
-              <label class="form-field">
-                <span class="navy-subtitle">Enhet</span>
-                <input
-                  v-model="unit"
-                  class="simple-text-input"
-                  type="text"
-                  :disabled="isCreatingCcp"
-                  placeholder="F.eks. C"
-                >
-              </label>
-              <label class="form-field">
-                <span class="navy-subtitle">Kritisk min</span>
-                <input
-                  v-model.number="criticalMin"
-                  class="simple-text-input"
-                  type="number"
-                  :disabled="isCreatingCcp"
-                  placeholder="F.eks. 0"
-                >
-              </label>
-              <label class="form-field">
-                <span class="navy-subtitle">Kritisk max</span>
-                <input
-                  v-model.number="criticalMax"
-                  class="simple-text-input"
-                  type="number"
-                  :disabled="isCreatingCcp"
-                  placeholder="F.eks. 4"
-                >
-              </label>
-            </div>
-
-            <label class="form-field">
-              <span class="navy-subtitle">Hvordan overvåkes det</span>
-              <textarea
-                v-model="how"
-                class="simple-text-input"
-                rows="3"
-                :disabled="isCreatingCcp"
-                placeholder="Beskriv hvordan dette punktet overvåkes i praksis"
-              />
-            </label>
-
-            <label class="form-field">
-              <span class="navy-subtitle">Utstyr</span>
-              <textarea
-                v-model="equipment"
-                class="simple-text-input"
-                rows="3"
-                :disabled="isCreatingCcp"
-                placeholder="F.eks. kalibrert termometer og loggskjema"
-              />
-            </label>
-
-            <label class="form-field">
-              <span class="navy-subtitle">Instruks og kalibrering</span>
-              <textarea
-                v-model="instructionsAndCalibration"
-                class="simple-text-input"
-                rows="3"
-                :disabled="isCreatingCcp"
-                placeholder="Beskriv instruks for bruk og kalibrering"
-              />
-            </label>
-
-            <label class="form-field">
-              <span class="navy-subtitle">Umiddelbart avvikstiltak</span>
-              <textarea
-                v-model="immediateCorrectiveAction"
-                class="simple-text-input"
-                rows="3"
-                :disabled="isCreatingCcp"
-                placeholder="Hva skal gjøres med en gang ved avvik"
-              />
-            </label>
-
-            <label class="form-field">
-              <span class="navy-subtitle">Hva overvåkes</span>
-              <textarea
-                v-model="monitoredDescription"
-                class="simple-text-input"
-                rows="2"
-                :disabled="isCreatingCcp"
-                placeholder="F.eks. kjølerom for fisk, kjøtt og meieri"
-              />
-            </label>
-
-            <CorrectiveMeasures
-              :measures="correctiveMeasures"
-              :set-measures="setCorrectiveMeasures"
-              :disabled="isCreatingCcp"
-            />
-
-            <p
-              v-if="criticalMin > criticalMax"
-              class="error-message"
-            >
-              Kritisk min må være mindre enn eller lik kritisk max.
-            </p>
-            <p
-              v-if="createError"
-              class="error-message"
-            >
-              Klarte ikke å opprette kritisk kontrollpunkt.
-            </p>
-          </div>
-
-          <div
-            v-for="(ccp, index) in resource"
-            :key="`${ccp.name}-${index}`"
-            class="ccp"
-          >
-            <div class="ccp-header">
-              <div>
-                <h2 class="no-margin">
-                  {{ ccp.name }}
-                </h2>
-              </div>
-              <DesktopButton
-                :icon="Edit2"
-                content="Rediger"
-                disabled
-              />
-            </div>
-
-            <div class="ccp-grid">
-              <div class="info-card">
-                <h3 class="no-margin">
-                  Hvordan overvåkes det
-                </h3>
-                <span>{{ ccp.how }}</span>
-              </div>
-              <div class="info-card">
-                <h3 class="no-margin">
-                  Utstyr
-                </h3>
-                <span>{{ ccp.equipment }}</span>
-              </div>
-              <div class="info-card">
-                <h3 class="no-margin">
-                  Instruks og kalibrering
-                </h3>
-                <span>{{ ccp.instructionsAndCalibration }}</span>
-              </div>
-              <div class="info-card">
-                <h3 class="no-margin">
-                  Umiddelbart avvikstiltak
-                </h3>
-                <span>{{ ccp.immediateCorrectiveAction }}</span>
-              </div>
-            </div>
-
-            <div class="thresholds">
-              <span class="navy-subtitle">Kritisk grense:</span>
-              <span>{{ ccp.criticalMin }} - {{ ccp.criticalMax }} {{ ccp.unit }}</span>
-            </div>
-
-            <div
-              v-if="ccp.monitoredDescription"
-              class="info-card"
-            >
-              <h3 class="no-margin">
-                Hva overvåkes
-              </h3>
-              <span>{{ ccp.monitoredDescription }}</span>
-            </div>
-
-            <div class="people-grid">
-              <div>
-                <span class="navy-subtitle">Godkjennere</span>
-                <div class="user-parent">
-                  <UserBadge
-                    v-for="verifier in ccp.verifiers"
-                    :key="verifier.userId"
-                    :name="verifier.userName"
-                    :user-id="verifier.userId"
-                  />
-                </div>
-              </div>
-              <div>
-                <span class="navy-subtitle">Avviksmottakere</span>
-                <div class="user-parent">
-                  <UserBadge
-                    v-for="deviationReciever in ccp.deviationRecievers"
-                    :key="deviationReciever.userId"
-                    :name="deviationReciever.userName"
-                    :user-id="deviationReciever.userId"
-                  />
-                </div>
-              </div>
-              <div>
-                <span class="navy-subtitle">Utførere</span>
-                <div class="user-parent">
-                  <UserBadge
-                    v-for="performer in ccp.performers"
-                    :key="performer.userId"
-                    :name="performer.userName"
-                    :user-id="performer.userId"
-                  />
-                </div>
-              </div>
-              <div>
-                <span class="navy-subtitle">Vikarleder</span>
-                <div class="user-parent">
-                  <UserBadge
-                    v-for="deputy in ccp.deputy"
-                    :key="deputy.userId"
-                    :name="deputy.userName"
-                    :user-id="deputy.userId"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <span class="navy-subtitle">Korrigerende tiltak</span>
-              <div class="measure-container">
-                <div
-                  v-for="(measure, measureIndex) in ccp.ccpCorrectiveMeasure"
-                  :key="`${measure.productName}-${measureIndex}`"
-                  class="measure-card"
-                >
-                  <h3 class="no-margin">
-                    {{ measure.productName }}
-                  </h3>
-                  <span>{{
-                    getMeasureDescription(index, measureIndex, measure.measureDescription)
-                  }}</span>
-                  <button
-                    v-if="measure.measureDescription.length > 220"
-                    class="show-more-button"
-                    type="button"
-                    @click="toggleMeasure(index, measureIndex)"
-                  >
-                    {{
-                      expandedMeasures[getMeasureKey(index, measureIndex)]
-                        ? 'Vis mindre'
-                        : 'Vis mer'
-                    }}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
+          <CcpCard
+            v-for="ccp in resource"
+            :key="ccp.id"
+            :ccp="ccp"
+          />
         </template>
       </div>
     </main>
@@ -709,130 +367,12 @@ async function addCcp() {
   overflow: scroll;
 }
 
-.user-parent {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.create-ccp {
-  border-radius: 1rem;
-  padding: 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  border: 1px solid var(--blue-navy-40);
-  background-color: var(--white-greek);
-}
-
-.create-actions {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.form-field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.form-field textarea.simple-text-input {
-  width: 100%;
-  resize: vertical;
-  min-height: 3rem;
-  padding: 0.5rem;
-  box-sizing: border-box;
-  text-indent: 0;
-}
-
 .error-message {
   color: #b42318;
   margin: 0;
 }
 
-.ccp {
-  border-radius: 1rem;
-  padding: 1rem;
-  display: flex;
-  gap: 1rem;
-  flex-direction: column;
-  border: 1px solid var(--blue-decor);
-  background-color: var(--blue-decor-10);
-}
-
-.ccp-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-}
-
-.ccp-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-}
-
-.info-card {
-  padding: 1rem;
-  border-radius: 0.5rem;
-  border: 1px solid var(--blue-navy-40);
-  background-color: var(--white-greek);
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.thresholds {
-  padding: 1rem;
-  border-radius: 0.5rem;
-  border: 1px solid var(--blue-navy-40);
-  background-color: var(--white-greek);
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.people-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-}
-
-.measure-container {
-  display: flex;
-  gap: 1rem;
-  > div {
-    max-width: 60%;
-  }
-}
-
-.measure-card {
-  padding: 1rem;
-  border-radius: 0.5rem;
-  border: 1px solid var(--blue-navy-40);
-  background-color: var(--white-greek);
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.show-more-button {
-  border: 0;
-  background: transparent;
-  color: var(--blue-decor);
-  padding: 0;
-  width: fit-content;
-  cursor: pointer;
-}
-
-.show-more-button:hover,
-.show-more-button:focus {
-  text-decoration: underline;
-}
-
 main {
-  display: flex;
   margin-top: 5rem;
   padding-bottom: 5rem;
   padding-left: 2rem;
@@ -855,13 +395,6 @@ hr {
   border-width: 1px;
 }
 
-@media (max-width: 1200px) {
-  .ccp-grid,
-  .people-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
 @media (max-width: 768px) {
   main {
     padding-left: 1rem;
@@ -869,20 +402,6 @@ hr {
     .main-no-sidebar-container {
       width: 100%;
     }
-  }
-
-  .ccp-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .create-actions {
-    width: 100%;
-    flex-direction: column;
-  }
-
-  .measure-container {
-    flex-direction: column;
   }
 }
 </style>
