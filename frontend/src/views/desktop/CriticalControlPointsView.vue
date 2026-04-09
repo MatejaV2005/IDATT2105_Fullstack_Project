@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import CorrectiveMeasures from '@/components/desktop/criticalpoints/CorrectiveMeasures.vue'
+import { getMockProductCategoryName } from '@/data/mockProductCategories'
 import DesktopButton from '@/components/desktop/shared/DesktopButton.vue'
 import Loading from '@/components/desktop/shared/Loading.vue'
 import Paginator from '@/components/desktop/shared/Paginator.vue'
@@ -324,7 +325,7 @@ async function createCcp(payload: NewCriticalControlPoint) {
     ccpCorrectiveMeasure: payload.ccpCorrectiveMeasure.map((measure) => ({
       id: Math.floor(Math.random() * 1000000),
       productCategoryId: measure.productCategoryId,
-      productName: `Produktkategori ${measure.productCategoryId}`,
+      productName: getMockProductCategoryName(measure.productCategoryId),
       measureDescription: measure.measureDescription,
     })),
   }

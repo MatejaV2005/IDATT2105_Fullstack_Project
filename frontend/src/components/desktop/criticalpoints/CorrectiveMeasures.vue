@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { getMockProductCategoryName } from '@/data/mockProductCategories'
 import DesktopButton from '@/components/desktop/shared/DesktopButton.vue'
 import { Plus, Save, X } from '@lucide/vue'
 import { computed, ref, watch } from 'vue'
@@ -16,14 +17,6 @@ type EditableCorrectiveMeasure = {
   productCategoryName: string
   measureDescription: string
 }
-
-const mockProductCategories = [
-  { id: 10, name: 'Fisk' },
-  { id: 11, name: 'Kjott' },
-  { id: 12, name: 'Kylling' },
-  { id: 13, name: 'Meieri' },
-  { id: 14, name: 'Saus' },
-]
 
 const props = withDefaults(
   defineProps<{
@@ -46,10 +39,7 @@ const selectedCategoryIds = computed(() => {
 })
 
 function getCategoryNameById(categoryId: number) {
-  return (
-    mockProductCategories.find((category) => category.id === categoryId)?.name ||
-    `Produktkategori ${categoryId}`
-  )
+  return getMockProductCategoryName(categoryId)
 }
 
 const canAdd = computed(() => {
@@ -163,10 +153,7 @@ function deleteMeasure(payload: { id: number }) {
       />
     </div>
 
-    <div
-      v-if="isAdding"
-      class="create-measure-card"
-    >
+    <div v-if="isAdding" class="create-measure-card">
       <label class="form-field">
         <span class="navy-subtitle">Produktkategori</span>
         <ProductCatgorySelector
@@ -204,10 +191,7 @@ function deleteMeasure(payload: { id: number }) {
       </div>
     </div>
 
-    <p
-      v-if="localMeasures.length === 0"
-      class="empty-state"
-    >
+    <p v-if="localMeasures.length === 0" class="empty-state">
       Ingen korrigerende tiltak er lagt til ennå.
     </p>
 

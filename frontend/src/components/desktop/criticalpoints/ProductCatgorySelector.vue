@@ -1,12 +1,7 @@
 <script setup lang="ts">
+import { mockProductCategories, type ProductCategory } from '@/data/mockProductCategories'
 import { delay } from '@/utils'
 import { computed, onMounted, ref, watch } from 'vue'
-
-interface ProductCategory {
-  id: number
-  name: string
-  description: string
-}
 
 const props = withDefaults(
   defineProps<{
@@ -69,13 +64,7 @@ onMounted(async () => {
     // }
     // const data: ProductCategory[] = await response.json()
     await delay(400)
-    const data: ProductCategory[] = [
-      { id: 10, name: 'Fisk', description: 'Fisk og sjomat' },
-      { id: 11, name: 'Kjott', description: 'Kjott og farseprodukter' },
-      { id: 12, name: 'Kylling', description: 'Fjaerfe og egg' },
-      { id: 13, name: 'Meieri', description: 'Melk, ost og yoghurt' },
-      { id: 14, name: 'Saus', description: 'Varme og kalde sauser' },
-    ]
+    const data: ProductCategory[] = mockProductCategories
 
     categories.value = data
     error.value = ''
