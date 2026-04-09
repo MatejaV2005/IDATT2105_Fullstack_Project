@@ -5,6 +5,7 @@ import AppIcon from '@/components/AppIcon.vue'
 import PrimaryActionButton from '@/components/PrimaryActionButton.vue'
 import SectionHeading from '@/components/SectionHeading.vue'
 import { deviationCategories, type DeviationCategory } from '@/data/deviations'
+import api from '@/api/api'
 
 const formState = reactive({
   organizationId: 1,
@@ -26,26 +27,15 @@ async function submitDeviation() {
   submitError.value = null
   
   try {
-    const response = await fetch('/api/deviations', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer <JWT_TOKEN>' //TODO
-      },
-      body: JSON.stringify({
-        organizationId: formState.organizationId,
-        ccpRecordId: formState.ccpRecordId,
-        category: formState.category,
-        whatWentWrong: formState.whatWentWrong,
-        immediateActionTaken: formState.immediateActionTaken,
-        potentialCause: formState.potentialCause,
-        potentialPreventativeMeasure: formState.potentialPreventativeMeasure,
-      }),
+    await api.post('/deviations', {
+      organizationId: formState.organizationId,
+      ccpRecordId: formState.ccpRecordId,
+      category: formState.category,
+      whatWentWrong: formState.whatWentWrong,
+      immediateActionTaken: formState.immediateActionTaken,
+      potentialCause: formState.potentialCause,
+      potentialPreventativeMeasure: formState.potentialPreventativeMeasure,
     })
-    
-    if (!response.ok) {
-      throw new Error('Failed to submit deviation')
-    }
     
     submitSuccess.value = true
   } catch (err) {

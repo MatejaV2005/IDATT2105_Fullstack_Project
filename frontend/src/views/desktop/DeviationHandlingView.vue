@@ -4,6 +4,7 @@ import Badge from '@/components/desktop/shared/Badge.vue'
 import DesktopButton from '@/components/desktop/shared/DesktopButton.vue'
 import { AlertTriangle, Check, X, Eye } from '@lucide/vue'
 import { deviations, type Deviation, reviewStatuses, deviationCategories } from '@/data/deviations'
+import api from '@/api/api'
 import { ref, computed, onMounted } from 'vue'
 
 const deviationsList = ref<Deviation[]>([])
@@ -34,16 +35,8 @@ function formatDate(dateString: string): string {
 
 async function fetchDeviations() {
   try {
-    const response = await fetch('/api/deviations', {
-      headers: {
-        'Authorization': 'Bearer <JWT_TOKEN>' //TODO
-      }
-    })
-    if (!response.ok) {
-      throw new Error('Failed to fetch deviations from API')
-    }
-    const data = await response.json()
-    deviationsList.value = data
+    const response = await api.get('/deviations')
+    deviationsList.value = response.data
     error.value = null
   } catch (err) {
     console.warn('Using fallback mock data due to API error:', err)
@@ -86,22 +79,11 @@ async function submitResolve() {
   }
 
   try {
-    const response = await fetch(`/api/deviations/${selectedDeviation.value.id}/resolve`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer <JWT_TOKEN>' //TODO
-      },
-      body: JSON.stringify({
-        preventativeMeasureActuallyTaken: resolveMeasure.value.trim()
-      })
+    const response = await api.patch(`/deviations/${selectedDeviation.value.id}/resolve`, {
+      preventativeMeasureActuallyTaken: resolveMeasure.value.trim()
     })
 
-    if (!response.ok) {
-      throw new Error('Failed to resolve deviation')
-    }
-
-    const updatedDeviation = await response.json()
+    const updatedDeviation = response.data
     
     const index = deviationsList.value.findIndex(d => d.id === updatedDeviation.id)
     if (index !== -1) {
