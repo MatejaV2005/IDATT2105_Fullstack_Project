@@ -45,9 +45,6 @@ public class User extends CreatedAtEntity {
     private List<CourseResponsibleUser> responsibleCourses = new ArrayList<>();
 
     @OneToMany(mappedBy = "user")
-    private List<MappingPointResponsibleUser> mappingPointResponsibilities = new ArrayList<>();
-
-    @OneToMany(mappedBy = "user")
     private List<RoutineUserBridge> routineRoles = new ArrayList<>();
 
     @OneToMany(mappedBy = "user")
@@ -160,14 +157,6 @@ public class User extends CreatedAtEntity {
 
     public void setResponsibleCourses(List<CourseResponsibleUser> responsibleCourses) {
         this.responsibleCourses = responsibleCourses;
-    }
-
-    public List<MappingPointResponsibleUser> getMappingPointResponsibilities() {
-        return mappingPointResponsibilities;
-    }
-
-    public void setMappingPointResponsibilities(List<MappingPointResponsibleUser> mappingPointResponsibilities) {
-        this.mappingPointResponsibilities = mappingPointResponsibilities;
     }
 
     public List<RoutineUserBridge> getRoutineRoles() {

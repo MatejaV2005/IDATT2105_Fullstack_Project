@@ -247,6 +247,12 @@ html {
   border: 1px solid rgba(15, 102, 152, 0.12);
 }
 
+.info-banner--danger {
+  background:
+    linear-gradient(135deg, rgba(194, 65, 87, 0.12), rgba(255, 255, 255, 0.96));
+  border-color: rgba(194, 65, 87, 0.2);
+}
+
 .stat-grid,
 .routine-grid,
 .metric-grid,
@@ -314,6 +320,10 @@ html {
   padding: 14px 16px;
 }
 
+.routine-card__subheading {
+  margin-top: 16px;
+}
+
 .card-icon-button {
   width: 40px;
   height: 40px;
@@ -341,6 +351,30 @@ html {
   width: 26px;
   height: 26px;
   flex: 0 0 auto;
+}
+
+.inline-text-button,
+.inline-action-button {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.inline-text-button {
+  padding: 0;
+  align-self: flex-start;
+  color: var(--color-brand-700);
+  font: 700 13px/18px var(--font-body);
+}
+
+.inline-action-button {
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: rgba(194, 65, 87, 0.12);
+  color: var(--color-danger);
+  font: 800 12px/16px var(--font-body);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .info-popover {
@@ -429,6 +463,15 @@ html {
   text-align: right;
 }
 
+.detail-list__item--stacked {
+  align-items: flex-start;
+}
+
+.detail-list__item--stacked dd {
+  max-width: 62%;
+  text-align: right;
+}
+
 .routine-checkbox {
   position: relative;
   display: inline-flex;
@@ -446,6 +489,10 @@ html {
   cursor: pointer;
 }
 
+.routine-checkbox input:disabled {
+  cursor: not-allowed;
+}
+
 .routine-checkbox__box {
   width: 28px;
   height: 28px;
@@ -459,6 +506,10 @@ html {
 
 .routine-checkbox input:checked + .routine-checkbox__box {
   background: var(--color-brand-700);
+}
+
+.routine-checkbox input:disabled + .routine-checkbox__box {
+  opacity: 0.72;
 }
 
 .routine-checkbox input:checked + .routine-checkbox__box::after {
@@ -598,6 +649,40 @@ html {
 
 .timed-task__field {
   flex: 1 1 auto;
+}
+
+.logging-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.logging-card__inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.logging-card__textarea {
+  min-height: 108px;
+}
+
+.logging-card__action,
+.logging-card__warning {
+  margin-top: 0;
+}
+
+.logging-card__warning {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.logging-card__warning-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .timed-task__input {
@@ -863,6 +948,18 @@ html {
   transform: translateY(0);
 }
 
+.primary-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+  box-shadow: none;
+}
+
+.primary-action:disabled:hover,
+.primary-action:disabled:active {
+  filter: none;
+  transform: none;
+}
+
 .caption-note {
   margin: 12px 0 0;
   color: var(--color-ink-500);
@@ -909,6 +1006,11 @@ html {
   margin-top: 18px;
   color: var(--color-brand-700);
   font: 700 14px/20px var(--font-body);
+}
+
+.login-card__error {
+  color: var(--color-danger);
+  text-align: left;
 }
 
 @media (min-width: 768px) {
@@ -989,4 +1091,3 @@ html {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
-

@@ -28,7 +28,6 @@ public class RefreshTokenUtil {
     public ResponseCookie createRefreshTokenCookie(String tokenValue) {
         ResponseCookie cookie = ResponseCookie.from("refresh_token", tokenValue)
                                 .httpOnly(true) // protects from XSS, making it httpOnly
-                                .secure(true) // can only be sent over HTTPS
                                 .maxAge(Duration.ofDays(7)) // expires after 7 days
                                 .path("/api/auth") // scopes cookie to only be sendt on /api/auth... endpoints
                                 .sameSite("Strict") // protects from CSRF

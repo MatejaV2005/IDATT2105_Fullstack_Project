@@ -1,5 +1,6 @@
 DROP TABLE IF EXISTS internal_control_review;
 DROP TABLE IF EXISTS certificates;
+DROP TABLE IF EXISTS internal_control_review;
 DROP TABLE IF EXISTS deviation;
 DROP TABLE IF EXISTS prerequisite_routine_record;
 DROP TABLE IF EXISTS ccp_record;
@@ -10,7 +11,6 @@ DROP TABLE IF EXISTS file_course_bridge;
 DROP TABLE IF EXISTS course_link;
 DROP TABLE IF EXISTS user_course_bridge_responsible;
 DROP TABLE IF EXISTS course_user_bridge_progress;
-DROP TABLE IF EXISTS mapping_point_user_bridge;
 DROP TABLE IF EXISTS danger_risk_combo;
 DROP TABLE IF EXISTS org_user_bridge_danger_analysis_collaborator;
 DROP TABLE IF EXISTS org_user_bridge;
@@ -186,11 +186,11 @@ CREATE TABLE mapping_point ( -- For "IK alkohol" its a specific law, and how to 
     title TEXT,
     challenges TEXT,
     measures TEXT,
+    responsible_for_point TEXT NOT NULL,
     law VARCHAR(25),
     severity_dots TINYINT UNSIGNED,
     org_id INT,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    responsible_for_point TEXT NOT NULL,
     CONSTRAINT fk_mapping_point_org
         FOREIGN KEY (org_id) REFERENCES organization(id)
 );

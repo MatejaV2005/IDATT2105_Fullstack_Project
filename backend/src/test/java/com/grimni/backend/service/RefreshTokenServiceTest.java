@@ -17,6 +17,7 @@ import com.grimni.repository.RefreshTokenRepository;
 import com.grimni.service.RefreshTokenService;
 import com.grimni.util.RefreshTokenUtil;
 
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Optional;
@@ -82,12 +83,12 @@ public class RefreshTokenServiceTest {
         }
 
         @Test
-        @DisplayName("throws IllegalArgumentException when token does not exist in database")
+        @DisplayName("throws BadCredentialsException when token does not exist in database")
         void rotateRefreshToken_tokenNotFound_throws() {
             when(util.hashToken("unknown-token")).thenReturn("hashed-unknown");
             when(repository.findByRefreshToken("hashed-unknown")).thenReturn(Optional.empty());
 
-            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+            BadCredentialsException ex = assertThrows(BadCredentialsException.class,
                     () -> service.rotateRefreshToken(testUser, "unknown-token"));
 
             assertEquals("Invalid refresh token", ex.getMessage());
@@ -184,12 +185,12 @@ public class RefreshTokenServiceTest {
         }
 
         @Test
-        @DisplayName("throws IllegalArgumentException when token does not exist in database")
+        @DisplayName("throws BadCredentialsException when token does not exist in database")
         void getUserByRefreshToken_tokenNotFound_throws() {
             when(util.hashToken("missing-token")).thenReturn("hashed-missing");
             when(repository.findByRefreshToken("hashed-missing")).thenReturn(Optional.empty());
 
-            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+            BadCredentialsException ex = assertThrows(BadCredentialsException.class,
                     () -> service.getUserByRefreshToken("missing-token"));
 
             assertEquals("Invalid refresh token", ex.getMessage());

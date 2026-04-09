@@ -40,8 +40,14 @@ public class SecurityConfig {
         // to define here that our backend can take in requests from the frontend
         http.cors(cors -> cors.configurationSource(request -> {
             CorsConfiguration config = new CorsConfiguration();
-            config.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:80"));
-            config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE"));
+            config.setAllowedOrigins(List.of(
+                "http://localhost:80",
+                "http://localhost:8080",
+                "http://localhost:5173",
+                "http://127.0.0.1:8080",
+                "http://127.0.0.1:5173"
+            ));
+            config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE"));
             config.setAllowedHeaders(List.of("*"));
             return config;
         }));
@@ -54,4 +60,3 @@ public class SecurityConfig {
         return http.build();
     }
 }
-

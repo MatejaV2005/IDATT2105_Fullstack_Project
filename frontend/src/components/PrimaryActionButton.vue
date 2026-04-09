@@ -3,9 +3,11 @@ withDefaults(
   defineProps<{
     label: string
     type?: 'button' | 'submit'
+    disabled?: boolean
   }>(),
   {
     type: 'button',
+    disabled: false,
   },
 )
 </script>
@@ -13,6 +15,7 @@ withDefaults(
 <template>
   <button
     class="primary-action"
+    :disabled="disabled"
     :type="type"
   >
     {{ label }}

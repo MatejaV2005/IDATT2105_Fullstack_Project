@@ -6,7 +6,12 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.grimni.domain.User;
+import com.grimni.dto.UpdateUserRequest;
 import com.grimni.repository.UserRepository;
+
+import jakarta.persistence.EntityNotFoundException;
+
+import org.springframework.security.authentication.BadCredentialsException;
 
 @Service
 public class UserService {
@@ -41,12 +46,12 @@ public class UserService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> {
                     logger.warn("Login failed: user '{}' not found", email);
-                    return new IllegalArgumentException("User not found");
+                    return new BadCredentialsException("Invalid email or password");
                 });
 
-        if (!passwordEncoder.matches(password, user.getPasswordData())) {  
+        if (!passwordEncoder.matches(password, user.getPasswordData())) {
             logger.warn("Login failed: invalid password for user '{}'", email);
-            throw new IllegalArgumentException("Invalid password");
+            throw new BadCredentialsException("Invalid email or password");
         }
 
         logger.info("User '{}' logged in successfully", email);
@@ -67,7 +72,23 @@ public class UserService {
         return userRepository.findById(id)
                 .orElseThrow(() -> {
                     logger.warn("User not found with ID: {}", id);
-                    return new IllegalArgumentException("User not found");
+                    return new EntityNotFoundException("User not found");
                 });
+    }
+
+    public User updateUser(Long id, UpdateUserRequest request) {
+        logger.info("Updating user with ID: {}", id);
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> {
+                    logger.warn("Update failed: user {} not found", id);
+                    return new EntityNotFoundException("User not found");
+                });
+
+        if (request.legalName() != null) user.setLegalName(request.legalName());
+        if (request.email() != null) user.setEmail(request.email());
+
+        User saved = userRepository.save(user);
+        logger.info("User {} updated successfully", id);
+        return saved;
     }
 }

@@ -84,6 +84,10 @@ function click() {
   border-color: var(--blue-navy);
   border-bottom-color: transparent;
 }
+.navy-button--navy:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
 .desktop-button--cherry {
   background-color: var(--red-cherry);
@@ -101,6 +105,10 @@ function click() {
 .desktop-button--cherry:not(.disabled-classy):focus .loading-spinner {
   border-color: var(--red-cherry);
   border-bottom-color: transparent;
+}
+.navy-button--cherry:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .desktop-button--boring-ghost {
@@ -137,6 +145,21 @@ function click() {
 .desktop-button--blue-decor:not(.disabled-classy):focus .loading-spinner {
   border-color: var(--blue-decor);
   border-bottom-color: transparent;
+}
+
+.navy-button--grey {
+  background-color: var(--blue-navy-20);
+  border: 1px solid var(--blue-navy-40);
+  color: var(--blue-navy);
+  stroke: var(--blue-navy);
+}
+.navy-button--grey:hover,
+.navy-button--grey:focus {
+  background-color: var(--blue-navy-30);
+}
+.navy-button--grey:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .loading-spinner {

@@ -25,6 +25,10 @@ public class Certificate extends CreatedAtEntity {
     @JoinColumn(name = "org_id")
     private Organization organization;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "course_id", nullable = true)
+    private Course course;
+
     public Certificate() {
     }
 
@@ -66,5 +70,13 @@ public class Certificate extends CreatedAtEntity {
 
     public void setOrganization(Organization organization) {
         this.organization = organization;
+    }
+
+    public Course getCourse() {
+        return course;
+    }
+
+    public void setCourse(Course course) {
+        this.course = course;
     }
 }

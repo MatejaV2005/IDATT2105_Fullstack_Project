@@ -15,6 +15,10 @@ import com.grimni.repository.UserRepository;
 import com.grimni.service.RefreshTokenService;
 import com.grimni.service.UserService;
 
+import jakarta.persistence.EntityNotFoundException;
+
+import org.springframework.security.authentication.BadCredentialsException;
+
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -122,10 +126,10 @@ public class UserServiceTest {
         void login_failsWhenEmailNotFound() {
             when(userRepository.findByEmail("ghost@test.com")).thenReturn(Optional.empty());
 
-            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+            BadCredentialsException ex = assertThrows(BadCredentialsException.class,
                     () -> userService.login("ghost@test.com", "pass"));
 
-            assertEquals("User not found", ex.getMessage());
+            assertEquals("Invalid email or password", ex.getMessage());
         }
 
         @Test
@@ -134,10 +138,10 @@ public class UserServiceTest {
             when(userRepository.findByEmail("alice@test.com")).thenReturn(Optional.of(stored));
             when(passwordEncoder.matches("wrongpass", "$2a$hashed")).thenReturn(false);
 
-            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+            BadCredentialsException ex = assertThrows(BadCredentialsException.class,
                     () -> userService.login("alice@test.com", "wrongpass"));
 
-            assertEquals("Invalid password", ex.getMessage());
+            assertEquals("Invalid email or password", ex.getMessage());
         }
     }
 
@@ -189,7 +193,7 @@ public class UserServiceTest {
         void findUserById_failsWhenIdDoesNotExist() {
             when(userRepository.findById(999L)).thenReturn(Optional.empty());
 
-            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+            EntityNotFoundException ex = assertThrows(EntityNotFoundException.class,
                     () -> userService.findUserById(999L));
 
             assertEquals("User not found", ex.getMessage());

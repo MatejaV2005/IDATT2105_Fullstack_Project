@@ -84,11 +84,6 @@ public class RefreshTokenUtilTest {
         }
 
         @Test
-        void cookie_isSecure() {
-            assertTrue(cookie.isSecure());
-        }
-
-        @Test
         void cookie_hasSameSiteStrict() {
             assertEquals("Strict", cookie.getSameSite());
         }

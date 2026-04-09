@@ -1,31 +1,75 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
+import { useRoute } from 'vue-router'
 
 import AppIcon from '@/components/AppIcon.vue'
-import PhotoUploadControl from '@/components/PhotoUploadControl.vue'
 import PrimaryActionButton from '@/components/PrimaryActionButton.vue'
 import SectionHeading from '@/components/SectionHeading.vue'
-import { deviationOptions } from '@/data/mockHaccp'
-import type { UploadedPhoto } from '@/types/uploads'
+import { deviationCategories, type DeviationCategory } from '@/data/deviations'
+import api from '@/api/api'
 
-const now = new Date()
-const pad = (value: number) => String(value).padStart(2, '0')
+const route = useRoute()
+
+const prefilledRecordId = Number.parseInt(String(route.query.ccpRecordId ?? ''), 10)
+const prefilledCategory = String(route.query.category ?? 'OTHER') as DeviationCategory
+const prefilledMeasuredValue = String(route.query.measuredValue ?? '').trim()
+const prefilledUnit = String(route.query.unit ?? '').trim()
+const prefilledCcpName = String(route.query.ccpName ?? '').trim()
 
 const formState = reactive({
-  title: '',
-  routineArea: deviationOptions.routineAreas[1],
-  severity: deviationOptions.severityLevels[1],
-  relatedToFood: false,
-  relatedToAlcohol: false,
-  happenedDate: `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`,
-  happenedTime: `${pad(now.getHours())}:${pad(now.getMinutes())}`,
-  description: '',
-  immediateAction: '',
+  ccpRecordId: Number.isFinite(prefilledRecordId) ? prefilledRecordId : null as number | null,
+  category: deviationCategories.some((item) => item.value === prefilledCategory)
+    ? prefilledCategory
+    : 'OTHER' as DeviationCategory,
+  whatWentWrong: '',
+  immediateActionTaken: '',
+  potentialCause: '',
+  potentialPreventativeMeasure: '',
 })
 
 const showInfo = ref(false)
-const uploadedPhotos = ref<UploadedPhoto[]>([])
-const formattedDateTime = computed(() => `${formState.happenedDate} kl. ${formState.happenedTime}`)
+const isSubmitting = ref(false)
+const submitError = ref<string | null>(null)
+const submitSuccess = ref(false)
+
+const deviationContext = computed(() => {
+  if (!formState.ccpRecordId) {
+    return null
+  }
+
+  if (prefilledCcpName && prefilledMeasuredValue) {
+    return `${prefilledCcpName}: ${prefilledMeasuredValue}${prefilledUnit ? ` ${prefilledUnit}` : ''}`
+  }
+
+  if (prefilledCcpName) {
+    return prefilledCcpName
+  }
+
+  return `CCP-logg #${formState.ccpRecordId}`
+})
+
+async function submitDeviation() {
+  isSubmitting.value = true
+  submitError.value = null
+
+  try {
+    await api.post('/me/deviations', {
+      ccpRecordId: formState.ccpRecordId,
+      category: formState.category,
+      whatWentWrong: formState.whatWentWrong,
+      immediateActionTaken: formState.immediateActionTaken,
+      potentialCause: formState.potentialCause,
+      potentialPreventativeMeasure: formState.potentialPreventativeMeasure,
+    })
+
+    submitSuccess.value = true
+  } catch (err) {
+    submitError.value = 'Kunne ikke sende avvik. Prøv igjen.'
+    console.error(err)
+  } finally {
+    isSubmitting.value = false
+  }
+}
 </script>
 
 <template>
@@ -54,176 +98,109 @@ const formattedDateTime = computed(() => `${formState.happenedDate} kl. ${formSt
         Om avvik
       </p>
       <p class="card-copy">
-        Bruk skjemaet når en kontroll ikke er utført som planlagt eller en måling havner utenfor ønsket verdi.
-      </p>
-      <p class="helper-text">
-        Valgt tidspunkt: {{ formattedDateTime }}
+        Fyll inn dette skjemaet ved et avvik, for eksempel om en måling havner utenfor ønsket verdi.
       </p>
     </article>
 
+    <article
+      v-if="deviationContext"
+      class="info-banner info-banner--danger"
+    >
+      <p class="info-popover__title">
+        Koblet til måling
+      </p>
+      <p class="card-copy">
+        {{ deviationContext }}
+      </p>
+    </article>
+
+    <div
+      v-if="submitSuccess"
+      class="success-message"
+    >
+      <AppIcon name="upload" />
+      <p>Avviket er sendt inn!</p>
+    </div>
+
     <form
+      v-else
       class="form-grid"
-      @submit.prevent
+      @submit.prevent="submitDeviation"
     >
       <article class="form-card form-card--full">
         <label
           class="form-label"
-          for="deviationTitle"
-        >Tittel</label>
-        <input
-          id="deviationTitle"
-          v-model="formState.title"
-          class="field-shell__input"
-          type="text"
-          maxlength="120"
-          placeholder="For høy temperatur i kjøleskap"
-        >
-      </article>
-
-      <article class="form-card">
-        <label
-          class="form-label"
-          for="routineArea"
-        >Rutineområde</label>
+          for="category"
+        >Kategori</label>
         <div class="field-shell">
           <select
-            id="routineArea"
-            v-model="formState.routineArea"
+            id="category"
+            v-model="formState.category"
             class="field-shell__select"
           >
             <option
-              v-for="area in deviationOptions.routineAreas"
-              :key="area"
-              :value="area"
+              v-for="cat in deviationCategories"
+              :key="cat.value"
+              :value="cat.value"
             >
-              {{ area }}
+              {{ cat.label }}
             </option>
           </select>
           <span class="field-shell__caret">
             <AppIcon name="chevron" />
           </span>
         </div>
-      </article>
-
-      <article class="form-card">
-        <label
-          class="form-label"
-          for="severity"
-        >Alvorlighetsgrad</label>
-        <div class="field-shell">
-          <select
-            id="severity"
-            v-model="formState.severity"
-            class="field-shell__select"
-          >
-            <option
-              v-for="level in deviationOptions.severityLevels"
-              :key="level"
-              :value="level"
-            >
-              {{ level }}
-            </option>
-          </select>
-          <span class="field-shell__caret">
-            <AppIcon name="chevron" />
-          </span>
-        </div>
-      </article>
-
-      <article class="form-card">
-        <label
-          class="form-label"
-          for="happenedDate"
-        >Dato oppdaget</label>
-        <input
-          id="happenedDate"
-          v-model="formState.happenedDate"
-          class="field-shell__input field-shell__input--date"
-          type="date"
-        >
-      </article>
-
-      <article class="form-card">
-        <label
-          class="form-label"
-          for="happenedTime"
-        >Tid oppdaget</label>
-        <input
-          id="happenedTime"
-          v-model="formState.happenedTime"
-          class="field-shell__input field-shell__input--time"
-          type="time"
-          step="60"
-        >
-      </article>
-      
-      <article class="form-card">
-        <p class="form-label">
-          Relatert til
-        </p>
-        <div class="option-checks">
-          <label class="option-check">
-            <input
-              v-model="formState.relatedToFood"
-              type="checkbox"
-            >
-            <span
-              class="option-check__box"
-              aria-hidden="true"
-            />
-            <span class="option-check__label">Mat</span>
-          </label>
-
-          <label class="option-check">
-            <input
-              v-model="formState.relatedToAlcohol"
-              type="checkbox"
-            >
-            <span
-              class="option-check__box"
-              aria-hidden="true"
-            />
-            <span class="option-check__label">Alkohol</span>
-          </label>
-        </div>
-      </article>
-
-      <article class="form-card">
-        <label class="form-label">Bildevedlegg</label>
-        <PhotoUploadControl
-          v-model="uploadedPhotos"
-          label="Legg til dokumentasjon"
-          description="Velg flere bilder fra album eller ta nye bilder med kamera."
-          :helper-text="`Eksempelbilder: ${deviationOptions.samplePhotos.join(', ')}`"
-          variant="panel"
-          multiple
-          :max-files="8"
-        />
       </article>
 
       <article class="form-card form-card--full">
         <label
           class="form-label"
-          for="description"
-        >* Beskrivelse av avvik</label>
+          for="whatWentWrong"
+        >* Hva gikk galt</label>
         <textarea
-          id="description"
-          v-model="formState.description"
+          id="whatWentWrong"
+          v-model="formState.whatWentWrong"
           class="field-shell__textarea"
-          placeholder="Temperaturen i Kjøleskap 1 ble målt til 8 °C under ettermiddagskontrollen."
+          placeholder="Beskriv hva som skjedde..."
         />
       </article>
 
       <article class="form-card form-card--full">
         <label
           class="form-label"
-          for="immediateAction"
+          for="immediateActionTaken"
         >* Umiddelbar handling utført</label>
         <textarea
-          id="immediateAction"
-          v-model="formState.immediateAction"
+          id="immediateActionTaken"
+          v-model="formState.immediateActionTaken"
           class="field-shell__textarea"
-          placeholder="Flyttet varer til reservekjøler og startet ekstra temperaturmåling hvert 15. minutt."
+          placeholder="Hva ble gjort umiddelbart?"
+        />
+      </article>
+
+      <article class="form-card form-card--full">
+        <label
+          class="form-label"
+          for="potentialCause"
+        >* Potensiell årsak</label>
+        <textarea
+          id="potentialCause"
+          v-model="formState.potentialCause"
+          class="field-shell__textarea"
+          placeholder="Hva kan være årsaken til avviket?"
+        />
+      </article>
+
+      <article class="form-card form-card--full">
+        <label
+          class="form-label"
+          for="potentialPreventativeMeasure"
+        >* Potensielt tiltak</label>
+        <textarea
+          id="potentialPreventativeMeasure"
+          v-model="formState.potentialPreventativeMeasure"
+          class="field-shell__textarea"
+          placeholder="Hva kan gjøres for å forebygge?"
         />
       </article>
 
@@ -231,7 +208,14 @@ const formattedDateTime = computed(() => `${formState.happenedDate} kl. ${formSt
         <PrimaryActionButton
           label="Send inn avvik"
           type="submit"
+          :loading="isSubmitting"
         />
+        <p
+          v-if="submitError"
+          class="error-text"
+        >
+          {{ submitError }}
+        </p>
         <p class="caption-note">
           Alle felt med * må fylles ut før innsending.
         </p>

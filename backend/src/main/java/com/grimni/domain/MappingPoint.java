@@ -1,7 +1,5 @@
 package com.grimni.domain;
 
-import java.util.ArrayList;
-import java.util.List;
 import jakarta.persistence.*;
 
 @Entity
@@ -21,6 +19,9 @@ public class MappingPoint extends CreatedAtEntity {
     @Column(name = "measures", columnDefinition = "TEXT")
     private String measures;
 
+    @Column(name = "responsible_for_point", columnDefinition = "TEXT")
+    private String responsibleText;
+
     @Column(name = "law", length = 25)
     private String law;
 
@@ -30,9 +31,6 @@ public class MappingPoint extends CreatedAtEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "org_id")
     private Organization organization;
-
-    @OneToMany(mappedBy = "mappingPoint")
-    private List<MappingPointResponsibleUser> responsibleUsers = new ArrayList<>();
     
     public MappingPoint() {
     }
@@ -69,6 +67,14 @@ public class MappingPoint extends CreatedAtEntity {
         this.measures = measures;
     }
 
+    public String getResponsibleText() {
+        return responsibleText;
+    }
+
+    public void setResponsibleText(String responsibleText) {
+        this.responsibleText = responsibleText;
+    }
+
     public String getLaw() {
         return law;
     }
@@ -92,13 +98,4 @@ public class MappingPoint extends CreatedAtEntity {
     public void setOrganization(Organization organization) {
         this.organization = organization;
     }
-
-    public List<MappingPointResponsibleUser> getResponsibleUsers() {
-        return responsibleUsers;
-    }
-
-    public void setResponsibleUsers(List<MappingPointResponsibleUser> responsibleUsers) {
-        this.responsibleUsers = responsibleUsers;
-    }
-
 }
