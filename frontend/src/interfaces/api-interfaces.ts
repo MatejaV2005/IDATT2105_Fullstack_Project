@@ -9,7 +9,6 @@ interface RoutinePrerequisitePoint {
   type: 'routine'
   measures: string
   repeatText: string
-  verifiers: PrerequisiteUser[]
   deviationRecievers: PrerequisiteUser[]
   performers: PrerequisiteUser[]
   deputy: PrerequisiteUser[]

@@ -31,16 +31,6 @@ onMounted(async () => {
             type: 'routine',
             measures: 'Terje må vaske gulvene ekstra godt neste gang og ta 50 push-ups',
             repeatText: 'Hver mandag kl. 17:00',
-            verifiers: [
-              {
-                userId: 1234,
-                legalName: 'Kari Næss Northun',
-              },
-              {
-                userId: 5643,
-                legalName: 'Stoltenberg',
-              },
-            ],
             deviationRecievers: [
               {
                 userId: 1234,
@@ -159,17 +149,6 @@ onMounted(async () => {
                 </div>
               </div>
               <span v-if="point.type === 'routine'"> Avvikstiltak: {{ point.measures }} </span>
-              <div v-if="point.type === 'routine'">
-                <span class="navy-subtitle">Godkjennere</span>
-                <div class="user-parent">
-                  <UserBadge
-                    v-for="verifier in point.verifiers"
-                    :key="verifier.userId"
-                    :name="verifier.legalName"
-                    :user-id="123"
-                  />
-                </div>
-              </div>
               <div v-if="point.type === 'routine'">
                 <span class="navy-subtitle">Vikarleder</span>
                 <div class="user-parent">
