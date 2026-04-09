@@ -106,6 +106,13 @@ public class CourseController {
         return ResponseEntity.noContent().build();
     }
 
+    @GetMapping("/overview")
+    @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
+    public ResponseEntity<?> getCourseOverview(Authentication authentication) {
+        JwtUserPrinciple principal = (JwtUserPrinciple) authentication.getPrincipal();
+        return ResponseEntity.ok(courseService.getCourseOverview(principal.orgId(), principal.userId()));
+    }
+
     // Course User Progress
     // -------------------------------------------------------------------------
 

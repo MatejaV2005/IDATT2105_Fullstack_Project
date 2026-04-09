@@ -8,6 +8,7 @@ import com.grimni.domain.CourseUserProgress;
 import com.grimni.domain.FileObject;
 import com.grimni.domain.Organization;
 import com.grimni.domain.User;
+import com.grimni.dto.CourseOverviewResponse;
 import com.grimni.dto.CreateCourseRequest;
 import com.grimni.dto.UpdateCourseRequest;
 import com.grimni.repository.OrganizationRepository;
@@ -345,6 +346,88 @@ public class CourseControllerTest {
                             .with(csrf()))
                     .andExpect(status().isNotFound())
                     .andExpect(jsonPath("$.error").value("Course not found"));
+        }
+    }
+
+    // =========================================================================
+    // Course Overview
+    // =========================================================================
+
+    @Nested
+    @DisplayName("GET /courses/overview")
+    class GetCourseOverviewTests {
+
+        @Test
+        @DisplayName("OWNER gets overview — returns 200 with allCourses and userProgress")
+        void getOverview_owner_returns200() throws Exception {
+            CourseOverviewResponse response = new CourseOverviewResponse(
+                    List.of(
+                            new CourseOverviewResponse.CourseDetailResponse(100L, "Safety Course", "Learn safety", List.of("alice")),
+                            new CourseOverviewResponse.CourseDetailResponse(200L, "Drink Course", "Learn drinks", List.of("bob"))
+                    ),
+                    List.of(
+                            new CourseOverviewResponse.UserProgressOverview(2L, "bob", List.of(
+                                    new CourseOverviewResponse.UserCourseStatus(100L, "Safety Course", true),
+                                    new CourseOverviewResponse.UserCourseStatus(200L, "Drink Course", false)
+                            ))
+                    )
+            );
+
+            when(courseService.getCourseOverview(10L, 1L)).thenReturn(response);
+
+            mockMvc.perform(get("/courses/overview")
+                            .with(authentication(authWithRole("OWNER"))))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.allCourses").isArray())
+                    .andExpect(jsonPath("$.allCourses.length()").value(2))
+                    .andExpect(jsonPath("$.allCourses[0].id").value(100))
+                    .andExpect(jsonPath("$.allCourses[0].title").value("Safety Course"))
+                    .andExpect(jsonPath("$.allCourses[0].courseDescription").value("Learn safety"))
+                    .andExpect(jsonPath("$.allCourses[0].responsible[0]").value("alice"))
+                    .andExpect(jsonPath("$.allCourses[1].id").value(200))
+                    .andExpect(jsonPath("$.allCourses[1].title").value("Drink Course"))
+                    .andExpect(jsonPath("$.allCourses[1].responsible[0]").value("bob"))
+                    .andExpect(jsonPath("$.userProgress").isArray())
+                    .andExpect(jsonPath("$.userProgress.length()").value(1))
+                    .andExpect(jsonPath("$.userProgress[0].userId").value(2))
+                    .andExpect(jsonPath("$.userProgress[0].legalName").value("bob"))
+                    .andExpect(jsonPath("$.userProgress[0].courses.length()").value(2))
+                    .andExpect(jsonPath("$.userProgress[0].courses[0].courseId").value(100))
+                    .andExpect(jsonPath("$.userProgress[0].courses[0].title").value("Safety Course"))
+                    .andExpect(jsonPath("$.userProgress[0].courses[0].completed").value(true))
+                    .andExpect(jsonPath("$.userProgress[0].courses[1].courseId").value(200))
+                    .andExpect(jsonPath("$.userProgress[0].courses[1].completed").value(false));
+        }
+
+        @Test
+        @DisplayName("WORKER cannot access overview — returns 403")
+        void getOverview_worker_returns403() throws Exception {
+            mockMvc.perform(get("/courses/overview")
+                            .with(authentication(authWithRole("WORKER"))))
+                    .andExpect(status().isForbidden());
+
+            verify(courseService, never()).getCourseOverview(any(), any());
+        }
+
+        @Test
+        @DisplayName("unauthenticated — returns 403")
+        void getOverview_unauthenticated_returns403() throws Exception {
+            mockMvc.perform(get("/courses/overview"))
+                    .andExpect(status().isForbidden());
+
+            verify(courseService, never()).getCourseOverview(any(), any());
+        }
+
+        @Test
+        @DisplayName("returns 404 when user not in org")
+        void getOverview_notInOrg_returns404() throws Exception {
+            when(courseService.getCourseOverview(10L, 1L))
+                    .thenThrow(new EntityNotFoundException("Organization not found"));
+
+            mockMvc.perform(get("/courses/overview")
+                            .with(authentication(authWithRole("OWNER"))))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.error").value("Organization not found"));
         }
     }
 

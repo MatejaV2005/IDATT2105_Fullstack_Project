@@ -20,6 +20,7 @@ import com.grimni.domain.CourseUserProgress;
 import com.grimni.domain.OrgUserBridge;
 import com.grimni.domain.Organization;
 import com.grimni.domain.User;
+import com.grimni.dto.CourseOverviewResponse;
 import com.grimni.dto.CreateCourseRequest;
 import com.grimni.dto.UpdateCourseRequest;
 import com.grimni.repository.CourseRepository;
@@ -614,6 +615,110 @@ public class CourseServiceTest {
 
             assertEquals("Responsible user not found", ex.getMessage());
             verify(courseResponsibleUserRepository, never()).delete(any(CourseResponsibleUser.class));
+        }
+    }
+
+    // =========================================================================
+    // Course Overview
+    // =========================================================================
+
+    @Nested
+    @DisplayName("getCourseOverview")
+    class GetCourseOverviewTests {
+
+        @Test
+        @DisplayName("returns overview with courses, responsible users, and user progress")
+        void getCourseOverview_success() {
+            stubOrgMembership(10L, 1L);
+
+            Course course2 = new Course();
+            course2.setId(200L);
+            course2.setTitle("Drink Course");
+            course2.setCourseDescription("Learn drinks");
+            course2.setOrganization(testOrg);
+
+            when(courseRepository.findByOrganizationId(10L)).thenReturn(List.of(testCourse, course2));
+
+            CourseResponsibleUser r1 = new CourseResponsibleUser();
+            r1.setCourse(testCourse);
+            r1.setUser(testUser);
+            when(courseResponsibleUserRepository.findByCourseId(100L)).thenReturn(List.of(r1));
+
+            CourseResponsibleUser r2 = new CourseResponsibleUser();
+            r2.setCourse(course2);
+            r2.setUser(targetUser);
+            when(courseResponsibleUserRepository.findByCourseId(200L)).thenReturn(List.of(r2));
+
+            CourseUserProgress p1 = new CourseUserProgress();
+            p1.setCourse(testCourse);
+            p1.setUser(targetUser);
+            p1.setIsCompleted(true);
+
+            CourseUserProgress p2 = new CourseUserProgress();
+            p2.setCourse(course2);
+            p2.setUser(targetUser);
+            p2.setIsCompleted(false);
+
+            when(courseUserProgressRepository.findByCourseIdIn(List.of(100L, 200L)))
+                    .thenReturn(List.of(p1, p2));
+
+            CourseOverviewResponse result = courseService.getCourseOverview(10L, 1L);
+
+            // allCourses
+            assertEquals(2, result.allCourses().size());
+
+            CourseOverviewResponse.CourseDetailResponse first = result.allCourses().get(0);
+            assertEquals(100L, first.id());
+            assertEquals("Safety Course", first.title());
+            assertEquals("Learn safety", first.courseDescription());
+            assertEquals(List.of("alice"), first.responsible());
+
+            CourseOverviewResponse.CourseDetailResponse second = result.allCourses().get(1);
+            assertEquals(200L, second.id());
+            assertEquals("Drink Course", second.title());
+            assertEquals(List.of("bob"), second.responsible());
+
+            // userProgress
+            assertEquals(1, result.userProgress().size());
+            CourseOverviewResponse.UserProgressOverview userProg = result.userProgress().get(0);
+            assertEquals(2L, userProg.userId());
+            assertEquals("bob", userProg.legalName());
+            assertEquals(2, userProg.courses().size());
+
+            CourseOverviewResponse.UserCourseStatus s1 = userProg.courses().stream()
+                    .filter(s -> s.courseId().equals(100L)).findFirst().orElseThrow();
+            assertTrue(s1.completed());
+            assertEquals("Safety Course", s1.title());
+
+            CourseOverviewResponse.UserCourseStatus s2 = userProg.courses().stream()
+                    .filter(s -> s.courseId().equals(200L)).findFirst().orElseThrow();
+            assertFalse(s2.completed());
+            assertEquals("Drink Course", s2.title());
+        }
+
+        @Test
+        @DisplayName("returns empty overview when no courses exist")
+        void getCourseOverview_empty() {
+            stubOrgMembership(10L, 1L);
+            when(courseRepository.findByOrganizationId(10L)).thenReturn(List.of());
+            when(courseUserProgressRepository.findByCourseIdIn(List.of())).thenReturn(List.of());
+
+            CourseOverviewResponse result = courseService.getCourseOverview(10L, 1L);
+
+            assertTrue(result.allCourses().isEmpty());
+            assertTrue(result.userProgress().isEmpty());
+        }
+
+        @Test
+        @DisplayName("throws when user not in org")
+        void getCourseOverview_notMember_throws() {
+            when(orgUserBridgeRepository.findByOrganizationIdAndUserId(10L, 99L))
+                    .thenReturn(Optional.empty());
+
+            assertThrows(EntityNotFoundException.class,
+                    () -> courseService.getCourseOverview(10L, 99L));
+
+            verify(courseRepository, never()).findByOrganizationId(any());
         }
     }
 }

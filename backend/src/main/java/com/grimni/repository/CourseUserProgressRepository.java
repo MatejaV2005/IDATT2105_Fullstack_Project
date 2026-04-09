@@ -12,4 +12,5 @@ public interface CourseUserProgressRepository extends JpaRepository<CourseUserPr
     boolean existsByCourseId(Long courseId);
     List<CourseUserProgress> findByCourseId(Long courseId);
     Optional<CourseUserProgress> findByCourseIdAndUserId(Long courseId, Long userId);
+    List<CourseUserProgress> findByCourseIdIn(List<Long> courseIds);
 }

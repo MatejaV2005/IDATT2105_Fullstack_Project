@@ -12,6 +12,7 @@ import com.grimni.domain.CourseUserProgress;
 import com.grimni.domain.Organization;
 import com.grimni.domain.User;
 import com.grimni.domain.ids.CourseUserProgressId;
+import com.grimni.dto.CourseOverviewResponse;
 import com.grimni.dto.CreateCourseRequest;
 import com.grimni.dto.UpdateCourseRequest;
 import com.grimni.repository.CourseRepository;
@@ -279,4 +280,52 @@ public class CourseService {
         courseResponsibleUserRepository.delete(responsible);
         logger.info("Responsible user {} removed from course {} in organization {}", targetUserId, courseId, orgId);
     }
+
+    public CourseOverviewResponse getCourseOverview(Long orgId, Long userId) {
+    logger.info("Fetching course overview for organization {}", orgId);
+
+    validateUserBelongsToOrg(orgId, userId);
+
+    List<Course> courses = courseRepository.findByOrganizationId(orgId);
+
+    List<CourseOverviewResponse.CourseDetailResponse> allCourses = courses.stream()
+            .map(course -> {
+                List<String> responsible = courseResponsibleUserRepository.findByCourseId(course.getId())
+                        .stream()
+                        .map(r -> r.getUser().getLegalName())
+                        .toList();
+                return new CourseOverviewResponse.CourseDetailResponse(
+                        course.getId(),
+                        course.getTitle(),
+                        course.getCourseDescription(),
+                        responsible
+                );
+            }).toList();
+
+    List<CourseUserProgress> allProgress = courseUserProgressRepository.findByCourseIdIn(
+            courses.stream().map(Course::getId).toList()
+    );
+
+        List<CourseOverviewResponse.UserProgressOverview> userProgress = allProgress.stream()
+                .collect(java.util.stream.Collectors.groupingBy(p -> p.getUser().getId()))
+                .entrySet().stream()
+                .map(entry -> {
+                    CourseUserProgress first = entry.getValue().get(0);
+                    List<CourseOverviewResponse.UserCourseStatus> statuses = entry.getValue().stream()
+                            .map(p -> new CourseOverviewResponse.UserCourseStatus(
+                                    p.getCourse().getId(),
+                                    p.getCourse().getTitle(),
+                                    p.getIsCompleted()
+                            )).toList();
+                    return new CourseOverviewResponse.UserProgressOverview(
+                            first.getUser().getId(),
+                            first.getUser().getLegalName(),
+                            statuses
+                    );
+                }).toList();
+
+        logger.info("Course overview assembled: {} courses, {} users", allCourses.size(), userProgress.size());
+        return new CourseOverviewResponse(allCourses, userProgress);
+    }
+
 }
