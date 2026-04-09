@@ -20,6 +20,11 @@ public class DeviationService {
         this.userRepository = userRepository;
     }
 
+    public long getDeviationReviewCount(Long userId, Long orgId, String role) {
+        boolean isManagerOrOwner = "OWNER".equals(role) || "MANAGER".equals(role);
+        return deviationRepository.countOpenDeviationReviews(orgId, userId, isManagerOrOwner);
+    }
+
     public List<Deviation> getAllDeviations() {
         return deviationRepository.findAll();
     }

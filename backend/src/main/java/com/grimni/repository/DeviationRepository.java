@@ -1,8 +1,40 @@
 package com.grimni.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import com.grimni.domain.Deviation;
 
 public interface DeviationRepository extends JpaRepository<Deviation, Long> {
+
+    @Query(value = """
+        SELECT COUNT(*) FROM deviation d
+        WHERE d.org_id = :orgId
+          AND d.review_status = 'OPEN'
+          AND (
+              (d.ccp_record_id IS NOT NULL AND EXISTS (
+                  SELECT 1 FROM ccp_record cr
+                  JOIN ccp_user_bridge cub ON cub.ccp_id = cr.ccp_id
+                  WHERE cr.id = d.ccp_record_id
+                    AND cub.user_id = :userId
+                    AND cub.user_role = 'DEVIATION_RECEIVER'
+              ))
+              OR
+              (d.routine_record_id IS NOT NULL AND EXISTS (
+                  SELECT 1 FROM prerequisite_routine_record prr
+                  JOIN routine_user_bridge rub ON rub.routine_id = prr.routine_id
+                  WHERE prr.id = d.routine_record_id
+                    AND rub.user_id = :userId
+                    AND rub.user_role = 'DEVIATION_RECEIVER'
+              ))
+              OR
+              (d.ccp_record_id IS NULL AND d.routine_record_id IS NULL AND :isManagerOrOwner = true)
+          )
+        """, nativeQuery = true)
+    long countOpenDeviationReviews(
+            @Param("orgId") Long orgId,
+            @Param("userId") Long userId,
+            @Param("isManagerOrOwner") boolean isManagerOrOwner);
+
 }

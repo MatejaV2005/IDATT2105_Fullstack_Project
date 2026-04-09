@@ -38,6 +38,7 @@ import com.grimni.dto.ReplaceCcpAssignmentsRequest;
 import com.grimni.dto.UpdateCcpCorrectiveMeasureRequest;
 import com.grimni.dto.UpdateCcpRequest;
 import com.grimni.repository.CcpCorrectiveMeasureRepository;
+import com.grimni.repository.CcpRecordRepository;
 import com.grimni.repository.CcpRepository;
 import com.grimni.repository.CcpUserBridgeRepository;
 import com.grimni.repository.IntervalRuleRepository;
@@ -53,6 +54,7 @@ public class CcpService {
         DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
     private final CcpRepository ccpRepository;
+    private final CcpRecordRepository ccpRecordRepository;
     private final CcpUserBridgeRepository ccpUserBridgeRepository;
     private final CcpCorrectiveMeasureRepository ccpCorrectiveMeasureRepository;
     private final ProductCategoryRepository productCategoryRepository;
@@ -63,6 +65,7 @@ public class CcpService {
 
     public CcpService(
             CcpRepository ccpRepository,
+            CcpRecordRepository ccpRecordRepository,
             CcpUserBridgeRepository ccpUserBridgeRepository,
             CcpCorrectiveMeasureRepository ccpCorrectiveMeasureRepository,
             ProductCategoryRepository productCategoryRepository,
@@ -71,6 +74,7 @@ public class CcpService {
             UserRepository userRepository,
             PrerequisiteRoutineRepository prerequisiteRoutineRepository) {
         this.ccpRepository = ccpRepository;
+        this.ccpRecordRepository = ccpRecordRepository;
         this.ccpUserBridgeRepository = ccpUserBridgeRepository;
         this.ccpCorrectiveMeasureRepository = ccpCorrectiveMeasureRepository;
         this.productCategoryRepository = productCategoryRepository;
@@ -98,6 +102,13 @@ public class CcpService {
                 measuresByCcpId.getOrDefault(ccp.getId(), List.of())
             ))
             .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public long getVerificationCount(Long userId, Long orgId, String role) {
+        ensureAuthenticatedMember(userId, orgId);
+        boolean isManagerOrOwner = "OWNER".equals(role) || "MANAGER".equals(role);
+        return ccpRecordRepository.countWaitingVerifications(orgId, userId, isManagerOrOwner);
     }
 
     @Transactional
