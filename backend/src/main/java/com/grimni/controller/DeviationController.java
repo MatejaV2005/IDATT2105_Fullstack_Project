@@ -4,12 +4,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.grimni.dto.CreateDeviationRequest;
 import com.grimni.dto.DeviationResponse;
 import com.grimni.dto.ResolveDeviationRequest;
 import com.grimni.domain.Deviation;
@@ -31,6 +33,20 @@ public class DeviationController {
         this.deviationService = deviationService;
     }
 
+    @PostMapping
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<DeviationResponse> createDeviation(
+            @Valid @RequestBody CreateDeviationRequest request,
+            Authentication authentication) {
+
+        JwtUserPrinciple principal = (JwtUserPrinciple) authentication.getPrincipal();
+        Long userId = principal.userId();
+
+        Deviation deviation = deviationService.createDeviation(request, userId);
+        DeviationResponse response = DeviationResponse.fromEntity(deviation);
+        return ResponseEntity.ok(response);
+    }
+      
     @GetMapping("/deviation-review-count")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Long> getDeviationReviewCount(Authentication authentication) {
