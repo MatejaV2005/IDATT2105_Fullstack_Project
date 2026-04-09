@@ -38,6 +38,8 @@ interface CcpUser {
 interface CcpCorrectiveMeasure {
   productName: string
   measureDescription: string
+  productCategoryId: number
+  id: number
 }
 
 export interface CriticalControlPoint {
@@ -55,9 +57,30 @@ export interface CriticalControlPoint {
   performers: CcpUser[]
   deputy: CcpUser[]
   ccpCorrectiveMeasure: CcpCorrectiveMeasure[]
+  id: number
 }
 
 export type CriticalControlPointAllInfo = CriticalControlPoint[]
+
+export interface NewCriticalControlPoint {
+  name: string
+  how: string
+  equipment: string
+  instructionsAndCalibration: string
+  immediateCorrectiveAction: string
+  criticalMin: number
+  criticalMax: number
+  unit: string
+  monitoredDescription: string
+  verifiers: number[] // list of user id's
+  deviationRecievers: number[] // list of user id's
+  performers: number[] // list of user id's
+  deputy: number[] // list of user id's
+  ccpCorrectiveMeasure: {
+    productCategoryId: number
+    measureDescription: string
+  }[]
+}
 // #endregion
 
 // #region TeamView

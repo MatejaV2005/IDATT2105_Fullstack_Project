@@ -90,6 +90,7 @@ CREATE TABLE org_user_bridge_danger_analysis_collaborator ( -- Showing who is a 
 
 CREATE TABLE product_category ( -- For the danger analysis
     id INT AUTO_INCREMENT PRIMARY KEY,
+    product_name TEXT NOT NULL,
     product_description TEXT NOT NULL,
     org_id INT,
     flowchart JSON NOT NULL, -- showing the process the product goes through

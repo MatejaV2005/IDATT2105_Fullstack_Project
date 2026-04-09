@@ -3,6 +3,22 @@ defineProps({
   currentBusinessName: String,
 })
 function showOtherOrgs() {
+
+  // GET /api/me/orgs
+  const mockData = [
+    {
+      id: 1,
+      name: "Pendlerbolig pizzaria"
+    },
+    {
+      id: 2,
+      name: "Everest Sushi"
+    },
+    {
+      id: 10,
+      name: "St. James kaffebar"
+    },
+  ]
   alert('Not yet implemented')
 }
 </script>

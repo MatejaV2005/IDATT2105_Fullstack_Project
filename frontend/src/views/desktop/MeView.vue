@@ -31,7 +31,7 @@ const canSave = computed(() => {
 
 onMounted(async () => {
   try {
-    // const response = await fetch('/api/users/me')
+    // const response = await fetch('/api/me')
     // if (!response.ok) {
     //     throw new Error(`Failed to get user (${response.status})`)
     // }

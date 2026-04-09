@@ -14,8 +14,8 @@ const error = ref<boolean | null>(null)
 
 onMounted(async () => {
   try {
-    // const ccpResponse = await fetch('/api/cpps/get-number-of-ccp-records-left-to-verify')
-    // const deviationResponse = await fetch('/api/cpps/get-number-of-deviation-left-to-review')
+    // const ccpResponse = await fetch('/api/ccps/verification-count')
+    // const deviationResponse = await fetch('/api/deviation-review-count')
     // if (!ccpResponse.ok || !deviationResponse.ok) {
     //   throw new Error('Failed to fetch task overview')
     // }
