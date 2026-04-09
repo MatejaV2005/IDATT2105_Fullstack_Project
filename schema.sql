@@ -9,7 +9,6 @@ DROP TABLE IF EXISTS file_course_bridge;
 DROP TABLE IF EXISTS course_link;
 DROP TABLE IF EXISTS user_course_bridge_responsible;
 DROP TABLE IF EXISTS course_user_bridge_progress;
-DROP TABLE IF EXISTS mapping_point_user_bridge;
 DROP TABLE IF EXISTS danger_risk_combo;
 DROP TABLE IF EXISTS org_user_bridge_danger_analysis_collaborator;
 DROP TABLE IF EXISTS org_user_bridge;
@@ -184,23 +183,13 @@ CREATE TABLE mapping_point ( -- For "IK alkohol" its a specific law, and how to 
     title TEXT,
     challenges TEXT,
     measures TEXT,
+    responsible_for_point TEXT,
     law VARCHAR(25),
     severity_dots TINYINT UNSIGNED,
     org_id INT,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_mapping_point_org
         FOREIGN KEY (org_id) REFERENCES organization(id)
-);
-
-CREATE TABLE mapping_point_user_bridge ( -- The people responsible for this point (in IK alkohol)
-    mapping_point_id INT,
-    user_id INT,
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (user_id, mapping_point_id),
-    CONSTRAINT fk_mapping_point_user_bridge_mapping_point
-        FOREIGN KEY (mapping_point_id) REFERENCES mapping_point(id) ON DELETE CASCADE,
-    CONSTRAINT fk_mapping_point_user_bridge_user
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 CREATE TABLE interval_rule ( -- Info about something which has to repeat with some interval
