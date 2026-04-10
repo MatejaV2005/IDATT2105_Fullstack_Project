@@ -527,6 +527,7 @@ public class AuthControllerTest {
             when(refService.rotateRefreshToken(storedToken, nextOrg)).thenReturn(testCookie);
 
             mockMvc.perform(post("/auth/switch-organization")
+                            .principal(authWithRole("WORKER"))
                             .with(authentication(authWithRole("WORKER")))
                             .cookie(new Cookie("refresh_token", "old-token"))
                             .contentType(MediaType.APPLICATION_JSON)
@@ -547,6 +548,7 @@ public class AuthControllerTest {
                     .thenThrow(new BadCredentialsException("Refresh token does not belong to the authenticated user"));
 
             mockMvc.perform(post("/auth/switch-organization")
+                            .principal(authWithRole("WORKER"))
                             .with(authentication(authWithRole("WORKER")))
                             .cookie(new Cookie("refresh_token", "old-token"))
                             .contentType(MediaType.APPLICATION_JSON)
