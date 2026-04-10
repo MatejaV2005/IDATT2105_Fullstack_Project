@@ -72,7 +72,7 @@ function requestSetAllRecordsStatus(verificationStatus: VerificationStatus) {
 
     <div class="record-list">
       <div v-if="props.ccp.records.length === 0" class="no-records-message">
-        Alle logger er gjennomgatt. Bra!
+        Alle logger er gjennomgått. Bra!
       </div>
       <CcpLogRecordCard
         v-for="record in props.ccp.records"
