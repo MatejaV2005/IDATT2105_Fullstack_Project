@@ -1,16 +1,16 @@
 <script setup lang="ts">
+import api from '@/api/api'
 import SidebarPageContainer from '@/components/desktop/sidebar/SidebarPageContainer.vue'
 import DesktopButton from '@/components/desktop/shared/DesktopButton.vue'
 import Loading from '@/components/desktop/shared/Loading.vue'
 import SignOutButton from '@/components/desktop/shared/SignOutButton.vue'
 import type { MeInfo } from '@/interfaces/api-interfaces'
-import { delay } from '@/utils'
 import { Edit2, Save, X } from '@lucide/vue'
 import { computed, onMounted, ref } from 'vue'
 
 const resource = ref<MeInfo | null>(null)
 const loading = ref(true)
-const error = ref<boolean | null>(null)
+const error = ref<string | null>(null)
 
 const legalName = ref('')
 const email = ref('')
@@ -18,38 +18,25 @@ const isEditing = ref(false)
 const isSaving = ref(false)
 const saveError = ref(false)
 
-const mockData: MeInfo = {
-  id: 1,
-  legalName: 'Mona Jul',
-  email: 'mona.jul@example.com',
-  createdAt: '2026-03-01 10:15:00',
-}
-
 const canSave = computed(() => {
   return legalName.value.trim().length > 0 && email.value.trim().length > 0 && !isSaving.value
 })
 
 onMounted(async () => {
+  loading.value = true
+  error.value = null
+
   try {
-    // const response = await fetch('/api/me')
-    // if (!response.ok) {
-    //     throw new Error(`Failed to get user (${response.status})`)
-    // }
-    // const data = await response.json()
-    await delay(2000)
-    const data = mockData
-    resource.value = data
-    legalName.value = data.legalName
-    email.value = data.email
-    loading.value = false
-    error.value = false
+    const response = await api.get<MeInfo>('/me')
+    resource.value = response.data
+    legalName.value = response.data.legalName
+    email.value = response.data.email
   } catch (err) {
-    if (err instanceof Error) {
-      console.error(err.message)
-    } else {
-      console.error('Unknown error occurred')
-    }
-    error.value = true
+    resource.value = null
+    error.value = 'Klarte ikke å hente brukerdata.'
+    console.error(err)
+  } finally {
+    loading.value = false
   }
 })
 
@@ -63,30 +50,16 @@ async function saveChanges() {
 
   try {
     const payload = {
-      legalName: legalName.value,
-      email: email.value,
+      legalName: legalName.value.trim(),
+      email: email.value.trim(),
     }
-    // const response = await fetch('/api/users/me', {
-    //     method: 'PUT',
-    //     headers: { 'Content-Type': 'application/json' },
-    //     body: JSON.stringify(payload),
-    // })
-    // if (!response.ok) {
-    //     throw new Error(`Failed to update user (${response.status})`)
-    // }
-    await delay(2000)
-    resource.value = {
-      ...resource.value,
-      legalName: payload.legalName,
-      email: payload.email,
-    }
+    const response = await api.put<MeInfo>('/me', payload)
+    resource.value = response.data
+    legalName.value = response.data.legalName
+    email.value = response.data.email
     isEditing.value = false
   } catch (err) {
-    if (err instanceof Error) {
-      console.error(err.message)
-    } else {
-      console.error('Unknown error occurred')
-    }
+    console.error(err)
     saveError.value = true
   } finally {
     isSaving.value = false
@@ -124,7 +97,7 @@ function cancelEditing() {
         v-else-if="error"
         class="error-message"
       >
-        Klarte ikke å hente brukerdata.
+        {{ error }}
       </p>
 
       <div
