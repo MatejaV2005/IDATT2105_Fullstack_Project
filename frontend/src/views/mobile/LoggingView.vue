@@ -438,15 +438,15 @@ onMounted(() => {
     </div>
 
     <div v-if="!loading">
+      <p class="caption-note caption-note--before-action">
+        {{ helperText }}
+      </p>
       <PrimaryActionButton
         :disabled="submitting || (hasAuthenticatedSession && filledCcpCount === 0)"
         :label="primaryActionLabel"
         type="button"
         @click="handlePrimaryAction"
       />
-      <p class="caption-note">
-        {{ helperText }}
-      </p>
     </div>
   </section>
 </template>

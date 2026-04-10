@@ -14,10 +14,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.grimni.dto.AddOrganizationUserRequest;
 import com.grimni.dto.CollaboratorResponse;
 import com.grimni.dto.CreateOrganizationRequest;
 import com.grimni.dto.OrganizationResponse;
 import com.grimni.dto.UpdateOrganizationRequest;
+import com.grimni.dto.UserOrgResponse;
 import com.grimni.domain.Organization;
 import com.grimni.security.JwtUserPrinciple;
 import com.grimni.service.OrganizationService;
@@ -68,6 +70,20 @@ public class OrganizationController {
     public ResponseEntity<?> getAllUsersInOrg(Authentication authentication) {
         JwtUserPrinciple principal = (JwtUserPrinciple) authentication.getPrincipal();
         return ResponseEntity.ok(organizationService.getAllUsersInOrg(principal.orgId()));
+    }
+
+    @PostMapping("/users")
+    @PreAuthorize("hasAuthority('OWNER')")
+    public ResponseEntity<?> addUserToOrganization(
+            @Valid @RequestBody AddOrganizationUserRequest request,
+            Authentication authentication) {
+        JwtUserPrinciple principal = (JwtUserPrinciple) authentication.getPrincipal();
+        UserOrgResponse response = organizationService.addUserToOrganization(
+            principal.orgId(),
+            principal.userId(),
+            request
+        );
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/danger-analysis-collaborators")

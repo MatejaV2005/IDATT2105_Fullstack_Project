@@ -7,7 +7,7 @@ const props = defineProps<{
   content: string
   icon: Component
   onClick?: () => any
-  buttonColor?: 'navy' | 'cherry' | 'blue-decor' | 'boring-ghost'
+  buttonColor?: 'navy' | 'cherry' | 'blue-decor' | 'boring-ghost' | 'grey'
   disabled?: boolean
 }>()
 
@@ -147,17 +147,22 @@ function click() {
   border-bottom-color: transparent;
 }
 
-.navy-button--grey {
+.desktop-button--grey {
   background-color: var(--blue-navy-20);
   border: 1px solid var(--blue-navy-40);
   color: var(--blue-navy);
   stroke: var(--blue-navy);
 }
-.navy-button--grey:hover,
-.navy-button--grey:focus {
-  background-color: var(--blue-navy-30);
+.desktop-button--grey:not(.disabled-classy):hover,
+.desktop-button--grey:not(.disabled-classy):focus {
+  background-color: var(--blue-light);
 }
-.navy-button--grey:disabled {
+.desktop-button--grey:not(.disabled-classy):hover .loading-spinner,
+.desktop-button--grey:not(.disabled-classy):focus .loading-spinner {
+  border-color: var(--blue-navy);
+  border-bottom-color: transparent;
+}
+.desktop-button--grey:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }

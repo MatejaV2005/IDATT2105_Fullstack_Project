@@ -24,7 +24,8 @@ export interface TimedLogEntry {
 }
 
 export const appMeta = {
-  companyName: 'Everest Sushi',
+  companyName: 'Grimni',
+  currentOrganizationName: 'Everest Sushi',
   userName: 'Jonas Ghar Støre',
   userInitials: 'JT',
 }
