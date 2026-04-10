@@ -424,15 +424,15 @@ onMounted(() => {
     </div>
 
     <div v-if="!loading">
+      <p class="caption-note caption-note--before-action">
+        {{ helperText }}
+      </p>
       <PrimaryActionButton
         :disabled="primaryActionDisabled"
         :label="primaryActionLabel"
         type="button"
         @click="handlePrimaryAction"
       />
-      <p class="caption-note">
-        {{ helperText }}
-      </p>
     </div>
   </section>
 </template>
