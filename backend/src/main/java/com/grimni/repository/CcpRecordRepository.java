@@ -67,4 +67,6 @@ public interface CcpRecordRepository extends JpaRepository<CcpRecord, Long>  {
         Collection<Long> ccpIds
     );
 
+    List<CcpRecord> findByOrganization_Id(Long orgId);
+
 }

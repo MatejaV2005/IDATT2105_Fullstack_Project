@@ -7,18 +7,33 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.HashSet;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import com.grimni.domain.Ccp;
+import com.grimni.domain.CcpRecord;
 import com.grimni.domain.CcpUserBridge;
+import com.grimni.domain.Certificate;
+import com.grimni.domain.Course;
 import com.grimni.domain.CourseUserProgress;
+import com.grimni.domain.Deviation;
+import com.grimni.domain.FileObject;
+import com.grimni.domain.InternalControlReview;
+import com.grimni.domain.IntervalRule;
 import com.grimni.domain.MappingPoint;
 import com.grimni.domain.OrgUserBridge;
 import com.grimni.domain.Organization;
+import com.grimni.domain.PrerequisiteCategory;
+import com.grimni.domain.PrerequisiteRoutine;
+import com.grimni.domain.PrerequisiteRoutineRecord;
+import com.grimni.domain.PrerequisiteStandard;
 import com.grimni.domain.RoutineUserBridge;
+import com.grimni.domain.Todo;
 import com.grimni.domain.User;
 import com.grimni.domain.enums.OrgUserRole;
 import com.grimni.domain.enums.RoutineUserRole;
@@ -34,14 +49,30 @@ import com.grimni.dto.UpdateOrganizationRequest;
 import com.grimni.dto.UserDirectoryResponse;
 import com.grimni.dto.UserOrgResponse;
 import com.grimni.repository.CcpUserBridgeRepository;
+import com.grimni.repository.CcpCorrectiveMeasureRepository;
+import com.grimni.repository.CcpRecordRepository;
+import com.grimni.repository.CcpRepository;
+import com.grimni.repository.CertificateRepository;
+import com.grimni.repository.CourseLinkRepository;
 import com.grimni.repository.CourseRepository;
+import com.grimni.repository.CourseResponsibleUserRepository;
 import com.grimni.repository.CourseUserProgressRepository;
 import com.grimni.repository.DeviationRepository;
+import com.grimni.repository.FileCourseBridgeRepository;
+import com.grimni.repository.FileObjectRepository;
+import com.grimni.repository.InternalControlReviewRepository;
+import com.grimni.repository.IntervalRuleRepository;
 import com.grimni.repository.MappingPointRepository;
 import com.grimni.repository.OrgDangerAnalysisCollaboratorRepository;
 import com.grimni.repository.OrgUserBridgeRepository;
 import com.grimni.repository.OrganizationRepository;
+import com.grimni.repository.PrerequisiteCategoryRepository;
+import com.grimni.repository.PrerequisiteRoutineRecordRepository;
+import com.grimni.repository.PrerequisiteRoutineRepository;
+import com.grimni.repository.PrerequisiteStandardRepository;
+import com.grimni.repository.ProductCategoryRepository;
 import com.grimni.repository.RoutineUserBridgeRepository;
+import com.grimni.repository.TodoRepository;
 import com.grimni.repository.UserRepository;
 
 import jakarta.persistence.EntityNotFoundException;
@@ -73,6 +104,22 @@ public class OrganizationService {
     private final CourseUserProgressRepository courseUserProgressRepository;
     private final DeviationRepository deviationRepository;
     private final MappingPointRepository mappingPointRepository;
+    private final TodoRepository todoRepository;
+    private final FileObjectRepository fileObjectRepository;
+    private final CertificateRepository certificateRepository;
+    private final CourseResponsibleUserRepository courseResponsibleUserRepository;
+    private final CourseLinkRepository courseLinkRepository;
+    private final FileCourseBridgeRepository fileCourseBridgeRepository;
+    private final CcpRepository ccpRepository;
+    private final CcpCorrectiveMeasureRepository ccpCorrectiveMeasureRepository;
+    private final CcpRecordRepository ccpRecordRepository;
+    private final PrerequisiteCategoryRepository prerequisiteCategoryRepository;
+    private final PrerequisiteStandardRepository prerequisiteStandardRepository;
+    private final PrerequisiteRoutineRepository prerequisiteRoutineRepository;
+    private final PrerequisiteRoutineRecordRepository prerequisiteRoutineRecordRepository;
+    private final InternalControlReviewRepository internalControlReviewRepository;
+    private final ProductCategoryRepository productCategoryRepository;
+    private final IntervalRuleRepository intervalRuleRepository;
 
     public OrganizationService(OrganizationRepository organizationRepository,
                                OrgUserBridgeRepository orgUserBridgeRepository,
@@ -83,7 +130,23 @@ public class OrganizationService {
                                CourseRepository courseRepository,
                                CourseUserProgressRepository courseUserProgressRepository,
                                DeviationRepository deviationRepository,
-                               MappingPointRepository mappingPointRepository) {
+                               MappingPointRepository mappingPointRepository,
+                               TodoRepository todoRepository,
+                               FileObjectRepository fileObjectRepository,
+                               CertificateRepository certificateRepository,
+                               CourseResponsibleUserRepository courseResponsibleUserRepository,
+                               CourseLinkRepository courseLinkRepository,
+                               FileCourseBridgeRepository fileCourseBridgeRepository,
+                               CcpRepository ccpRepository,
+                               CcpCorrectiveMeasureRepository ccpCorrectiveMeasureRepository,
+                               CcpRecordRepository ccpRecordRepository,
+                               PrerequisiteCategoryRepository prerequisiteCategoryRepository,
+                               PrerequisiteStandardRepository prerequisiteStandardRepository,
+                               PrerequisiteRoutineRepository prerequisiteRoutineRepository,
+                               PrerequisiteRoutineRecordRepository prerequisiteRoutineRecordRepository,
+                               InternalControlReviewRepository internalControlReviewRepository,
+                               ProductCategoryRepository productCategoryRepository,
+                               IntervalRuleRepository intervalRuleRepository) {
         this.organizationRepository = organizationRepository;
         this.orgUserBridgeRepository = orgUserBridgeRepository;
         this.dangerAnalysisCollaboratorRepository = dangerAnalysisCollaboratorRepository;
@@ -94,6 +157,22 @@ public class OrganizationService {
         this.courseUserProgressRepository = courseUserProgressRepository;
         this.deviationRepository = deviationRepository;
         this.mappingPointRepository = mappingPointRepository;
+        this.todoRepository = todoRepository;
+        this.fileObjectRepository = fileObjectRepository;
+        this.certificateRepository = certificateRepository;
+        this.courseResponsibleUserRepository = courseResponsibleUserRepository;
+        this.courseLinkRepository = courseLinkRepository;
+        this.fileCourseBridgeRepository = fileCourseBridgeRepository;
+        this.ccpRepository = ccpRepository;
+        this.ccpCorrectiveMeasureRepository = ccpCorrectiveMeasureRepository;
+        this.ccpRecordRepository = ccpRecordRepository;
+        this.prerequisiteCategoryRepository = prerequisiteCategoryRepository;
+        this.prerequisiteStandardRepository = prerequisiteStandardRepository;
+        this.prerequisiteRoutineRepository = prerequisiteRoutineRepository;
+        this.prerequisiteRoutineRecordRepository = prerequisiteRoutineRecordRepository;
+        this.internalControlReviewRepository = internalControlReviewRepository;
+        this.productCategoryRepository = productCategoryRepository;
+        this.intervalRuleRepository = intervalRuleRepository;
     }
 
     /**
@@ -265,13 +344,7 @@ public class OrganizationService {
      */
     public Organization updateOrganization(Long orgId, UpdateOrganizationRequest request, Long userId) {
         logger.info("Updating organization {} by user {}", orgId, userId);
-
-        // Security check
-        orgUserBridgeRepository.findByOrganizationIdAndUserId(orgId, userId)
-                .orElseThrow(() -> {
-                    logger.warn("Update failed: organization {} not found for user {}", orgId, userId);
-                    return new EntityNotFoundException("Organization not found");
-                });
+        assertRequesterIsOwner(orgId, userId);
 
         Organization org = organizationRepository.findById(orgId)
                 .orElseThrow(() -> {
@@ -288,6 +361,65 @@ public class OrganizationService {
         org = organizationRepository.save(org);
         logger.info("Organization {} updated successfully by user {}", orgId, userId);
         return org;
+    }
+
+    @Transactional
+    public void deleteOrganization(Long orgId, Long requesterId) {
+        logger.info("Deleting organization {} by requester {}", orgId, requesterId);
+        assertRequesterIsOwner(orgId, requesterId);
+
+        Organization org = organizationRepository.findById(orgId)
+                .orElseThrow(() -> new EntityNotFoundException("Organization not found"));
+
+        deleteIfAny(todoRepository.findByOrganization_Id(orgId), todoRepository::deleteAllInBatch);
+        deleteIfAny(deviationRepository.findByOrganization_Id(orgId), deviationRepository::deleteAllInBatch);
+        deleteIfAny(ccpRecordRepository.findByOrganization_Id(orgId), ccpRecordRepository::deleteAllInBatch);
+        deleteIfAny(prerequisiteRoutineRecordRepository.findByOrganization_Id(orgId), prerequisiteRoutineRecordRepository::deleteAllInBatch);
+        deleteIfAny(internalControlReviewRepository.findByOrganization_IdOrderByCreatedAtDesc(orgId), internalControlReviewRepository::deleteAllInBatch);
+        deleteIfAny(certificateRepository.findByOrganizationId(orgId), certificateRepository::deleteAllInBatch);
+
+        List<Course> courses = courseRepository.findByOrganizationId(orgId);
+        for (Course course : courses) {
+            Long courseId = course.getId();
+            deleteIfAny(courseUserProgressRepository.findByCourseId(courseId), courseUserProgressRepository::deleteAllInBatch);
+            deleteIfAny(courseResponsibleUserRepository.findByCourseId(courseId), courseResponsibleUserRepository::deleteAllInBatch);
+            deleteIfAny(courseLinkRepository.findByCourseId(courseId), courseLinkRepository::deleteAllInBatch);
+            deleteIfAny(fileCourseBridgeRepository.findByCourseId(courseId), fileCourseBridgeRepository::deleteAllInBatch);
+        }
+        deleteIfAny(courses, courseRepository::deleteAllInBatch);
+
+        deleteIfAny(fileObjectRepository.findByOrganization_Id(orgId), fileObjectRepository::deleteAllInBatch);
+        deleteIfAny(mappingPointRepository.findByOrganization_IdOrderByCreatedAtAscIdAsc(orgId), mappingPointRepository::deleteAllInBatch);
+
+        Set<Long> intervalIds = new HashSet<>();
+
+        List<Ccp> ccps = ccpRepository.findByOrganization_Id(orgId);
+        for (Ccp ccp : ccps) {
+            collectIntervalId(intervalIds, ccp.getIntervalRule());
+            ccpUserBridgeRepository.deleteByCcp_Id(ccp.getId());
+            ccpCorrectiveMeasureRepository.deleteByCcp_Id(ccp.getId());
+        }
+        deleteIfAny(ccps, ccpRepository::deleteAllInBatch);
+
+        List<PrerequisiteRoutine> routines = prerequisiteRoutineRepository.findByOrganization_Id(orgId);
+        for (PrerequisiteRoutine routine : routines) {
+            collectIntervalId(intervalIds, routine.getIntervalRule());
+            routineUserBridgeRepository.deleteByRoutine_Id(routine.getId());
+        }
+        deleteIfAny(routines, prerequisiteRoutineRepository::deleteAllInBatch);
+        deleteIfAny(prerequisiteStandardRepository.findByPrerequisiteCategory_Organization_Id(orgId), prerequisiteStandardRepository::deleteAllInBatch);
+        deleteIfAny(prerequisiteCategoryRepository.findByOrganization_Id(orgId), prerequisiteCategoryRepository::deleteAllInBatch);
+
+        deleteIfAny(productCategoryRepository.findByOrganization_Id(orgId), productCategoryRepository::deleteAllInBatch);
+        if (!intervalIds.isEmpty()) {
+            intervalRuleRepository.deleteAllById(intervalIds);
+        }
+
+        deleteIfAny(dangerAnalysisCollaboratorRepository.findByOrganizationId(orgId), dangerAnalysisCollaboratorRepository::deleteAllInBatch);
+        deleteIfAny(orgUserBridgeRepository.findByOrganizationId(orgId), orgUserBridgeRepository::deleteAllInBatch);
+
+        organizationRepository.delete(org);
+        logger.info("Organization {} deleted successfully", orgId);
     }
 
     /**
@@ -487,7 +619,7 @@ public class OrganizationService {
 
         if (requesterBridge.getUserRole() != OrgUserRole.OWNER) {
             logger.warn("Requester {} is not OWNER in organization {}", requesterId, orgId);
-            throw new AccessDeniedException("Only owners can manage organization members");
+            throw new AccessDeniedException("Only owners can manage organization settings and members");
         }
     }
 
@@ -517,6 +649,18 @@ public class OrganizationService {
 
     private String normalizeName(String value) {
         return value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private void collectIntervalId(Set<Long> intervalIds, IntervalRule intervalRule) {
+        if (intervalRule != null && intervalRule.getId() != null) {
+            intervalIds.add(intervalRule.getId());
+        }
+    }
+
+    private <T> void deleteIfAny(List<T> items, java.util.function.Consumer<List<T>> deleter) {
+        if (items != null && !items.isEmpty()) {
+            deleter.accept(items);
+        }
     }
 
     private static final class MutableAssignmentCounts {

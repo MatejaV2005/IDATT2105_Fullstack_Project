@@ -14,6 +14,7 @@ import LearningView from '@/views/desktop/LearningView.vue'
 import MappingAndMeasuresView from '@/views/desktop/MappingAndMeasuresView.vue'
 import MeView from '@/views/desktop/MeView.vue'
 import NoOrganizationView from '@/views/desktop/NoOrganizationView.vue'
+import OrganizationSettingsView from '@/views/desktop/OrganizationSettingsView.vue'
 import PrerequisitesView from '@/views/desktop/PrerequisitesView.vue'
 import TasksView from '@/views/desktop/TasksView.vue'
 import TeamView from '@/views/desktop/TeamView.vue'
@@ -125,6 +126,10 @@ const router = createRouter({
           path: 'bedrift-opplaering',
           component: LearningView,
         },
+        {
+          path: 'bedrift-innstillinger',
+          component: OrganizationSettingsView,
+        },
       ],
     },
     {
@@ -213,6 +218,7 @@ router.beforeEach(async (to) => {
     '/desktop/oppgaver-oversikt/kontrollpunkt-logger',
     '/desktop/oppgaver-oversikt/avvik',
   ])
+  const defaultDesktopRoute = effectiveRole === 'WORKER' ? '/desktop/oppgaver-oversikt' : '/desktop/bedrift-analyse'
 
   if (!hasOrganization && !isNoOrgFlowRoute) {
     return '/desktop/no-org'
@@ -220,6 +226,14 @@ router.beforeEach(async (to) => {
 
   if (isDesktopRoute && hasOrganization && isNoOrgFlowRoute) {
     return postAuthRoute
+  }
+
+  if (
+    to.path === '/desktop/bedrift-innstillinger' &&
+    hasOrganization &&
+    effectiveRole !== 'OWNER'
+  ) {
+    return defaultDesktopRoute
   }
 
   if (

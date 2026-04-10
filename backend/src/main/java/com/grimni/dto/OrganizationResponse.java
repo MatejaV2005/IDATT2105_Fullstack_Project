@@ -1,5 +1,7 @@
 package com.grimni.dto;
 
+import java.time.LocalDateTime;
+
 import com.grimni.domain.Organization;
 
 public record OrganizationResponse(
@@ -8,7 +10,8 @@ public record OrganizationResponse(
     String orgAddress,
     int orgNumber,
     boolean alcoholEnabled,
-    boolean foodEnabled
+    boolean foodEnabled,
+    LocalDateTime createdAt
 ) {
     public static OrganizationResponse fromEntity(Organization org) {
         return new OrganizationResponse(
@@ -17,7 +20,8 @@ public record OrganizationResponse(
             org.getOrgAddress(),
             org.getOrgNumber(),
             org.getAlcoholEnabled(),
-            org.getFoodEnabled()
+            org.getFoodEnabled(),
+            org.getCreatedAt()
         );
     }
 }

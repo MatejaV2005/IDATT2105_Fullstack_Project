@@ -207,7 +207,8 @@ public class OrganizationControllerTest {
                     .andExpect(jsonPath("$.orgNumber").value(100))
                     .andExpect(jsonPath("$.orgAddress").value("123 Main St"))
                     .andExpect(jsonPath("$.alcoholEnabled").value(false))
-                    .andExpect(jsonPath("$.foodEnabled").value(true));
+                    .andExpect(jsonPath("$.foodEnabled").value(true))
+                    .andExpect(jsonPath("$.createdAt").exists());
         }
 
         @Test
@@ -352,20 +353,18 @@ public class OrganizationControllerTest {
         }
 
         @Test
-        @DisplayName("PATCH — MANAGER role is allowed")
-        void updateOrganization_managerRole_isAllowed() throws Exception {
-            Organization updated = createOrg(10L, "Updated");
+        @DisplayName("PATCH — MANAGER role is rejected with 403")
+        void updateOrganization_managerRole_returns403() throws Exception {
             UpdateOrganizationRequest request = new UpdateOrganizationRequest("Updated", null, null, null, null);
-
-            when(organizationService.updateOrganization(eq(10L), any(UpdateOrganizationRequest.class), eq(1L)))
-                    .thenReturn(updated);
 
             mockMvc.perform(patch("/organizations")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request))
                             .with(authentication(authWithRole("MANAGER")))
                             .with(csrf()))
-                    .andExpect(status().isOk());
+                    .andExpect(status().isForbidden());
+
+            verify(organizationService, never()).updateOrganization(any(), any(), any());
         }
 
         @Test
@@ -380,6 +379,33 @@ public class OrganizationControllerTest {
                     .andExpect(status().isForbidden());
 
             verify(organizationService, never()).updateOrganization(any(), any(), any());
+        }
+    }
+
+    @Nested
+    @DisplayName("DELETE /organizations")
+    class DeleteOrganizationTests {
+
+        @Test
+        @DisplayName("OWNER can delete organization")
+        void deleteOrganization_success() throws Exception {
+            mockMvc.perform(delete("/organizations")
+                            .with(authentication(authWithRole("OWNER")))
+                            .with(csrf()))
+                    .andExpect(status().isNoContent());
+
+            verify(organizationService).deleteOrganization(10L, 1L);
+        }
+
+        @Test
+        @DisplayName("MANAGER cannot delete organization")
+        void deleteOrganization_managerForbidden() throws Exception {
+            mockMvc.perform(delete("/organizations")
+                            .with(authentication(authWithRole("MANAGER")))
+                            .with(csrf()))
+                    .andExpect(status().isForbidden());
+
+            verify(organizationService, never()).deleteOrganization(anyLong(), anyLong());
         }
     }
 

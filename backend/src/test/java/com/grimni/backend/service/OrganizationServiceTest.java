@@ -25,13 +25,30 @@ import com.grimni.dto.UserDirectoryResponse;
 import com.grimni.dto.UpdateOrganizationRequest;
 import com.grimni.dto.UserOrgResponse;
 import com.grimni.repository.CcpUserBridgeRepository;
+import com.grimni.repository.CcpCorrectiveMeasureRepository;
+import com.grimni.repository.CcpRecordRepository;
+import com.grimni.repository.CcpRepository;
+import com.grimni.repository.CertificateRepository;
+import com.grimni.repository.CourseLinkRepository;
 import com.grimni.repository.CourseRepository;
+import com.grimni.repository.CourseResponsibleUserRepository;
 import com.grimni.repository.CourseUserProgressRepository;
 import com.grimni.repository.DeviationRepository;
+import com.grimni.repository.FileCourseBridgeRepository;
+import com.grimni.repository.FileObjectRepository;
+import com.grimni.repository.InternalControlReviewRepository;
+import com.grimni.repository.IntervalRuleRepository;
 import com.grimni.repository.MappingPointRepository;
+import com.grimni.repository.OrgDangerAnalysisCollaboratorRepository;
 import com.grimni.repository.OrgUserBridgeRepository;
 import com.grimni.repository.OrganizationRepository;
+import com.grimni.repository.PrerequisiteCategoryRepository;
+import com.grimni.repository.PrerequisiteRoutineRecordRepository;
+import com.grimni.repository.PrerequisiteRoutineRepository;
+import com.grimni.repository.PrerequisiteStandardRepository;
+import com.grimni.repository.ProductCategoryRepository;
 import com.grimni.repository.RoutineUserBridgeRepository;
+import com.grimni.repository.TodoRepository;
 import com.grimni.repository.UserRepository;
 import com.grimni.service.OrganizationService;
 
@@ -54,7 +71,22 @@ public class OrganizationServiceTest {
     private UserRepository userRepository;
 
     @Mock
+    private OrgDangerAnalysisCollaboratorRepository dangerAnalysisCollaboratorRepository;
+
+    @Mock
     private CcpUserBridgeRepository ccpUserBridgeRepository;
+
+    @Mock
+    private CcpCorrectiveMeasureRepository ccpCorrectiveMeasureRepository;
+
+    @Mock
+    private CcpRecordRepository ccpRecordRepository;
+
+    @Mock
+    private CcpRepository ccpRepository;
+
+    @Mock
+    private CertificateRepository certificateRepository;
 
     @Mock
     private RoutineUserBridgeRepository routineUserBridgeRepository;
@@ -63,13 +95,49 @@ public class OrganizationServiceTest {
     private CourseRepository courseRepository;
 
     @Mock
+    private CourseResponsibleUserRepository courseResponsibleUserRepository;
+
+    @Mock
+    private CourseLinkRepository courseLinkRepository;
+
+    @Mock
     private CourseUserProgressRepository courseUserProgressRepository;
+
+    @Mock
+    private FileCourseBridgeRepository fileCourseBridgeRepository;
+
+    @Mock
+    private FileObjectRepository fileObjectRepository;
+
+    @Mock
+    private InternalControlReviewRepository internalControlReviewRepository;
+
+    @Mock
+    private IntervalRuleRepository intervalRuleRepository;
 
     @Mock
     private DeviationRepository deviationRepository;
 
     @Mock
     private MappingPointRepository mappingPointRepository;
+
+    @Mock
+    private PrerequisiteCategoryRepository prerequisiteCategoryRepository;
+
+    @Mock
+    private PrerequisiteStandardRepository prerequisiteStandardRepository;
+
+    @Mock
+    private PrerequisiteRoutineRepository prerequisiteRoutineRepository;
+
+    @Mock
+    private PrerequisiteRoutineRecordRepository prerequisiteRoutineRecordRepository;
+
+    @Mock
+    private ProductCategoryRepository productCategoryRepository;
+
+    @Mock
+    private TodoRepository todoRepository;
 
     @InjectMocks
     private OrganizationService organizationService;
@@ -229,6 +297,7 @@ public class OrganizationServiceTest {
             Organization existing = createOrg(1L, "Old Name");
             OrgUserBridge bridge = new OrgUserBridge();
             bridge.setOrganization(existing);
+            bridge.setUserRole(OrgUserRole.OWNER);
             UpdateOrganizationRequest request = new UpdateOrganizationRequest("New Name", "456 New St", 200, true, true);
 
             when(orgUserBridgeRepository.findByOrganizationIdAndUserId(1L, 1L)).thenReturn(Optional.of(bridge));
@@ -250,6 +319,7 @@ public class OrganizationServiceTest {
             Organization existing = createOrg(1L, "Old Name");
             OrgUserBridge bridge = new OrgUserBridge();
             bridge.setOrganization(existing);
+            bridge.setUserRole(OrgUserRole.OWNER);
             UpdateOrganizationRequest request = new UpdateOrganizationRequest("New Name", null, null, null, null);
 
             when(orgUserBridgeRepository.findByOrganizationIdAndUserId(1L, 1L)).thenReturn(Optional.of(bridge));
@@ -284,6 +354,7 @@ public class OrganizationServiceTest {
         @DisplayName("throws when organization not found")
         void updateOrganization_notFound_throws() {
             OrgUserBridge bridge = new OrgUserBridge();
+            bridge.setUserRole(OrgUserRole.OWNER);
             UpdateOrganizationRequest request = new UpdateOrganizationRequest("Name", "Addr", 100, false, false);
 
             when(orgUserBridgeRepository.findByOrganizationIdAndUserId(999L, 1L)).thenReturn(Optional.of(bridge));
@@ -293,6 +364,24 @@ public class OrganizationServiceTest {
                     () -> organizationService.updateOrganization(999L, request, 1L));
 
             assertEquals("Organization not found", ex.getMessage());
+            verify(organizationRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("throws when requester is not owner")
+        void updateOrganization_nonOwner_throwsAccessDenied() {
+            Organization existing = createOrg(1L, "Old Name");
+            OrgUserBridge bridge = new OrgUserBridge();
+            bridge.setOrganization(existing);
+            bridge.setUserRole(OrgUserRole.MANAGER);
+            UpdateOrganizationRequest request = new UpdateOrganizationRequest("Name", "Addr", 100, false, false);
+
+            when(orgUserBridgeRepository.findByOrganizationIdAndUserId(1L, 1L)).thenReturn(Optional.of(bridge));
+
+            assertThrows(AccessDeniedException.class,
+                    () -> organizationService.updateOrganization(1L, request, 1L));
+
+            verify(organizationRepository, never()).findById(any());
             verify(organizationRepository, never()).save(any());
         }
     }

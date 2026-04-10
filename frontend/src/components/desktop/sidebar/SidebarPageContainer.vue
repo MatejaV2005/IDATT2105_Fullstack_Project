@@ -117,6 +117,7 @@ const { currentUserRole } = useOrgSession()
           </div>
         </div>
         <SidebarMenuOption
+          v-if="currentUserRole === 'OWNER'"
           to="/desktop/bedrift-innstillinger"
           name="Bedrift Innstillinger"
           :is-selected="activePage === '/desktop/bedrift-innstillinger'"

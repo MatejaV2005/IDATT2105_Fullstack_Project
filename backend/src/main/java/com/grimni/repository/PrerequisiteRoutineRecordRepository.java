@@ -20,4 +20,6 @@ public interface PrerequisiteRoutineRecordRepository extends JpaRepository<Prere
         Long orgId,
         Collection<Long> routineIds
     );
+
+    List<PrerequisiteRoutineRecord> findByOrganization_Id(Long orgId);
 }
