@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useOrgSession } from '@/composables/useOrgSession'
 import SidebarMenuOption from './SidebarMenuOption.vue'
 import {
   ChartColumnIncreasing,
@@ -20,6 +21,8 @@ withDefaults(
     navigationMode: 'full',
   },
 )
+
+const { currentUserRole } = useOrgSession()
 </script>
 
 <template>
@@ -40,6 +43,25 @@ withDefaults(
               name="Opprett / bli med i organisasjon"
               :is-selected="activePage === '/desktop/no-org'"
               :icon="Building2"
+            />
+          </div>
+        </div>
+      </template>
+      <template v-else-if="currentUserRole === 'WORKER'">
+        <div>
+          <div>
+            <span class="accent-title">Meg</span>
+            <SidebarMenuOption
+              to="/desktop/users/me"
+              name="Min profil"
+              :is-selected="activePage === '/desktop/users/me'"
+              :icon="PersonStanding"
+            />
+            <SidebarMenuOption
+              to="/desktop/oppgaver-oversikt"
+              name="Mine oppgaver"
+              :is-selected="activePage === '/desktop/oppgaver-oversikt'"
+              :icon="CheckCheck"
             />
           </div>
         </div>
@@ -95,6 +117,7 @@ withDefaults(
           </div>
         </div>
         <SidebarMenuOption
+          v-if="currentUserRole === 'OWNER'"
           to="/desktop/bedrift-innstillinger"
           name="Bedrift Innstillinger"
           :is-selected="activePage === '/desktop/bedrift-innstillinger'"

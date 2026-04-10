@@ -96,4 +96,6 @@ public interface DeviationRepository extends JpaRepository<Deviation, Long> {
         """, nativeQuery = true)
     List<Object[]> countOpenRoutineDeviationReviewsByReceiver(@Param("orgId") Long orgId);
 
+    List<Deviation> findByOrganization_Id(Long orgId);
+
 }

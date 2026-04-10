@@ -14,6 +14,7 @@ import LearningView from '@/views/desktop/LearningView.vue'
 import MappingAndMeasuresView from '@/views/desktop/MappingAndMeasuresView.vue'
 import MeView from '@/views/desktop/MeView.vue'
 import NoOrganizationView from '@/views/desktop/NoOrganizationView.vue'
+import OrganizationSettingsView from '@/views/desktop/OrganizationSettingsView.vue'
 import PrerequisitesView from '@/views/desktop/PrerequisitesView.vue'
 import TasksView from '@/views/desktop/TasksView.vue'
 import TeamView from '@/views/desktop/TeamView.vue'
@@ -125,6 +126,10 @@ const router = createRouter({
           path: 'bedrift-opplaering',
           component: LearningView,
         },
+        {
+          path: 'bedrift-innstillinger',
+          component: OrganizationSettingsView,
+        },
       ],
     },
     {
@@ -201,10 +206,19 @@ router.beforeEach(async (to) => {
 
   const postAuthRoute = getPostAuthRoute(claims.value, organizations.value)
   const hasOrganization = postAuthRoute !== '/desktop/no-org'
-  const isNoOrgFlowRoute =
-    to.path === '/desktop/no-org' ||
-    to.path === '/desktop/create-org' ||
-    to.path === '/desktop/users/me'
+  const isNoOrgFlowRoute = to.path === '/desktop/no-org' || to.path === '/desktop/create-org'
+  const currentOrganization =
+    organizations.value.find((organization) => organization.isCurrent) ??
+    organizations.value.find((organization) => organization.id === claims.value?.orgId) ??
+    null
+  const effectiveRole = currentOrganization?.orgRole ?? claims.value?.role ?? null
+  const workerDesktopAllowedRoutes = new Set([
+    '/desktop/users/me',
+    '/desktop/oppgaver-oversikt',
+    '/desktop/oppgaver-oversikt/kontrollpunkt-logger',
+    '/desktop/oppgaver-oversikt/avvik',
+  ])
+  const defaultDesktopRoute = effectiveRole === 'WORKER' ? '/desktop/oppgaver-oversikt' : '/desktop/bedrift-analyse'
 
   if (!hasOrganization && !isNoOrgFlowRoute) {
     return '/desktop/no-org'
@@ -214,12 +228,21 @@ router.beforeEach(async (to) => {
     return postAuthRoute
   }
 
-  if (isDesktopRoute && hasOrganization && postAuthRoute === '/mobile/rutiner') {
-    return '/mobile/rutiner'
+  if (
+    to.path === '/desktop/bedrift-innstillinger' &&
+    hasOrganization &&
+    effectiveRole !== 'OWNER'
+  ) {
+    return defaultDesktopRoute
   }
 
-  if (isMobileRoute && hasOrganization && postAuthRoute === '/desktop/users/me') {
-    return '/desktop/users/me'
+  if (
+    isDesktopRoute &&
+    hasOrganization &&
+    effectiveRole === 'WORKER' &&
+    !workerDesktopAllowedRoutes.has(to.path)
+  ) {
+    return '/desktop/oppgaver-oversikt'
   }
 
   return true

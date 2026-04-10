@@ -87,7 +87,7 @@ public class OrganizationController {
 
     /**
      * Performs a partial update on the current organization's configuration.
-     * <p>Access is restricted to users with OWNER or MANAGER authority.</p>
+     * <p>Access is restricted to users with OWNER authority.</p>
      *
      * @param request        The validated request containing organization updates.
      * @param authentication The security context containing the {@link JwtUserPrinciple}.
@@ -95,13 +95,22 @@ public class OrganizationController {
      */
     @Operation(summary = "Update organization")
     @PatchMapping
-    @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
+    @PreAuthorize("hasAuthority('OWNER')")
     public ResponseEntity<?> updateOrganization(
                                                 @Valid @RequestBody UpdateOrganizationRequest request,
                                                 Authentication authentication) {
         JwtUserPrinciple principal = (JwtUserPrinciple) authentication.getPrincipal();
         Organization org = organizationService.updateOrganization(principal.orgId(), request, principal.userId());
         return ResponseEntity.ok(OrganizationResponse.fromEntity(org));
+    }
+
+    @Operation(summary = "Delete organization")
+    @DeleteMapping
+    @PreAuthorize("hasAuthority('OWNER')")
+    public ResponseEntity<?> deleteOrganization(Authentication authentication) {
+        JwtUserPrinciple principal = (JwtUserPrinciple) authentication.getPrincipal();
+        organizationService.deleteOrganization(principal.orgId(), principal.userId());
+        return ResponseEntity.noContent().build();
     }
 
     /**

@@ -216,6 +216,16 @@ export interface LearningOrganizationUser {
   accessLevel: string
 }
 
+export interface OrganizationSettings {
+  id: number
+  orgName: string
+  orgAddress: string
+  orgNumber: number
+  alcoholEnabled: boolean
+  foodEnabled: boolean
+  createdAt: string | null
+}
+
 export interface CreateLearningCoursePayload {
   title: string
   description: string
