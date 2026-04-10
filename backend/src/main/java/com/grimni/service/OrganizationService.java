@@ -6,13 +6,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import com.grimni.domain.OrgDangerAnalysisCollaborator;
 import com.grimni.domain.OrgUserBridge;
 import com.grimni.domain.Organization;
 import com.grimni.domain.User;
 import com.grimni.domain.enums.OrgUserRole;
 import com.grimni.domain.ids.OrgUserBridgeId;
+import com.grimni.dto.CollaboratorResponse;
 import com.grimni.dto.CreateOrganizationRequest;
 import com.grimni.dto.UpdateOrganizationRequest;
+import com.grimni.dto.UserOrgResponse;
+import com.grimni.repository.OrgDangerAnalysisCollaboratorRepository;
 import com.grimni.repository.OrgUserBridgeRepository;
 import com.grimni.repository.OrganizationRepository;
 import com.grimni.repository.UserRepository;
@@ -26,13 +30,16 @@ public class OrganizationService {
 
     private final OrganizationRepository organizationRepository;
     private final OrgUserBridgeRepository orgUserBridgeRepository;
+    private final OrgDangerAnalysisCollaboratorRepository dangerAnalysisCollaboratorRepository;
     private final UserRepository userRepository;
 
     public OrganizationService(OrganizationRepository organizationRepository,
                                OrgUserBridgeRepository orgUserBridgeRepository,
+                               OrgDangerAnalysisCollaboratorRepository dangerAnalysisCollaboratorRepository,
                                UserRepository userRepository) {
         this.organizationRepository = organizationRepository;
         this.orgUserBridgeRepository = orgUserBridgeRepository;
+        this.dangerAnalysisCollaboratorRepository = dangerAnalysisCollaboratorRepository;
         this.userRepository = userRepository;
     }
 
@@ -119,5 +126,22 @@ public class OrganizationService {
         org = organizationRepository.save(org);
         logger.info("Organization {} updated successfully by user {}", orgId, userId);
         return org;
+    }
+
+    public List<CollaboratorResponse> getDangerAnalysisCollaboratorsForOrg(long orgId) {
+        List<CollaboratorResponse> collaborators = dangerAnalysisCollaboratorRepository.findByOrganizationId(orgId)
+                .stream()
+                .map(c -> CollaboratorResponse.fromEntity(c.getUser()))
+                .toList();
+        return collaborators;
+    }
+
+    public List<UserOrgResponse> getAllUsersInOrg(long orgId) {
+        List<UserOrgResponse> response = orgUserBridgeRepository.findByOrganizationId(orgId)
+        .stream()
+        .map(u -> UserOrgResponse.fromEntity(u))
+        .toList();
+
+        return response;
     }
 }

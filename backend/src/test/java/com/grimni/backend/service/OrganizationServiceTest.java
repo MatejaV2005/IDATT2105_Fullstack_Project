@@ -20,6 +20,7 @@ import com.grimni.domain.User;
 import com.grimni.domain.enums.OrgUserRole;
 import com.grimni.dto.CreateOrganizationRequest;
 import com.grimni.dto.UpdateOrganizationRequest;
+import com.grimni.dto.UserOrgResponse;
 import com.grimni.repository.OrgUserBridgeRepository;
 import com.grimni.repository.OrganizationRepository;
 import com.grimni.repository.UserRepository;
@@ -266,6 +267,58 @@ public class OrganizationServiceTest {
 
             assertEquals("Organization not found", ex.getMessage());
             verify(organizationRepository, never()).save(any());
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // getAllUsersInOrg
+    // -------------------------------------------------------------------------
+    @Nested
+    @DisplayName("getAllUsersInOrg")
+    class GetAllUsersInOrgTests {
+
+        @Test
+        @DisplayName("returns all users with their roles for the organization")
+        void getAllUsersInOrg_success() {
+            Organization org = createOrg(10L, "Test Org");
+
+            User user2 = new User();
+            ReflectionTestUtils.setField(user2, "id", 2L);
+            user2.setLegalName("bob");
+            user2.setEmail("bob@test.com");
+
+            OrgUserBridge bridge1 = new OrgUserBridge();
+            bridge1.setUser(testUser);
+            bridge1.setOrganization(org);
+            bridge1.setUserRole(OrgUserRole.OWNER);
+
+            OrgUserBridge bridge2 = new OrgUserBridge();
+            bridge2.setUser(user2);
+            bridge2.setOrganization(org);
+            bridge2.setUserRole(OrgUserRole.WORKER);
+
+            when(orgUserBridgeRepository.findByOrganizationId(10L)).thenReturn(List.of(bridge1, bridge2));
+
+            List<UserOrgResponse> result = organizationService.getAllUsersInOrg(10L);
+
+            assertEquals(2, result.size());
+            assertEquals(1L, result.get(0).id());
+            assertEquals("alice", result.get(0).legalName());
+            assertEquals("alice@test.com", result.get(0).email());
+            assertEquals(OrgUserRole.OWNER, result.get(0).accessLevel());
+            assertEquals(2L, result.get(1).id());
+            assertEquals("bob", result.get(1).legalName());
+            assertEquals(OrgUserRole.WORKER, result.get(1).accessLevel());
+        }
+
+        @Test
+        @DisplayName("returns empty list when organization has no users")
+        void getAllUsersInOrg_empty() {
+            when(orgUserBridgeRepository.findByOrganizationId(10L)).thenReturn(List.of());
+
+            List<UserOrgResponse> result = organizationService.getAllUsersInOrg(10L);
+
+            assertTrue(result.isEmpty());
         }
     }
 }

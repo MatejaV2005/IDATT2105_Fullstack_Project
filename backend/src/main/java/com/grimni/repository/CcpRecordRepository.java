@@ -12,6 +12,29 @@ import com.grimni.domain.CcpRecord;
 
 public interface CcpRecordRepository extends JpaRepository<CcpRecord, Long>  {
 
+    @Query("""
+        SELECT cr FROM CcpRecord cr
+        LEFT JOIN FETCH cr.performedBy
+        LEFT JOIN FETCH cr.ccp
+        WHERE cr.organization.id = :orgId
+          AND cr.verificationStatus = com.grimni.domain.enums.VerificationStatus.WAITING
+          AND (
+              (cr.ccp IS NOT NULL AND EXISTS (
+                  SELECT 1 FROM CcpUserBridge cub
+                  WHERE cub.ccp.id = cr.ccp.id
+                    AND cub.user.id = :userId
+                    AND cub.id.userRole = com.grimni.domain.enums.RoutineUserRole.VERIFIER
+              ))
+              OR
+              (cr.ccp IS NULL AND :isManagerOrOwner = true)
+          )
+        ORDER BY cr.createdAt DESC
+        """)
+    List<CcpRecord> findWaitingVerificationRecords(
+            @Param("orgId") Long orgId,
+            @Param("userId") Long userId,
+            @Param("isManagerOrOwner") boolean isManagerOrOwner);
+
     @Query(value = """
         SELECT COUNT(*) FROM ccp_record cr
         WHERE cr.org_id = :orgId
