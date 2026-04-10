@@ -18,13 +18,17 @@ DROP TABLE IF EXISTS org_user_bridge_danger_analysis_collaborator;
 DROP TABLE IF EXISTS org_user_bridge;
 DROP TABLE IF EXISTS file_object;
 DROP TABLE IF EXISTS prerequisite_standard;
+DROP TABLE IF EXISTS mapping_point_user_bridge;
+DROP TABLE IF EXISTS mapping_point;
+DROP TABLE IF EXISTS todo;
+DROP TABLE IF EXISTS refresh_token;
+DROP TABLE IF EXISTS org_user_bridge;
 DROP TABLE IF EXISTS prerequisite_routine;
 DROP TABLE IF EXISTS prerequisite_category;
 DROP TABLE IF EXISTS ccp;
 DROP TABLE IF EXISTS mapping_point;
 DROP TABLE IF EXISTS course;
-DROP TABLE IF EXISTS todo;
-DROP TABLE IF EXISTS refresh_token;
+DROP TABLE IF EXISTS file_object;
 DROP TABLE IF EXISTS interval_rule;
 DROP TABLE IF EXISTS organization;
 DROP TABLE IF EXISTS users;
@@ -341,9 +345,7 @@ CREATE TABLE prerequisite_routine_record (
     CONSTRAINT fk_prerequisite_routine_record_routine
         FOREIGN KEY (routine_id) REFERENCES prerequisite_routine(id) ON DELETE SET NULL,
     CONSTRAINT fk_prerequisite_routine_record_performed_by
-        FOREIGN KEY (performed_by) REFERENCES users(id) ON DELETE NO ACTION,
-    CONSTRAINT fk_prerequisite_routine_record_last_verifier
-        FOREIGN KEY (last_verifier) REFERENCES users(id) ON DELETE NO ACTION
+        FOREIGN KEY (performed_by) REFERENCES users(id) ON DELETE NO ACTION
 );
 
 CREATE TABLE deviation (
