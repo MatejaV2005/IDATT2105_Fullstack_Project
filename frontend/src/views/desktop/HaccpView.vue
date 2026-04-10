@@ -1,45 +1,8 @@
 <script setup lang="ts">
 import DesktopButton from '@/components/desktop/shared/DesktopButton.vue'
-import Loading from '@/components/desktop/shared/Loading.vue'
-import UserBadge from '@/components/desktop/shared/UserBadge.vue'
 import SidebarPageContainer from '@/components/desktop/sidebar/SidebarPageContainer.vue'
-import type { DangerAnalysisCollaboratorsAllInfo } from '@/interfaces/api-interfaces'
-import { delay } from '@/utils'
-import { Plus, SendHorizonal } from '@lucide/vue'
-import { onMounted, ref } from 'vue'
+import { SendHorizonal } from '@lucide/vue'
 
-function hello() {
-  alert('hello')
-}
-
-const resource = ref<DangerAnalysisCollaboratorsAllInfo>([])
-const loading = ref(true)
-const error = ref<boolean | null>(null)
-
-onMounted(async () => {
-  try {
-    // const response = await fetch('/api/haccp/danger-analysis/collaborators')
-    // if (!response.ok) {
-    //     throw new Error(`Failed to complete request... (${response.status})`)
-    // }
-    // const data = await response.json()
-    await delay(2000)
-    const data: DangerAnalysisCollaboratorsAllInfo = [
-      { userId: 123, legalName: 'Einar Gerherdsen' },
-      { userId: 456, legalName: 'Kari Nessa Nordtun' },
-    ]
-    resource.value = data
-    loading.value = false
-    error.value = false
-  } catch (err) {
-    if (err instanceof Error) {
-      console.error(err.message)
-    } else {
-      console.error('Unknown error occurred')
-    }
-    error.value = true
-  }
-})
 </script>
 
 <template>
@@ -56,10 +19,6 @@ onMounted(async () => {
             </div>
             Grunnforutsetningene
           </div>
-          <UserBadge
-            name="Kun deg"
-            :user-id="-1"
-          />
         </div>
         <RouterLink
           class="part-bottom"
@@ -78,29 +37,6 @@ onMounted(async () => {
               2
             </div>
             Fareanalyse
-          </div>
-          <div class="user-container">
-            <Loading
-              v-if="loading"
-              class="loading-in-user-container"
-            />
-            <span v-else-if="error">Kunne ikke hente medlemmer</span>
-            <UserBadge
-              v-for="collaborator in resource"
-              :key="collaborator.userId"
-              :name="collaborator.legalName"
-              :user-id="collaborator.userId"
-            />
-            <div
-              v-if="resource.length > 0"
-              class="vertical-divider"
-            />
-            <DesktopButton
-              :on-click="hello"
-              content="Legg til medlem"
-              :icon="Plus"
-            />
-            <vr />
           </div>
         </div>
         <RouterLink
@@ -124,10 +60,6 @@ onMounted(async () => {
             </div>
             Kritiske punkter
           </div>
-          <UserBadge
-            name="Kun deg"
-            :user-id="-1"
-          />
         </div>
         <RouterLink
           class="part-bottom"
