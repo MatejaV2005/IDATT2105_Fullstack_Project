@@ -278,7 +278,7 @@ onMounted(() => {
               <DesktopButton
                 content="Avbryt"
                 :icon="X"
-                button-color="grey"
+                button-color="boring-ghost"
                 @click="closeResolveModal"
               />
               <DesktopButton
