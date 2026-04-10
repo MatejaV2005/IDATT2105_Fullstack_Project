@@ -1,91 +1,50 @@
 <script setup lang="ts">
 import DeviationLogsFilter from '@/components/desktop/deviationlogs/DeviationLogsFilter.vue'
 import DeviationReviewCard from '@/components/desktop/deviationlogs/DeviationReviewCard.vue'
+import api from '@/api/api'
 import type {
+  DeviationCategory,
   DeviationLog,
   DeviationReviewStatus,
-  DeviationUser,
   UpdateDeviationPayload,
 } from '@/components/desktop/deviationlogs/types'
+import { useOrgSession } from '@/composables/useOrgSession'
 import Loading from '@/components/desktop/shared/Loading.vue'
 import Paginator from '@/components/desktop/shared/Paginator.vue'
-import { delay } from '@/utils'
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
+
+interface ApiDeviationResponse {
+  id: number
+  category: string
+  reviewStatus: string
+  createdAt: string
+  reviewedAt: string | null
+  reportedById: number | null
+  reportedByName: string | null
+  reviewedById: number | null
+  reviewedByName: string | null
+  whatWentWrong: string
+  immediateActionTaken: string
+  potentialCause: string
+  potentialPreventativeMeasure: string
+  preventativeMeasureActuallyTaken: string
+}
 
 const reviewFilter = ref<DeviationReviewStatus | 'ALL'>('OPEN')
 const loading = ref(true)
-const fetchError = ref(false)
+const fetchError = ref<string | null>(null)
 const updateError = ref(false)
 const resource = ref<DeviationLog[]>([])
+const { claims } = useOrgSession()
+let activeFetchId = 0
 
-const currentUser: DeviationUser = {
-  id: 16,
-  legalName: 'Kari Nessa Nordtun',
-  accessLevel: 'MANAGER',
+function normalizeCategory(category: string): DeviationCategory {
+  if (category === 'IK_MAT' || category === 'IK_ALKOHOL' || category === 'OTHER') {
+    return category
+  }
+
+  return 'OTHER'
 }
-
-const mockUsers: DeviationUser[] = [
-  { id: 11, legalName: 'Mona Jul', accessLevel: 'OWNER' },
-  { id: 12, legalName: 'Jagland', accessLevel: 'MANAGER' },
-  { id: 13, legalName: 'Ane Brevik', accessLevel: 'WORKER' },
-  { id: 14, legalName: 'Ola Svenneby', accessLevel: 'WORKER' },
-  { id: 15, legalName: 'Vedum', accessLevel: 'WORKER' },
-  { id: 16, legalName: 'Kari Nessa Nordtun', accessLevel: 'MANAGER' },
-]
-
-const mockServerState = ref<DeviationLog[]>([
-  {
-    id: 301,
-    ccpRecordId: 881,
-    routineRecordId: null,
-    category: 'IK_MAT',
-    reportedBy: mockUsers[3]!,
-    reviewStatus: 'OPEN',
-    reviewedBy: null,
-    reviewedAt: null,
-    whatWentWrong: 'Kjøledisk for fisk målte 9 C ved åpning.',
-    immediateActionTaken: 'Flyttet varer til reservekjøl og varslet vakthavende.',
-    potentialCause: 'Kjøledisk ble stående åpen ved nattvask.',
-    potentialPreventativeMeasure: 'Legg til sluttkontroll i stengerutine med signatur.',
-    preventativeMeasureActuallyTaken: '',
-    deviationReceivers: [mockUsers[5]!],
-    createdAt: '2026-03-29T08:14:00',
-  },
-  {
-    id: 302,
-    ccpRecordId: null,
-    routineRecordId: 1204,
-    category: 'OTHER',
-    reportedBy: mockUsers[2]!,
-    reviewStatus: 'OPEN',
-    reviewedBy: null,
-    reviewedAt: null,
-    whatWentWrong: 'Mangler signering på rengjoringsrutine for oppvaskrom.',
-    immediateActionTaken: 'Rengjoring ble fullfort og signert manuelt.',
-    potentialCause: 'Ny medarbeider kjenner ikke signeringsflyten.',
-    potentialPreventativeMeasure: 'Kort opplaring + synlig sjekkliste pa vegg.',
-    preventativeMeasureActuallyTaken: '',
-    deviationReceivers: [],
-    createdAt: '2026-03-30T18:02:00',
-  },
-  {
-    id: 303,
-    ccpRecordId: null,
-    routineRecordId: 1188,
-    category: 'IK_ALKOHOL',
-    reportedBy: mockUsers[1]!,
-    reviewStatus: 'CLOSED',
-    reviewedBy: mockUsers[0]!,
-    reviewedAt: '2026-03-25T11:31:00',
-    whatWentWrong: 'Utsalg etter skjenketid ble registrert i kassesystem.',
-    immediateActionTaken: 'Salg ble stoppet umiddelbart og avvik registrert.',
-    potentialCause: 'Manglende varsling i kassasystem ved stenging.',
-    potentialPreventativeMeasure: 'Automatisk sperre i kassesystem etter tidspunkt.',
-    preventativeMeasureActuallyTaken: 'Sperre er aktivert, og kveldsvakt har faatt ny sjekkliste.',
-    deviationReceivers: [mockUsers[0]!, mockUsers[1]!],
-    createdAt: '2026-03-24T23:09:00',
-  },
-])
 
 const reviewingDeviationId = ref<number | null>(null)
 const submittingReview = ref(false)
@@ -99,29 +58,45 @@ const filteredResource = computed(() => {
   return resource.value.filter((entry) => entry.reviewStatus === reviewFilter.value)
 })
 
-function cloneDeviations(data: DeviationLog[]) {
-  return data.map((deviation) => ({
-    ...deviation,
-    reportedBy: { ...deviation.reportedBy },
-    reviewedBy: deviation.reviewedBy ? { ...deviation.reviewedBy } : null,
-    deviationReceivers: deviation.deviationReceivers.map((user) => ({ ...user })),
-  }))
+function mapApiDeviation(apiDeviation: ApiDeviationResponse): DeviationLog {
+  return {
+    id: apiDeviation.id,
+    ccpRecordId: null,
+    routineRecordId: null,
+    category: normalizeCategory(apiDeviation.category),
+    reportedBy: {
+      id: apiDeviation.reportedById ?? 0,
+      legalName: apiDeviation.reportedByName ?? 'Ukjent',
+      accessLevel: 'WORKER',
+    },
+    reviewStatus: apiDeviation.reviewStatus === 'CLOSED' ? 'CLOSED' : 'OPEN',
+    reviewedBy:
+      apiDeviation.reviewedById !== null || apiDeviation.reviewedByName
+        ? {
+            id: apiDeviation.reviewedById ?? 0,
+            legalName: apiDeviation.reviewedByName ?? 'Ukjent',
+            accessLevel: 'WORKER',
+          }
+        : null,
+    reviewedAt: apiDeviation.reviewedAt,
+    whatWentWrong: apiDeviation.whatWentWrong,
+    immediateActionTaken: apiDeviation.immediateActionTaken,
+    potentialCause: apiDeviation.potentialCause,
+    potentialPreventativeMeasure: apiDeviation.potentialPreventativeMeasure,
+    preventativeMeasureActuallyTaken: apiDeviation.preventativeMeasureActuallyTaken ?? '',
+    deviationReceivers: [],
+    createdAt: apiDeviation.createdAt,
+  }
 }
 
-function isCurrentUserManagerOrOwner() {
-  return currentUser.accessLevel === 'OWNER' || currentUser.accessLevel === 'MANAGER'
-}
+function getErrorMessage(err: unknown, fallback: string) {
+  const status = (err as { response?: { status?: number } }).response?.status
 
-function isAssignedReceiver(deviation: DeviationLog) {
-  return deviation.deviationReceivers.some((user) => user.id === currentUser.id)
-}
-
-function shouldIncludeForCurrentUser(deviation: DeviationLog) {
-  if (deviation.deviationReceivers.length > 0) {
-    return isAssignedReceiver(deviation)
+  if (status === 403) {
+    return 'Du har ikke tilgang til mottatte avvik.'
   }
 
-  return isCurrentUserManagerOrOwner()
+  return fallback
 }
 
 function formatDateTime(value: string | null) {
@@ -140,54 +115,32 @@ function formatDateTime(value: string | null) {
 }
 
 async function fetchDeviations() {
-  // const response = await fetch('/api/deviations/received')
-  // if (!response.ok) {
-  //   throw new Error(`Failed to fetch deviations (${response.status})`)
-  // }
-  // const data: DeviationLog[] = await response.json()
+  const fetchId = ++activeFetchId
+  loading.value = true
+  fetchError.value = null
 
-  await delay(500)
-  resource.value = cloneDeviations(mockServerState.value).filter(shouldIncludeForCurrentUser)
+  try {
+    const response = await api.get<ApiDeviationResponse[]>('/deviations/received')
+    if (fetchId !== activeFetchId) {
+      return
+    }
+
+    resource.value = Array.isArray(response.data) ? response.data.map(mapApiDeviation) : []
+  } catch (err) {
+    if (fetchId === activeFetchId) {
+      resource.value = []
+      fetchError.value = getErrorMessage(err, 'Klarte ikke a hente avvik.')
+      console.error(err)
+    }
+  } finally {
+    if (fetchId === activeFetchId) {
+      loading.value = false
+    }
+  }
 }
 
 async function reviewDeviation(deviationId: number, payload: UpdateDeviationPayload) {
-  // const response = await fetch(`/api/deviations/${deviationId}`, {
-  //   method: 'PUT',
-  //   headers: { 'Content-Type': 'application/json' },
-  //   body: JSON.stringify(payload),
-  // })
-  // if (!response.ok) {
-  //   throw new Error(`Failed to update deviation (${response.status})`)
-  // }
-
-  await delay(700)
-
-  const deviationIndex = mockServerState.value.findIndex((entry) => entry.id === deviationId)
-  if (deviationIndex === -1) {
-    throw new Error('Deviation not found')
-  }
-
-  const currentDeviation = mockServerState.value[deviationIndex]
-  if (!currentDeviation) {
-    throw new Error('Deviation not found')
-  }
-
-  if (currentDeviation.reviewStatus === 'CLOSED') {
-    throw new Error('Deviation is already closed')
-  }
-
-  const reviewedByUser = mockUsers.find((user) => user.id === payload.reviewed_by)
-  if (!reviewedByUser) {
-    throw new Error('Reviewer not found')
-  }
-
-  mockServerState.value[deviationIndex] = {
-    ...currentDeviation,
-    reviewStatus: payload.review_status,
-    preventativeMeasureActuallyTaken: payload.preventative_measure_actually_taken,
-    reviewedBy: reviewedByUser,
-    reviewedAt: new Date().toISOString(),
-  }
+  await api.put(`/deviations/${deviationId}`, payload)
 }
 
 function startReviewingDeviation(deviationId: number) {
@@ -225,9 +178,7 @@ async function submitDeviationReview(deviationId: number) {
 
   try {
     await reviewDeviation(deviationId, {
-      reviewed_by: currentUser.id,
-      review_status: 'CLOSED',
-      preventative_measure_actually_taken: reviewText.value.trim(),
+      preventativeMeasureActuallyTaken: reviewText.value.trim(),
     })
     await fetchDeviations()
     reviewingDeviationId.value = null
@@ -244,21 +195,9 @@ async function submitDeviationReview(deviationId: number) {
   }
 }
 
-onMounted(async () => {
-  try {
-    await fetchDeviations()
-    fetchError.value = false
-  } catch (err) {
-    if (err instanceof Error) {
-      console.error(err.message)
-    } else {
-      console.error('Unknown error occurred')
-    }
-    fetchError.value = true
-  } finally {
-    loading.value = false
-  }
-})
+watch(() => claims.value?.orgId ?? null, () => {
+  void fetchDeviations()
+}, { immediate: true })
 </script>
 
 <template>
@@ -275,7 +214,7 @@ onMounted(async () => {
         />
 
         <Loading v-if="loading" />
-        <p v-else-if="fetchError" class="error-message">Klarte ikke a hente avvik.</p>
+        <p v-else-if="fetchError" class="error-message">{{ fetchError }}</p>
 
         <template v-else>
           <p v-if="filteredResource.length === 0" class="empty-message">

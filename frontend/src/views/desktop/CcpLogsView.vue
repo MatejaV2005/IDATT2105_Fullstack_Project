@@ -117,6 +117,9 @@ async function updateGroupRecordsStatus(payload: {
         <Paginator />
         <h1 class="instrument-serif-regular no-margin">Kritiske kontrollpunkt logger</h1>
         <hr class="navy-hr" />
+        <div v-if="resource.length === 0">
+          Her var det tomt...
+        </div>
 
         <Loading v-if="loading" />
         <p v-else-if="error" class="error-message">Klarte ikke a hente logger.</p>
