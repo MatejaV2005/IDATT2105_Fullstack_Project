@@ -201,7 +201,10 @@ router.beforeEach(async (to) => {
 
   const postAuthRoute = getPostAuthRoute(claims.value, organizations.value)
   const hasOrganization = postAuthRoute !== '/desktop/no-org'
-  const isNoOrgFlowRoute = to.path === '/desktop/no-org' || to.path === '/desktop/create-org'
+  const isNoOrgFlowRoute =
+    to.path === '/desktop/no-org' ||
+    to.path === '/desktop/create-org' ||
+    to.path === '/desktop/users/me'
 
   if (!hasOrganization && !isNoOrgFlowRoute) {
     return '/desktop/no-org'

@@ -4,6 +4,7 @@ import SidebarPageContainer from '@/components/desktop/sidebar/SidebarPageContai
 import DesktopButton from '@/components/desktop/shared/DesktopButton.vue'
 import Loading from '@/components/desktop/shared/Loading.vue'
 import SignOutButton from '@/components/desktop/shared/SignOutButton.vue'
+import { useOrgSession } from '@/composables/useOrgSession'
 import type { MeInfo } from '@/interfaces/api-interfaces'
 import { Edit2, Save, X } from '@lucide/vue'
 import { computed, onMounted, ref } from 'vue'
@@ -17,6 +18,8 @@ const email = ref('')
 const isEditing = ref(false)
 const isSaving = ref(false)
 const saveError = ref(false)
+const { currentOrganization } = useOrgSession()
+const navigationMode = computed(() => (currentOrganization.value ? 'full' : 'no-org'))
 
 const canSave = computed(() => {
   return legalName.value.trim().length > 0 && email.value.trim().length > 0 && !isSaving.value
@@ -86,7 +89,10 @@ function cancelEditing() {
 </script>
 
 <template>
-  <SidebarPageContainer>
+  <SidebarPageContainer
+    active-page="/desktop/users/me"
+    :navigation-mode="navigationMode"
+  >
     <div class="me-area-container">
       <h1 class="instrument-serif-regular no-margin">
         Min profil
@@ -105,10 +111,6 @@ function cancelEditing() {
         class="profile-card"
       >
         <div class="useless-data-container">
-          <div class="row">
-            <span class="navy-subtitle">Bruker-ID</span>
-            <span>{{ resource.id }}</span>
-          </div>
           <div class="row">
             <span class="navy-subtitle">Opprettet</span>
             <span>{{ resource.createdAt }}</span>

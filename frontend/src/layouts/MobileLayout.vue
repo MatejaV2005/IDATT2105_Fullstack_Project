@@ -2,7 +2,6 @@
 import OrganizationSwitcher from '@/components/OrganizationSwitcher.vue'
 import ViewModeSwitcher from '@/components/ViewModeSwitcher.vue'
 import { useOrgSession } from '@/composables/useOrgSession'
-import { getPostAuthRoute } from '@/utils/auth-routing'
 import { computed, onMounted } from 'vue'
 import { RouterLink, RouterView, useRoute } from 'vue-router'
 
@@ -26,8 +25,7 @@ const tabs = [
 
 const showTabs = computed(() => route.name !== 'login')
 const isLoginPage = computed(() => route.name === 'login')
-const authenticatedRoute = computed(() => getPostAuthRoute(claims.value, organizations.value))
-const profileLink = computed(() => (isAuthenticated.value ? authenticatedRoute.value : '/auth'))
+const profileLink = computed(() => (isAuthenticated.value ? '/desktop/users/me' : '/auth'))
 const profileName = computed(() => currentUserName.value || 'Logg inn')
 const profileInitials = computed(() => currentUserInitials.value)
 const showViewModeSwitcher = computed(() => showTabs.value && currentOrganization.value !== null)

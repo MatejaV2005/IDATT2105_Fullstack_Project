@@ -20,7 +20,7 @@ const {
 } = useOrgSession()
 
 const authenticatedRoute = computed(() => getPostAuthRoute(claims.value, organizations.value))
-const profileRoute = computed(() => (isAuthenticated.value ? authenticatedRoute.value : '/auth'))
+const profileRoute = computed(() => (isAuthenticated.value ? '/desktop/users/me' : '/auth'))
 const logoRoute = computed(() => (isAuthenticated.value ? authenticatedRoute.value : '/auth'))
 const profileLabel = computed(() => currentUserName.value || 'Logg inn')
 const showViewModeSwitcher = computed(() => isAuthenticated.value && currentOrganization.value !== null)

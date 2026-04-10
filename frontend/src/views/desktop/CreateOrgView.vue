@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import api from '@/api/api'
+import SidebarPageContainer from '@/components/desktop/sidebar/SidebarPageContainer.vue'
 import { ensureOrgSessionLoaded, syncOrgSessionFromStorage, useOrgSession } from '@/composables/useOrgSession'
 import { setAuthToken } from '@/utils/auth'
 import { getPostAuthRoute } from '@/utils/auth-routing'
@@ -70,96 +71,101 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <main>
-    <form @submit.prevent="handleSubmit">
-      <h1 class="instrument-serif-regular no-margin">
-        Legg til organisasjon
-      </h1>
-      <hr class="no-margin">
-      <label>
-        *Navn<br>
-        <input
-          v-model="name"
-          required
-          class="simple-text-input"
-          placeholder="Per & Pål bolleklubb"
-          :disabled="isLoading"
+  <SidebarPageContainer
+    active-page="/desktop/no-org"
+    navigation-mode="no-org"
+  >
+    <main>
+      <form @submit.prevent="handleSubmit">
+        <h1 class="instrument-serif-regular no-margin">
+          Legg til organisasjon
+        </h1>
+        <hr class="no-margin">
+        <label>
+          *Navn<br>
+          <input
+            v-model="name"
+            required
+            class="simple-text-input"
+            placeholder="Per & Pål bolleklubb"
+            :disabled="isLoading"
+          >
+        </label>
+        <label>
+          *Addresse<br>
+          <input
+            v-model="address"
+            required
+            class="simple-text-input"
+            placeholder="Bolleveien 7, 0912 Oslo Norge"
+            :disabled="isLoading"
+          >
+        </label>
+        <label>
+          *Org nummer<br>
+          <input
+            v-model="orgNumber"
+            required
+            class="simple-text-input"
+            placeholder="123456789"
+            type="number"
+            :disabled="isLoading"
+          >
+        </label>
+        <label>
+          <input
+            v-model="isGoingToServeAlcohol"
+            type="checkbox"
+            :disabled="isLoading"
+          >
+          Vi kommer til å servere alkohol
+        </label>
+        <label>
+          <input
+            v-model="isGoingToServeFood"
+            type="checkbox"
+            :disabled="isLoading"
+          >
+          Vi kommer til å servere mat
+        </label>
+        <p
+          v-if="errorMessage"
+          class="error-message"
         >
-      </label>
-      <label>
-        *Addresse<br>
-        <input
-          v-model="address"
-          required
-          class="simple-text-input"
-          placeholder="Bolleveien 7, 0912 Oslo Norge"
-          :disabled="isLoading"
+          {{ errorMessage }}
+        </p>
+        <button
+          class="transition"
+          type="submit"
         >
-      </label>
-      <label>
-        *Org nummer<br>
-        <input
-          v-model="orgNumber"
-          required
-          class="simple-text-input"
-          placeholder="123456789"
-          type="number"
-          :disabled="isLoading"
-        >
-      </label>
-      <label>
-        <input
-          v-model="isGoingToServeAlcohol"
-          type="checkbox"
-          :disabled="isLoading"
-        >
-        Vi kommer til å servere alkohol
-      </label>
-      <label>
-        <input
-          v-model="isGoingToServeFood"
-          type="checkbox"
-          :disabled="isLoading"
-        >
-        Vi kommer til å servere mat
-      </label>
-      <p
-        v-if="errorMessage"
-        class="error-message"
-      >
-        {{ errorMessage }}
-      </p>
-      <button
-        class="transition"
-        type="submit"
-      >
-        <span class="no-margin">
-          {{ isLoading ? 'Lager organisasjon...' : 'Lag organisasjon' }}
-        </span>
-        <svg
-          v-if="!isLoading"
-          xmlns="http://www.w3.org/2000/svg"
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          class="lucide lucide-send-horizontal-icon lucide-send-horizontal"
-        >
-          <path
-            d="M3.714 3.048a.498.498 0 0 0-.683.627l2.843 7.627a2 2 0 0 1 0 1.396l-2.842 7.627a.498.498 0 0 0 .682.627l18-8.5a.5.5 0 0 0 0-.904z"
+          <span class="no-margin">
+            {{ isLoading ? 'Lager organisasjon...' : 'Lag organisasjon' }}
+          </span>
+          <svg
+            v-if="!isLoading"
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="lucide lucide-send-horizontal-icon lucide-send-horizontal"
+          >
+            <path
+              d="M3.714 3.048a.498.498 0 0 0-.683.627l2.843 7.627a2 2 0 0 1 0 1.396l-2.842 7.627a.498.498 0 0 0 .682.627l18-8.5a.5.5 0 0 0 0-.904z"
+            />
+            <path d="M6 12h16" />
+          </svg>
+          <span
+            v-else
+            class="loading-spinner"
           />
-          <path d="M6 12h16" />
-        </svg>
-        <span
-          v-else
-          class="loading-spinner"
-        />
-      </button>
-    </form>
-  </main>
+        </button>
+      </form>
+    </main>
+  </SidebarPageContainer>
 </template>
 <style scoped>
 main {
