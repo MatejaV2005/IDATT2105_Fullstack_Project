@@ -12,6 +12,7 @@ const props = defineProps<{
   setUsers: (users: BasicUserWithAccessLevel[]) => void
   initialUserIds?: number[]
   initialUsers?: BasicUserWithAccessLevel[]
+  users?: BasicUserWithAccessLevel[]
 }>()
 
 const allUsers = ref<BasicUserWithAccessLevel[]>([])
@@ -36,6 +37,21 @@ const canAddSelectedUser = computed(() => {
 
   return availableUsers.value.some((user) => user.id === selectedUserId.value)
 })
+
+watch(
+  () => props.users,
+  (users) => {
+    if (users === undefined) {
+      return
+    }
+
+    allUsers.value = users.map((user) => ({ ...user }))
+    isLoading.value = false
+    errorMessage.value = ''
+    syncInitialUsers()
+  },
+  { immediate: true, deep: true },
+)
 
 watch(
   selectedUsers,
@@ -96,11 +112,16 @@ watch(
 )
 
 onMounted(async () => {
+  if (props.users !== undefined) {
+    return
+  }
+
   try {
     const response = await api.get<BasicUserWithAccessLevel[]>('/organizations/users')
-    allUsers.value = response.data
+    allUsers.value = Array.isArray(response.data)
+      ? response.data.map((user) => ({ ...user }))
+      : []
     syncInitialUsers()
-    isLoading.value = false
     errorMessage.value = ''
   } catch (err) {
     if (err instanceof Error) {
@@ -109,6 +130,8 @@ onMounted(async () => {
       console.error('Unknown error occurred')
     }
     errorMessage.value = 'Klarte ikke å hente brukere.'
+  } finally {
+    isLoading.value = false
   }
 })
 

@@ -83,26 +83,17 @@ CREATE TABLE org_user_bridge ( -- showing who is a part of what orgs
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
-CREATE TABLE org_user_bridge_danger_analysis_collaborator ( -- Showing who is a part of the HACCP group doing the danger analysis
-    org_id INT,
-    user_id INT,
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (org_id, user_id),
-    CONSTRAINT fk_danger_analysis_collaborator_org
-        FOREIGN KEY (org_id) REFERENCES organization(id) ON DELETE CASCADE,
-    CONSTRAINT fk_danger_analysis_collaborator_user
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-);
-
 CREATE TABLE product_category ( -- For the danger analysis
     id INT AUTO_INCREMENT PRIMARY KEY,
     product_name TEXT NOT NULL,
     product_description TEXT NOT NULL,
     org_id INT,
-    flowchart JSON NOT NULL, -- showing the process the product goes through
+    flowchart_file_id INT, -- showing the process the product goes through
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_product_category_org
-        FOREIGN KEY (org_id) REFERENCES organization(id) ON DELETE CASCADE
+        FOREIGN KEY (org_id) REFERENCES organization(id) ON DELETE CASCADE,
+    CONSTRAINT fk_product_category_flowchart_file
+        FOREIGN KEY (flowchart_file_id) REFERENCES file_object(id) ON DELETE SET NULL
 );
 
 CREATE TABLE danger_risk_combo ( -- A point under the product category showing a risk in the process the product goes through
