@@ -19,6 +19,11 @@ interface StandardPrerequisitePoint {
   title: string
   type: 'standard'
   description: string
+  resources: {
+    id: number
+    name: string
+    type: 'link' | 'file'
+  }[]
   standardId: number
 }
 

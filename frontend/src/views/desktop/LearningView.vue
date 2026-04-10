@@ -5,7 +5,7 @@ import Loading from '@/components/desktop/shared/Loading.vue'
 import SidebarPageContainer from '@/components/desktop/sidebar/SidebarPageContainer.vue'
 import type { LearningAllInfo } from '@/interfaces/api-interfaces'
 import { delay } from '@/utils'
-import { Check, Edit2, File, Link, Plus, X } from '@lucide/vue'
+import { Check, Edit2, File, Link, Plus, Save, X } from '@lucide/vue'
 import { onMounted, ref } from 'vue'
 
 const mockData: LearningAllInfo = {
@@ -163,11 +163,26 @@ const isEditingCompletion = ref(false)
 const isSavingCompletion = ref(false)
 const saveCompletionError = ref(false)
 const draftUserProgress = ref<LearningAllInfo['userProgress']>([])
+const isCreatingCourse = ref(false)
+const isCreatingCourseRequest = ref(false)
+const createCourseError = ref(false)
+const createCourseTitle = ref('')
+const createCourseDescription = ref('')
+const createCourseLinkInput = ref('')
+const createCourseLinks = ref<string[]>([])
+const createCourseResourceFiles = ref<File[]>([])
 
 interface UpdateCourseCompletionPayload {
   userId: number
   courseId: number
   completed: boolean
+}
+
+interface CreateCoursePayload {
+  title: string
+  description: string
+  links: string[]
+  resources: File[]
 }
 
 async function fetchLearning() {
@@ -181,7 +196,7 @@ async function fetchLearning() {
 }
 
 async function updateCourseCompletion(payload: UpdateCourseCompletionPayload) {
-  // const response = await fetch('/api/learning/course-progress', {
+  // const response = await fetch('/api/courses/course-progress', {
   //   method: 'PUT',
   //   headers: { 'Content-Type': 'application/json' },
   //   body: JSON.stringify(payload),
@@ -202,6 +217,68 @@ async function updateCourseCompletion(payload: UpdateCourseCompletionPayload) {
   }
 
   courseEntry.completed = payload.completed
+}
+
+async function mockCreateCourse(payload: CreateCoursePayload) {
+  // const formData = new FormData()
+  // formData.append('title', payload.title)
+  // formData.append('description', payload.description)
+  // payload.links.forEach((link) => formData.append('links', link))
+  // payload.resources.forEach((file) => formData.append('resources', file))
+  // const response = await fetch('/api/learning/create-course', {
+  //   method: 'POST',
+  //   body: formData,
+  // })
+  // if (!response.ok) {
+  //   throw new Error(`Failed to create course (${response.status})`)
+  // }
+  await delay(600)
+
+  const nextCourseId =
+    mockServerState.value.allCourses.length === 0
+      ? 1
+      : Math.max(...mockServerState.value.allCourses.map((course) => course.uniqueId)) + 1
+
+  const nextResourceIdStart =
+    mockServerState.value.allCourses
+      .flatMap((course) => course.resources)
+      .reduce((maxId, resource) => Math.max(maxId, resource.id), 0) + 1
+
+  const resources = [
+    ...payload.links.map((link, index) => ({
+      id: nextResourceIdStart + index,
+      name: link,
+      type: 'link' as const,
+    })),
+    ...payload.resources.map((file, index) => ({
+      id: nextResourceIdStart + payload.links.length + index,
+      name: file.name,
+      type: 'file' as const,
+    })),
+  ]
+
+  mockServerState.value.allCourses = [
+    ...mockServerState.value.allCourses,
+    {
+      uniqueId: nextCourseId,
+      name: payload.title,
+      description: payload.description,
+      resources,
+      responsible: [],
+    },
+  ]
+
+  mockServerState.value.userProgress = mockServerState.value.userProgress.map((user) => ({
+    ...user,
+    courses: [
+      ...user.courses,
+      {
+        uniqueId: nextCourseId,
+        name: payload.title,
+        completed: false,
+      },
+    ],
+  }))
 }
 
 onMounted(async () => {
@@ -225,6 +302,112 @@ function hasCompletedCourse(
   courseId: number,
 ) {
   return user.courses.some((course) => course.uniqueId === courseId && course.completed)
+}
+
+function startCreatingCourse() {
+  if (isCreatingCourseRequest.value) {
+    return
+  }
+
+  createCourseError.value = false
+  createCourseTitle.value = ''
+  createCourseDescription.value = ''
+  createCourseLinkInput.value = ''
+  createCourseLinks.value = []
+  createCourseResourceFiles.value = []
+  isCreatingCourse.value = true
+}
+
+function cancelCreatingCourse(force = false) {
+  if (isCreatingCourseRequest.value && !force) {
+    return
+  }
+
+  isCreatingCourse.value = false
+  createCourseError.value = false
+  createCourseTitle.value = ''
+  createCourseDescription.value = ''
+  createCourseLinkInput.value = ''
+  createCourseLinks.value = []
+  createCourseResourceFiles.value = []
+}
+
+function addCourseLink() {
+  const value = createCourseLinkInput.value.trim()
+  if (value.length === 0) {
+    return
+  }
+
+  createCourseLinks.value = [...createCourseLinks.value, value]
+  createCourseLinkInput.value = ''
+}
+
+function removeCourseLink(index: number) {
+  createCourseLinks.value = createCourseLinks.value.filter(
+    (_, currentIndex) => currentIndex !== index,
+  )
+}
+
+function setCourseResourceFiles(event: Event) {
+  const input = event.target as HTMLInputElement | null
+  if (!input?.files) {
+    return
+  }
+
+  const selectedFiles = Array.from(input.files)
+  const existingKeys = new Set(
+    createCourseResourceFiles.value.map((file) => `${file.name}-${file.size}-${file.lastModified}`),
+  )
+
+  for (const file of selectedFiles) {
+    const fileKey = `${file.name}-${file.size}-${file.lastModified}`
+    if (!existingKeys.has(fileKey)) {
+      createCourseResourceFiles.value = [...createCourseResourceFiles.value, file]
+      existingKeys.add(fileKey)
+    }
+  }
+
+  input.value = ''
+}
+
+function removeCourseResourceFile(index: number) {
+  createCourseResourceFiles.value = createCourseResourceFiles.value.filter(
+    (_, currentIndex) => currentIndex !== index,
+  )
+}
+
+async function createCourse() {
+  if (
+    !isCreatingCourse.value ||
+    isCreatingCourseRequest.value ||
+    createCourseTitle.value.trim().length === 0 ||
+    createCourseDescription.value.trim().length === 0
+  ) {
+    return
+  }
+
+  isCreatingCourseRequest.value = true
+  createCourseError.value = false
+
+  try {
+    await mockCreateCourse({
+      title: createCourseTitle.value.trim(),
+      description: createCourseDescription.value.trim(),
+      links: [...createCourseLinks.value],
+      resources: [...createCourseResourceFiles.value],
+    })
+    await fetchLearning()
+    cancelCreatingCourse(true)
+  } catch (err) {
+    if (err instanceof Error) {
+      console.error(err.message)
+    } else {
+      console.error('Unknown error occurred')
+    }
+    createCourseError.value = true
+  } finally {
+    isCreatingCourseRequest.value = false
+  }
 }
 
 function startEditingCompletion() {
@@ -315,10 +498,6 @@ async function saveCompletionChanges() {
   } finally {
     isSavingCompletion.value = false
   }
-}
-
-function sayHello() {
-  alert('HELLO THERE!')
 }
 </script>
 
@@ -429,7 +608,124 @@ function sayHello() {
           </div>
         </div>
       </div>
-      <DesktopButton :icon="Plus" content="Legg til kurs" :on-click="sayHello" />
+      <DesktopButton
+        v-if="!isCreatingCourse"
+        :icon="Plus"
+        content="Legg til kurs"
+        :on-click="startCreatingCourse"
+      />
+
+      <div v-else class="course create-course-card">
+        <h3 class="no-margin">Nytt kurs</h3>
+
+        <label class="create-course-field">
+          <span class="navy-subtitle">Tittel</span>
+          <input
+            v-model="createCourseTitle"
+            class="simple-text-input course-input"
+            type="text"
+            placeholder="F.eks. Internkontroll grunnkurs"
+            :disabled="isCreatingCourseRequest"
+          />
+        </label>
+
+        <label class="create-course-field">
+          <span class="navy-subtitle">Beskrivelse</span>
+          <textarea
+            v-model="createCourseDescription"
+            class="simple-text-input course-textarea"
+            rows="4"
+            placeholder="Beskriv hva kurset går ut på"
+            :disabled="isCreatingCourseRequest"
+          />
+        </label>
+
+        <label class="create-course-field">
+          <span class="navy-subtitle">Lenker</span>
+          <div class="link-row">
+            <input
+              v-model="createCourseLinkInput"
+              class="simple-text-input course-input"
+              type="text"
+              placeholder="https://example.no/kurs"
+              :disabled="isCreatingCourseRequest"
+            />
+            <DesktopButton
+              :icon="Plus"
+              content="Legg til lenke"
+              :on-click="addCourseLink"
+              :disabled="isCreatingCourseRequest"
+            />
+          </div>
+          <div class="resource-container">
+            <Badge
+              v-for="(link, index) in createCourseLinks"
+              :key="`new-course-link-${index}-${link}`"
+              badge-color="navy"
+              :icon="Link"
+            >
+              {{ link }}
+              <DesktopButton
+                :icon="X"
+                content="Fjern"
+                button-color="boring-ghost"
+                :disabled="isCreatingCourseRequest"
+                :on-click="() => removeCourseLink(index)"
+                class="inline-remove-button"
+              />
+            </Badge>
+          </div>
+        </label>
+
+        <label class="create-course-field">
+          <span class="navy-subtitle">Ressurser (filer)</span>
+          <input
+            type="file"
+            multiple
+            :disabled="isCreatingCourseRequest"
+            @change="setCourseResourceFiles"
+          />
+          <div class="resource-container">
+            <Badge
+              v-for="(file, index) in createCourseResourceFiles"
+              :key="`new-course-file-${file.name}-${file.lastModified}-${index}`"
+              badge-color="navy"
+              :icon="File"
+            >
+              {{ file.name }}
+              <DesktopButton
+                :icon="X"
+                content="Fjern"
+                button-color="boring-ghost"
+                :disabled="isCreatingCourseRequest"
+                :on-click="() => removeCourseResourceFile(index)"
+                class="inline-remove-button"
+              />
+            </Badge>
+          </div>
+        </label>
+
+        <div class="completion-action-row">
+          <DesktopButton
+            :icon="Save"
+            content="Opprett"
+            :on-click="createCourse"
+            :is-loading="isCreatingCourseRequest"
+            loading-text="Oppretter"
+            class="completion-action-button"
+          />
+          <DesktopButton
+            :icon="X"
+            content="Avbryt"
+            button-color="cherry"
+            :on-click="cancelCreatingCourse"
+            :disabled="isCreatingCourseRequest"
+            class="completion-action-button"
+          />
+        </div>
+
+        <p v-if="createCourseError" class="completion-error">Klarte ikke å opprette kurs.</p>
+      </div>
     </div>
   </SidebarPageContainer>
 </template>
@@ -457,6 +753,36 @@ function sayHello() {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
+}
+
+.create-course-card {
+  gap: 0.75rem;
+}
+
+.create-course-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.course-input {
+  height: 2.2rem;
+}
+
+.course-textarea {
+  resize: vertical;
+}
+
+.link-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.inline-remove-button {
+  margin-left: 0.35rem;
+  padding: 0.05rem 0.45rem;
+  border-radius: 0.35rem;
 }
 .learning-area-container {
   display: flex;

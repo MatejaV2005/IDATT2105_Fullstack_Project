@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { mockAllUsers } from '@/data/mockAllUsers'
 import AddUsers from '@/components/desktop/shared/AddUsers.vue'
+import Badge from '@/components/desktop/shared/Badge.vue'
 import DesktopButton from '@/components/desktop/shared/DesktopButton.vue'
 import Loading from '@/components/desktop/shared/Loading.vue'
 import Paginator from '@/components/desktop/shared/Paginator.vue'
@@ -8,7 +9,7 @@ import UserBadge from '@/components/desktop/shared/UserBadge.vue'
 import type { PrerequisiteCategoryAllInfo } from '@/interfaces/api-interfaces'
 import type { BasicUserWithAccessLevel } from '@/interfaces/util-interfaces'
 import { delay } from '@/utils'
-import { Edit2, Plus, Save, X } from '@lucide/vue'
+import { Edit2, File, Link, Plus, Save, X } from '@lucide/vue'
 import { computed, onMounted, ref } from 'vue'
 
 type PrerequisitePoint = PrerequisiteCategoryAllInfo[number]['points'][number]
@@ -37,6 +38,28 @@ type UpdateStandardPayload = {
   standardId: number
   title: string
   description: string
+}
+
+type CreateCategoryPayload = {
+  categoryName: string
+}
+
+type CreateRoutinePayload = {
+  categoryId: number
+  title: string
+  measures: string
+  interval_start: number
+  interval_repeat_time: number
+  performers: number[]
+  deputy: number[]
+}
+
+type CreateStandardPayload = {
+  categoryId: number
+  title: string
+  description: string
+  links: string[]
+  resources: string[]
 }
 
 const mockData: PrerequisiteCategoryAllInfo = [
@@ -86,6 +109,18 @@ const mockData: PrerequisiteCategoryAllInfo = [
         type: 'standard',
         description:
           'Vask 1 skal kun brukes for mat, mens vask 2 skal brukes for å vaske tallerkener',
+        resources: [
+          {
+            id: 1,
+            name: 'https://mattilsynet.no/hygieneguide',
+            type: 'link',
+          },
+          {
+            id: 2,
+            name: 'renhold-standard.pdf',
+            type: 'file',
+          },
+        ],
         standardId: 1,
       },
     ],
@@ -113,6 +148,7 @@ function clonePrerequisites(data: PrerequisiteCategoryAllInfo): PrerequisiteCate
 
       return {
         ...point,
+        resources: point.resources.map((resource) => ({ ...resource })),
       }
     }),
   }))
@@ -127,6 +163,26 @@ const editingCategoryIndex = ref<number | null>(null)
 const editCategoryName = ref('')
 const savingCategoryIndex = ref<number | null>(null)
 const categorySaveErrorIndex = ref<number | null>(null)
+const isCreatingCategory = ref(false)
+const newCategoryName = ref('')
+const isCreatingCategoryRequest = ref(false)
+const createCategoryError = ref(false)
+
+const creatingPointTarget = ref<{ categoryIndex: number; type: 'routine' | 'standard' } | null>(
+  null,
+)
+const createPointTitle = ref('')
+const createPointMeasures = ref('')
+const createPointDescription = ref('')
+const createStandardLinkInput = ref('')
+const createStandardLinks = ref<string[]>([])
+const createStandardResourceFiles = ref<File[]>([])
+const createPointIntervalStart = ref('')
+const createPointIntervalRepeatTimeSeconds = ref(604800)
+const createPointPerformerIds = ref<number[]>([])
+const createPointDeputyIds = ref<number[]>([])
+const creatingPointKey = ref<string | null>(null)
+const createPointErrorKey = ref<string | null>(null)
 
 const editingPointTarget = ref<{ categoryIndex: number; pointIndex: number } | null>(null)
 const editPointTitle = ref('')
@@ -244,11 +300,19 @@ function getPointKey(categoryIndex: number, pointIndex: number) {
   return `${categoryIndex}-${pointIndex}`
 }
 
+function getCreatePointKey(categoryIndex: number, type: 'routine' | 'standard') {
+  return `${categoryIndex}-${type}`
+}
+
 function isEditingPoint(categoryIndex: number, pointIndex: number) {
   return (
     editingPointTarget.value?.categoryIndex === categoryIndex &&
     editingPointTarget.value?.pointIndex === pointIndex
   )
+}
+
+function isCreatingPointInCategory(categoryIndex: number) {
+  return creatingPointTarget.value?.categoryIndex === categoryIndex
 }
 
 async function fetchPrerequisites() {
@@ -356,8 +420,180 @@ async function mockUpdateStandard(payload: UpdateStandardPayload) {
   }
 }
 
+async function mockCreateCategory(payload: CreateCategoryPayload) {
+  // await fetch('/api/prerequisite-categories/create-category', {
+  //   method: 'POST',
+  //   headers: { 'Content-Type': 'application/json' },
+  //   body: JSON.stringify(payload),
+  // })
+  await delay(700)
+
+  const nextId =
+    mockServerState.value.length === 0
+      ? 1
+      : Math.max(...mockServerState.value.map((category) => category.id)) + 1
+
+  mockServerState.value = [
+    ...mockServerState.value,
+    {
+      id: nextId,
+      categoryName: payload.categoryName,
+      points: [],
+    },
+  ]
+}
+
+async function mockCreateRoutine(payload: CreateRoutinePayload) {
+  // await fetch('/api/prerequisite-categories/create-routine', {
+  //   method: 'POST',
+  //   headers: { 'Content-Type': 'application/json' },
+  //   body: JSON.stringify(payload),
+  // })
+  await delay(700)
+
+  const category = mockServerState.value.find((entry) => entry.id === payload.categoryId)
+  if (!category) {
+    throw new Error('Category not found')
+  }
+
+  const nextRoutineId =
+    mockServerState.value
+      .flatMap((entry) => entry.points)
+      .filter((point): point is RoutinePoint => point.type === 'routine')
+      .reduce((maxId, point) => Math.max(maxId, point.routineId), 0) + 1
+
+  category.points = [
+    ...category.points,
+    {
+      type: 'routine',
+      routineId: nextRoutineId,
+      title: payload.title,
+      measures: payload.measures,
+      repeatText: formatIntervalText(payload.interval_start, payload.interval_repeat_time),
+      deviationRecievers: mapIdsToUsers(payload.deputy),
+      performers: mapIdsToUsers(payload.performers),
+      deputy: mapIdsToUsers(payload.deputy),
+    },
+  ]
+}
+
+async function mockCreateStandard(payload: CreateStandardPayload) {
+  // await fetch('/api/prerequisite-categories/create-standard', {
+  //   method: 'POST',
+  //   headers: { 'Content-Type': 'application/json' },
+  //   body: JSON.stringify(payload),
+  // })
+  await delay(700)
+
+  const category = mockServerState.value.find((entry) => entry.id === payload.categoryId)
+  if (!category) {
+    throw new Error('Category not found')
+  }
+
+  const nextStandardId =
+    mockServerState.value
+      .flatMap((entry) => entry.points)
+      .filter((point): point is StandardPoint => point.type === 'standard')
+      .reduce((maxId, point) => Math.max(maxId, point.standardId), 0) + 1
+
+  const nextResourceIdStart =
+    mockServerState.value
+      .flatMap((entry) => entry.points)
+      .filter((point): point is StandardPoint => point.type === 'standard')
+      .flatMap((point) => point.resources)
+      .reduce((maxId, resource) => Math.max(maxId, resource.id), 0) + 1
+
+  const resources = [
+    ...payload.links.map((link, index) => ({
+      id: nextResourceIdStart + index,
+      name: link,
+      type: 'link' as const,
+    })),
+    ...payload.resources.map((fileName, index) => ({
+      id: nextResourceIdStart + payload.links.length + index,
+      name: fileName,
+      type: 'file' as const,
+    })),
+  ]
+
+  category.points = [
+    ...category.points,
+    {
+      type: 'standard',
+      standardId: nextStandardId,
+      title: payload.title,
+      description: payload.description,
+      resources,
+    },
+  ]
+}
+
+function startCreatingCategory() {
+  if (
+    isCreatingCategoryRequest.value ||
+    creatingPointKey.value !== null ||
+    creatingPointTarget.value !== null ||
+    savingCategoryIndex.value !== null ||
+    savingPointKey.value !== null
+  ) {
+    return
+  }
+
+  isCreatingCategory.value = true
+  createCategoryError.value = false
+  newCategoryName.value = ''
+  editingCategoryIndex.value = null
+  editingPointTarget.value = null
+}
+
+function cancelCreatingCategory() {
+  if (isCreatingCategoryRequest.value) {
+    return
+  }
+
+  isCreatingCategory.value = false
+  createCategoryError.value = false
+  newCategoryName.value = ''
+}
+
+async function createCategory() {
+  if (
+    !isCreatingCategory.value ||
+    isCreatingCategoryRequest.value ||
+    newCategoryName.value.trim().length === 0
+  ) {
+    return
+  }
+
+  isCreatingCategoryRequest.value = true
+  createCategoryError.value = false
+
+  try {
+    await mockCreateCategory({
+      categoryName: newCategoryName.value.trim(),
+    })
+    await fetchPrerequisites()
+    isCreatingCategory.value = false
+    newCategoryName.value = ''
+  } catch (err) {
+    if (err instanceof Error) {
+      console.error(err.message)
+    } else {
+      console.error('Unknown error occurred')
+    }
+    createCategoryError.value = true
+  } finally {
+    isCreatingCategoryRequest.value = false
+  }
+}
+
 function startEditingCategory(categoryIndex: number) {
-  if (savingCategoryIndex.value !== null || savingPointKey.value !== null) {
+  if (
+    isCreatingCategory.value ||
+    creatingPointTarget.value !== null ||
+    savingCategoryIndex.value !== null ||
+    savingPointKey.value !== null
+  ) {
     return
   }
 
@@ -418,7 +654,12 @@ async function saveCategory(categoryIndex: number) {
 }
 
 function startEditingPoint(categoryIndex: number, pointIndex: number) {
-  if (savingCategoryIndex.value !== null || savingPointKey.value !== null) {
+  if (
+    isCreatingCategory.value ||
+    creatingPointTarget.value !== null ||
+    savingCategoryIndex.value !== null ||
+    savingPointKey.value !== null
+  ) {
     return
   }
 
@@ -480,6 +721,185 @@ function setEditPointPerformers(users: BasicUserWithAccessLevel[]) {
 
 function setEditPointDeputy(users: BasicUserWithAccessLevel[]) {
   editPointDeputyIds.value = users.map((user) => user.id)
+}
+
+function setCreatePointPerformers(users: BasicUserWithAccessLevel[]) {
+  createPointPerformerIds.value = users.map((user) => user.id)
+}
+
+function setCreatePointDeputy(users: BasicUserWithAccessLevel[]) {
+  createPointDeputyIds.value = users.map((user) => user.id)
+}
+
+function addCreateStandardLink() {
+  const value = createStandardLinkInput.value.trim()
+  if (value.length === 0) {
+    return
+  }
+
+  createStandardLinks.value = [...createStandardLinks.value, value]
+  createStandardLinkInput.value = ''
+}
+
+function removeCreateStandardLink(index: number) {
+  createStandardLinks.value = createStandardLinks.value.filter(
+    (_, currentIndex) => currentIndex !== index,
+  )
+}
+
+function setCreateStandardResourceFiles(event: Event) {
+  const input = event.target as HTMLInputElement | null
+  if (!input?.files) {
+    createStandardResourceFiles.value = []
+    return
+  }
+
+  createStandardResourceFiles.value = Array.from(input.files)
+}
+
+function startCreatingPoint(categoryIndex: number, type: 'routine' | 'standard') {
+  if (
+    isCreatingCategory.value ||
+    isCreatingCategoryRequest.value ||
+    savingCategoryIndex.value !== null ||
+    savingPointKey.value !== null ||
+    creatingPointKey.value !== null
+  ) {
+    return
+  }
+
+  const category = resource.value[categoryIndex]
+  if (!category) {
+    return
+  }
+
+  creatingPointTarget.value = { categoryIndex, type }
+  createPointErrorKey.value = null
+  editCategoryName.value = ''
+  editingCategoryIndex.value = null
+  editingPointTarget.value = null
+  pointSaveErrorKey.value = null
+
+  createPointTitle.value = ''
+  createPointMeasures.value = ''
+  createPointDescription.value = ''
+  createStandardLinkInput.value = ''
+  createStandardLinks.value = []
+  createStandardResourceFiles.value = []
+  createPointIntervalStart.value = toDateTimeLocal(Math.floor(Date.now() / 1000))
+  createPointIntervalRepeatTimeSeconds.value = 604800
+  createPointPerformerIds.value = []
+  createPointDeputyIds.value = []
+
+  if (type === 'routine' && category.points.length > 0) {
+    const lastRoutine = [...category.points].reverse().find((point) => point.type === 'routine')
+    if (lastRoutine && lastRoutine.type === 'routine') {
+      createPointPerformerIds.value = lastRoutine.performers.map((user) => user.userId)
+      createPointDeputyIds.value = lastRoutine.deputy.map((user) => user.userId)
+    }
+  }
+}
+
+function cancelCreatingPoint() {
+  if (creatingPointKey.value !== null) {
+    return
+  }
+
+  creatingPointTarget.value = null
+  createPointTitle.value = ''
+  createPointMeasures.value = ''
+  createPointDescription.value = ''
+  createStandardLinkInput.value = ''
+  createStandardLinks.value = []
+  createStandardResourceFiles.value = []
+  createPointIntervalStart.value = ''
+  createPointIntervalRepeatTimeSeconds.value = 604800
+  createPointPerformerIds.value = []
+  createPointDeputyIds.value = []
+  createPointErrorKey.value = null
+}
+
+async function createPoint(categoryIndex: number) {
+  const target = creatingPointTarget.value
+  if (!target || target.categoryIndex !== categoryIndex) {
+    return
+  }
+
+  const createKey = getCreatePointKey(target.categoryIndex, target.type)
+  if (creatingPointKey.value !== null || createPointTitle.value.trim().length === 0) {
+    return
+  }
+
+  if (target.type === 'routine') {
+    const intervalStart = toUnixSeconds(createPointIntervalStart.value)
+    const repeatSeconds = Math.floor(createPointIntervalRepeatTimeSeconds.value)
+    if (
+      createPointMeasures.value.trim().length === 0 ||
+      intervalStart === null ||
+      repeatSeconds <= 0 ||
+      createPointPerformerIds.value.length === 0 ||
+      createPointDeputyIds.value.length === 0
+    ) {
+      return
+    }
+  } else if (createPointDescription.value.trim().length === 0) {
+    return
+  }
+
+  creatingPointKey.value = createKey
+  createPointErrorKey.value = null
+
+  try {
+    const category = resource.value[categoryIndex]
+    if (!category) {
+      throw new Error('Category not found')
+    }
+
+    if (target.type === 'routine') {
+      const intervalStart = toUnixSeconds(createPointIntervalStart.value)
+      if (intervalStart === null) {
+        throw new Error('Invalid interval_start')
+      }
+
+      await mockCreateRoutine({
+        categoryId: category.id,
+        title: createPointTitle.value.trim(),
+        measures: createPointMeasures.value.trim(),
+        interval_start: intervalStart,
+        interval_repeat_time: Math.floor(createPointIntervalRepeatTimeSeconds.value),
+        performers: createPointPerformerIds.value,
+        deputy: createPointDeputyIds.value,
+      })
+    } else {
+      await mockCreateStandard({
+        categoryId: category.id,
+        title: createPointTitle.value.trim(),
+        description: createPointDescription.value.trim(),
+        links: [...createStandardLinks.value],
+        resources: createStandardResourceFiles.value.map((file) => file.name),
+      })
+    }
+
+    await fetchPrerequisites()
+    creatingPointTarget.value = null
+    createPointTitle.value = ''
+    createPointMeasures.value = ''
+    createPointDescription.value = ''
+    createPointIntervalStart.value = ''
+    createPointIntervalRepeatTimeSeconds.value = 604800
+    createPointPerformerIds.value = []
+    createPointDeputyIds.value = []
+    createPointErrorKey.value = null
+  } catch (err) {
+    if (err instanceof Error) {
+      console.error(err.message)
+    } else {
+      console.error('Unknown error occurred')
+    }
+    createPointErrorKey.value = createKey
+  } finally {
+    creatingPointKey.value = null
+  }
 }
 
 async function savePoint(categoryIndex: number, pointIndex: number) {
@@ -581,10 +1001,6 @@ async function savePoint(categoryIndex: number, pointIndex: number) {
   }
 }
 
-function notImplemented() {
-  console.info('Not implemented yet')
-}
-
 onMounted(async () => {
   try {
     await fetchPrerequisites()
@@ -609,7 +1025,47 @@ onMounted(async () => {
         <Paginator />
         <h1 class="instrument-serif-regular no-margin">Grunnforutsetninger</h1>
         <hr class="navy-hr" />
+        <DesktopButton
+          v-if="!loading && !isCreatingCategory"
+          :icon="Plus"
+          content="kategori"
+          :on-click="startCreatingCategory"
+          :disabled="isCreatingCategoryRequest"
+        />
         <Loading v-if="loading" />
+        <div v-if="!loading && isCreatingCategory" class="create-category-card">
+          <h2 class="no-margin">Ny kategori</h2>
+          <label class="create-category-field">
+            <span class="navy-subtitle">Kategorinavn</span>
+            <input
+              v-model="newCategoryName"
+              class="simple-text-input category-input"
+              :disabled="isCreatingCategoryRequest"
+              type="text"
+              placeholder="F.eks. Renhold og hygiene"
+            />
+          </label>
+          <div class="edit-actions">
+            <DesktopButton
+              :icon="Save"
+              content="Opprett"
+              :on-click="createCategory"
+              :disabled="newCategoryName.trim().length === 0"
+              :is-loading="isCreatingCategoryRequest"
+              loading-text="Oppretter"
+            />
+            <DesktopButton
+              :icon="X"
+              content="Avbryt"
+              button-color="cherry"
+              :on-click="cancelCreatingCategory"
+              :disabled="isCreatingCategoryRequest"
+            />
+          </div>
+          <p v-if="createCategoryError" class="error-message no-margin">
+            Klarte ikke å opprette kategori.
+          </p>
+        </div>
         <div
           v-for="(prerequisite, categoryIndex) in resource"
           :key="`category-${prerequisite.id}`"
@@ -626,6 +1082,7 @@ onMounted(async () => {
                 class="simple-text-input category-input"
                 :disabled="savingCategoryIndex === categoryIndex"
                 type="text"
+                placeholder="Kategorinavn"
               />
             </div>
             <DesktopButton
@@ -679,6 +1136,7 @@ onMounted(async () => {
                     class="simple-text-input point-title-input"
                     :disabled="savingPointKey === `${categoryIndex}-${pointIndex}`"
                     type="text"
+                    placeholder="Tittel"
                   />
                 </div>
                 <div>
@@ -698,6 +1156,7 @@ onMounted(async () => {
                         class="simple-text-input repeat-input"
                         :disabled="savingPointKey === `${categoryIndex}-${pointIndex}`"
                         type="datetime-local"
+                        placeholder="Velg starttid"
                       />
                     </label>
                     <label class="interval-field">
@@ -762,6 +1221,7 @@ onMounted(async () => {
                     class="simple-text-input point-textarea"
                     :disabled="savingPointKey === `${categoryIndex}-${pointIndex}`"
                     rows="4"
+                    placeholder="Beskriv avvikstiltak"
                   />
                 </div>
 
@@ -811,7 +1271,22 @@ onMounted(async () => {
                     class="simple-text-input point-textarea"
                     :disabled="savingPointKey === `${categoryIndex}-${pointIndex}`"
                     rows="4"
+                    placeholder="Beskriv standarden"
                   />
+                </div>
+
+                <div v-if="point.resources.length > 0" class="standard-resources">
+                  <span class="navy-subtitle">Ressurser</span>
+                  <div class="resource-container">
+                    <Badge
+                      v-for="resource in point.resources"
+                      :key="resource.id"
+                      badge-color="navy"
+                      :icon="resource.type === 'link' ? Link : File"
+                    >
+                      {{ resource.name }}
+                    </Badge>
+                  </div>
                 </div>
               </template>
 
@@ -829,18 +1304,201 @@ onMounted(async () => {
             <DesktopButton
               :icon="Plus"
               content="Legg til rutine"
-              :on-click="notImplemented"
+              :on-click="() => startCreatingPoint(categoryIndex, 'routine')"
               button-color="blue-decor"
+              :disabled="
+                isCreatingCategory ||
+                isCreatingCategoryRequest ||
+                creatingPointKey !== null ||
+                (creatingPointTarget !== null && !isCreatingPointInCategory(categoryIndex))
+              "
             />
             <DesktopButton
               button-color="cherry"
               :icon="Plus"
               content="Legg til standard"
-              :on-click="notImplemented"
+              :on-click="() => startCreatingPoint(categoryIndex, 'standard')"
+              :disabled="
+                isCreatingCategory ||
+                isCreatingCategoryRequest ||
+                creatingPointKey !== null ||
+                (creatingPointTarget !== null && !isCreatingPointInCategory(categoryIndex))
+              "
             />
           </div>
+
+          <div v-if="isCreatingPointInCategory(categoryIndex)" class="create-point-card">
+            <h3 class="no-margin">
+              Ny {{ creatingPointTarget?.type === 'routine' ? 'rutine' : 'standard' }}
+            </h3>
+
+            <label class="create-category-field">
+              <span class="navy-subtitle">Tittel</span>
+              <input
+                v-model="createPointTitle"
+                class="simple-text-input category-input"
+                :disabled="creatingPointKey !== null"
+                type="text"
+                placeholder="F.eks. Vask av benker"
+              />
+            </label>
+
+            <template v-if="creatingPointTarget?.type === 'routine'">
+              <div class="interval-edit-fields">
+                <label class="interval-field">
+                  <span class="navy-subtitle">Intervallstart</span>
+                  <input
+                    v-model="createPointIntervalStart"
+                    class="simple-text-input repeat-input"
+                    :disabled="creatingPointKey !== null"
+                    type="datetime-local"
+                    placeholder="Velg starttid"
+                  />
+                </label>
+                <label class="interval-field">
+                  <span class="navy-subtitle">Repetering</span>
+                  <select
+                    v-model.number="createPointIntervalRepeatTimeSeconds"
+                    class="simple-text-input repeat-input"
+                    :disabled="creatingPointKey !== null"
+                  >
+                    <option
+                      v-for="intervalOption in repeatIntervalOptions"
+                      :key="`create-repeat-${intervalOption.seconds}`"
+                      :value="intervalOption.seconds"
+                    >
+                      {{ intervalOption.label }}
+                    </option>
+                  </select>
+                </label>
+              </div>
+
+              <label class="create-category-field">
+                <span class="navy-subtitle">Avvikstiltak</span>
+                <textarea
+                  v-model="createPointMeasures"
+                  class="simple-text-input point-textarea"
+                  :disabled="creatingPointKey !== null"
+                  rows="4"
+                  placeholder="Hva skal gjøres ved avvik?"
+                />
+              </label>
+
+              <div>
+                <span class="navy-subtitle">Vikarleder</span>
+                <AddUsers
+                  :set-users="setCreatePointDeputy"
+                  :initial-user-ids="createPointDeputyIds"
+                />
+              </div>
+
+              <div>
+                <span class="navy-subtitle">De som skal gjøre det</span>
+                <AddUsers
+                  :set-users="setCreatePointPerformers"
+                  :initial-user-ids="createPointPerformerIds"
+                />
+              </div>
+            </template>
+
+            <div v-else class="create-category-field">
+              <label class="create-category-field">
+                <span class="navy-subtitle">Beskrivelse</span>
+                <textarea
+                  v-model="createPointDescription"
+                  class="simple-text-input point-textarea"
+                  :disabled="creatingPointKey !== null"
+                  rows="4"
+                  placeholder="Beskrivelse av standard"
+                />
+              </label>
+
+              <label class="create-category-field">
+                <span class="navy-subtitle">Lenker</span>
+                <div class="create-link-row">
+                  <input
+                    v-model="createStandardLinkInput"
+                    class="simple-text-input category-input"
+                    :disabled="creatingPointKey !== null"
+                    type="text"
+                    placeholder="https://example.no/standard"
+                  />
+                  <DesktopButton
+                    :icon="Plus"
+                    content="Legg til lenke"
+                    :on-click="addCreateStandardLink"
+                    :disabled="creatingPointKey !== null"
+                  />
+                </div>
+                <div class="resource-container">
+                  <Badge
+                    v-for="(link, linkIndex) in createStandardLinks"
+                    :key="`create-standard-link-${linkIndex}-${link}`"
+                    badge-color="navy"
+                    :icon="Link"
+                  >
+                    {{ link }}
+                    <button
+                      class="remove-resource-button"
+                      :disabled="creatingPointKey !== null"
+                      @click="removeCreateStandardLink(linkIndex)"
+                    >
+                      x
+                    </button>
+                  </Badge>
+                </div>
+              </label>
+
+              <label class="create-category-field">
+                <span class="navy-subtitle">Ressurser (filer)</span>
+                <input
+                  type="file"
+                  multiple
+                  :disabled="creatingPointKey !== null"
+                  @change="setCreateStandardResourceFiles"
+                />
+                <div class="resource-container">
+                  <Badge
+                    v-for="file in createStandardResourceFiles"
+                    :key="`create-standard-file-${file.name}`"
+                    badge-color="navy"
+                    :icon="File"
+                  >
+                    {{ file.name }}
+                  </Badge>
+                </div>
+              </label>
+            </div>
+
+            <div class="edit-actions">
+              <DesktopButton
+                :icon="Save"
+                content="Opprett"
+                :on-click="() => createPoint(categoryIndex)"
+                :is-loading="
+                  creatingPointKey === getCreatePointKey(categoryIndex, creatingPointTarget!.type)
+                "
+                loading-text="Oppretter"
+              />
+              <DesktopButton
+                :icon="X"
+                content="Avbryt"
+                button-color="cherry"
+                :on-click="cancelCreatingPoint"
+                :disabled="creatingPointKey !== null"
+              />
+            </div>
+
+            <p
+              v-if="
+                createPointErrorKey === getCreatePointKey(categoryIndex, creatingPointTarget!.type)
+              "
+              class="error-message no-margin"
+            >
+              Klarte ikke å opprette punkt.
+            </p>
+          </div>
         </div>
-        <DesktopButton :icon="Plus" content="kategori" :on-click="notImplemented" v-if="!loading" />
       </div>
     </main>
   </div>
@@ -887,6 +1545,58 @@ onMounted(async () => {
   width: 100%;
   max-width: 28rem;
   min-height: 2rem;
+}
+
+.create-category-card {
+  border-radius: 0.75rem;
+  border: 1px solid var(--blue-navy-40);
+  background-color: var(--white-greek);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.create-point-card {
+  border-radius: 0.75rem;
+  border: 1px solid var(--blue-navy-40);
+  background-color: var(--white-greek);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.create-category-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.create-link-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.standard-resources {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.resource-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.remove-resource-button {
+  border: 0;
+  background-color: transparent;
+  color: var(--blue-navy);
+  padding: 0;
+  margin-left: 0.3rem;
 }
 
 .point-title-input {
