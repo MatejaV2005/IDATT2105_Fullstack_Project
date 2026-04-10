@@ -15,7 +15,7 @@ import com.grimni.domain.ids.OrgUserBridgeId;
 import com.grimni.dto.CollaboratorResponse;
 import com.grimni.dto.CreateOrganizationRequest;
 import com.grimni.dto.UpdateOrganizationRequest;
-import com.grimni.dto.UserResponse;
+import com.grimni.dto.UserOrgResponse;
 import com.grimni.repository.OrgDangerAnalysisCollaboratorRepository;
 import com.grimni.repository.OrgUserBridgeRepository;
 import com.grimni.repository.OrganizationRepository;
@@ -134,5 +134,14 @@ public class OrganizationService {
                 .map(c -> CollaboratorResponse.fromEntity(c.getUser()))
                 .toList();
         return collaborators;
+    }
+
+    public List<UserOrgResponse> getAllUsersInOrg(long orgId) {
+        List<UserOrgResponse> response = orgUserBridgeRepository.findByOrganizationId(orgId)
+        .stream()
+        .map(u -> UserOrgResponse.fromEntity(u))
+        .toList();
+
+        return response;
     }
 }

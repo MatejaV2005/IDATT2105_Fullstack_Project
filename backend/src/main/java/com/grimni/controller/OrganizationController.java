@@ -45,22 +45,29 @@ public class OrganizationController {
         return ResponseEntity.status(HttpStatus.CREATED).body(OrganizationResponse.fromEntity(org));
     }
 
-    @GetMapping("/{orgId}")
+    @GetMapping
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<?> getOrganization(@PathVariable Long orgId, Authentication authentication) {
-        JwtUserPrinciple principle = (JwtUserPrinciple) authentication.getPrincipal();
-        Organization org = organizationService.findOrganizationByIdAndUser(orgId, principle.userId());
+    public ResponseEntity<?> getOrganization(Authentication authentication) {
+        JwtUserPrinciple principal = (JwtUserPrinciple) authentication.getPrincipal();
+        Organization org = organizationService.findOrganizationByIdAndUser(principal.orgId(), principal.userId());
         return ResponseEntity.ok(OrganizationResponse.fromEntity(org));
     }
 
-    @PatchMapping("/{orgId}")
+    @PatchMapping
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
-    public ResponseEntity<?> updateOrganization(@PathVariable Long orgId,
+    public ResponseEntity<?> updateOrganization(
                                                 @Valid @RequestBody UpdateOrganizationRequest request,
                                                 Authentication authentication) {
         JwtUserPrinciple principal = (JwtUserPrinciple) authentication.getPrincipal();
-        Organization org = organizationService.updateOrganization(orgId, request, principal.userId());
+        Organization org = organizationService.updateOrganization(principal.orgId(), request, principal.userId());
         return ResponseEntity.ok(OrganizationResponse.fromEntity(org));
+    }
+
+    @GetMapping("/users")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> getAllUsersInOrg(Authentication authentication) {
+        JwtUserPrinciple principal = (JwtUserPrinciple) authentication.getPrincipal();
+        return ResponseEntity.ok(organizationService.getAllUsersInOrg(principal.orgId()));
     }
 
     @GetMapping("/danger-analysis-collaborators")
