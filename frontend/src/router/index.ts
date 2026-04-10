@@ -201,10 +201,19 @@ router.beforeEach(async (to) => {
 
   const postAuthRoute = getPostAuthRoute(claims.value, organizations.value)
   const hasOrganization = postAuthRoute !== '/desktop/no-org'
-  const isNoOrgFlowRoute =
-    to.path === '/desktop/no-org' ||
-    to.path === '/desktop/create-org' ||
-    to.path === '/desktop/users/me'
+  const isNoOrgFlowRoute = to.path === '/desktop/no-org' || to.path === '/desktop/create-org'
+  const currentOrganization =
+    organizations.value.find((organization) => organization.isCurrent) ??
+    organizations.value.find((organization) => organization.id === claims.value?.orgId) ??
+    null
+  const effectiveRole = currentOrganization?.orgRole ?? claims.value?.role ?? null
+  const workerDesktopAllowedRoutes = new Set([
+    '/desktop',
+    '/desktop/users/me',
+    '/desktop/oppgaver-oversikt',
+    '/desktop/oppgaver-oversikt/kontrollpunkt-logger',
+    '/desktop/oppgaver-oversikt/avvik',
+  ])
 
   if (!hasOrganization && !isNoOrgFlowRoute) {
     return '/desktop/no-org'
@@ -214,12 +223,13 @@ router.beforeEach(async (to) => {
     return postAuthRoute
   }
 
-  if (isDesktopRoute && hasOrganization && postAuthRoute === '/mobile/rutiner') {
-    return '/mobile/rutiner'
-  }
-
-  if (isMobileRoute && hasOrganization && postAuthRoute === '/desktop/users/me') {
-    return '/desktop/users/me'
+  if (
+    isDesktopRoute &&
+    hasOrganization &&
+    effectiveRole === 'WORKER' &&
+    !workerDesktopAllowedRoutes.has(to.path)
+  ) {
+    return '/desktop/oppgaver-oversikt'
   }
 
   return true
