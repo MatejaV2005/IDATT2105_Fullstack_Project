@@ -10,7 +10,6 @@ services:
     volumes:
       - db_data:/var/lib/mysql
       - ./schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
-      - ./seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${MYSQL_ROOT_PASSWORD}"]
       interval: 10s
@@ -75,7 +74,54 @@ services:
     # ! Only use port forwarding for dev
     # ports:
     #  - "1234:8080" # Default ports
-                    
+
+  db_seed:
+    image: mysql:8.4
+    restart: "no"
+    depends_on:
+      db:
+        condition: service_healthy
+      backend_app:
+        condition: service_started
+    environment:
+      MYSQL_DATABASE: mydb
+      MYSQL_USER: myuser
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - ./seed.sql:/seed.sql:ro
+    command:
+      - /bin/sh
+      - -c
+      - |
+        set -eu
+        echo "Waiting for backend schema updates before seeding..."
+        until mysql -h db -u"$${MYSQL_USER}" -p"$${MYSQL_PASSWORD}" -D "$${MYSQL_DATABASE}" -Nse "
+          SELECT
+            EXISTS (
+              SELECT 1
+              FROM information_schema.tables
+              WHERE table_schema = DATABASE()
+                AND table_name = 'org_user_bridge_danger_analysis_collaborator'
+            )
+            AND EXISTS (
+              SELECT 1
+              FROM information_schema.columns
+              WHERE table_schema = DATABASE()
+                AND table_name = 'product_category'
+                AND column_name = 'flowchart'
+            )
+            AND EXISTS (
+              SELECT 1
+              FROM information_schema.columns
+              WHERE table_schema = DATABASE()
+                AND table_name = 'prerequisite_routine_record'
+                AND column_name = 'verification_status'
+            );
+        " | grep -qx 1; do
+          sleep 2
+        done
+        echo "Applying demo seed..."
+        mysql -h db -u"$${MYSQL_USER}" -p"$${MYSQL_PASSWORD}" -D "$${MYSQL_DATABASE}" < /seed.sql
 
   frontend_app: # should be a vue project ran in production mode. Using normal vue, not some SSR framework 
     restart: unless-stopped
@@ -83,7 +129,10 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     depends_on:
-      - backend_app
+      backend_app:
+        condition: service_started
+      db_seed:
+        condition: service_completed_successfully
     ports:
       - "8080:80"
 
