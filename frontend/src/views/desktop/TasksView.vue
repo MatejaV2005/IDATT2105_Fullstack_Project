@@ -52,7 +52,7 @@ onMounted(async () => {
       <template v-else-if="resource">
         <div class="task-card">
           <div class="task-card-header">
-            <div class="task-card-title">Verifiser logging av <b>krtiske kontrollpunkt</b></div>
+            <div class="task-card-title">Verifiser logging av <b>kritiske kontrollpunkt</b></div>
             <Badge badge-color="cherry">
               <b>{{ resource.remainingCcpVerifications }}</b> CCP logger som verifiseres
             </Badge>

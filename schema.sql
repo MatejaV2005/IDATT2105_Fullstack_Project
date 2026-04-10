@@ -246,7 +246,7 @@ CREATE TABLE prerequisite_routine ( -- A routine to meet "grunnforutsetninger"
     immediate_corrective_action TEXT NOT NULL,
     title TEXT NOT NULL,
     prerequisite_category_id INT,
-    routine_description TEXT NOT NULL,
+    prerequisite_description TEXT NOT NULL,
     org_id INT,
     interval_id INT,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,

@@ -105,20 +105,21 @@ async function createPoint(payload: Omit<MappingPoint, 'id'>) {
   createError.value = false
 
   try {
-    const pointToBeAdded: Omit<MappingPoint, 'id'> = {
+    const pointToBeAdded: any = { // Omit<MappingPoint, 'id'>
       ...payload,
     }
-    const response = await fetch('/api/mapping-points', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(pointToBeAdded),
-    })
-    if (!response.ok) {
-      throw new Error(`Failed to complete request... (${response.status})`)
-    }
-    const newPoint: MappingPoint = await response.json()
+    // const response = await fetch('/api/mapping-points', {
+    //   method: 'POST',
+    //   headers: { 'Content-Type': 'application/json' },
+    //   body: JSON.stringify(pointToBeAdded),
+    // })
+    // if (!response.ok) {
+    //   throw new Error(`Failed to complete request... (${response.status})`)
+    // }
+    // const newPoint: MappingPoint = await response.json()
     await delay(2000)
-    resource.value = [...resource.value, newPoint]
+    // resource.value = [...resource.value, newPoint]
+    resource.value = [...resource.value, pointToBeAdded]
     isCreating.value = false
   } catch (err) {
     if (err instanceof Error) {
