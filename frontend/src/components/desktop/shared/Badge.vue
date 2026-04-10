@@ -46,6 +46,12 @@ defineProps<{
   color: var(--red-cherry);
   stroke: var(--red-cherry);
 }
+.badge.badge-grey {
+  background-color: var(--blue-navy-20);
+  border: 1px solid var(--blue-navy-40);
+  color: var(--blue-navy);
+  stroke: var(--blue-navy);
+}
 .icon {
   width: 1rem;
   height: 1rem;

@@ -3,12 +3,14 @@ package com.grimni.backend.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.grimni.controller.CourseController;
 import com.grimni.domain.Course;
+import com.grimni.domain.CourseLink;
 import com.grimni.domain.CourseResponsibleUser;
 import com.grimni.domain.CourseUserProgress;
 import com.grimni.domain.FileObject;
 import com.grimni.domain.Organization;
 import com.grimni.domain.User;
 import com.grimni.dto.CourseOverviewResponse;
+import com.grimni.dto.CreateCourseLinkRequest;
 import com.grimni.dto.CreateCourseRequest;
 import com.grimni.dto.UpdateCourseRequest;
 import com.grimni.repository.OrganizationRepository;
@@ -362,8 +364,23 @@ public class CourseControllerTest {
         void getOverview_owner_returns200() throws Exception {
             CourseOverviewResponse response = new CourseOverviewResponse(
                     List.of(
-                            new CourseOverviewResponse.CourseDetailResponse(100L, "Safety Course", "Learn safety", List.of("alice")),
-                            new CourseOverviewResponse.CourseDetailResponse(200L, "Drink Course", "Learn drinks", List.of("bob"))
+                            new CourseOverviewResponse.CourseDetailResponse(
+                                    100L,
+                                    "Safety Course",
+                                    "Learn safety",
+                                    List.of(new CourseOverviewResponse.ResponsibleUserResponse(1L, "alice")),
+                                    List.of(
+                                            new CourseOverviewResponse.CourseResourceResponse(11L, "link", "https://example.com"),
+                                            new CourseOverviewResponse.CourseResourceResponse(22L, "file", "safety.pdf")
+                                    )
+                            ),
+                            new CourseOverviewResponse.CourseDetailResponse(
+                                    200L,
+                                    "Drink Course",
+                                    "Learn drinks",
+                                    List.of(new CourseOverviewResponse.ResponsibleUserResponse(2L, "bob")),
+                                    List.of()
+                            )
                     ),
                     List.of(
                             new CourseOverviewResponse.UserProgressOverview(2L, "bob", List.of(
@@ -383,10 +400,14 @@ public class CourseControllerTest {
                     .andExpect(jsonPath("$.allCourses[0].id").value(100))
                     .andExpect(jsonPath("$.allCourses[0].title").value("Safety Course"))
                     .andExpect(jsonPath("$.allCourses[0].courseDescription").value("Learn safety"))
-                    .andExpect(jsonPath("$.allCourses[0].responsible[0]").value("alice"))
+                    .andExpect(jsonPath("$.allCourses[0].responsibleUsers[0].userId").value(1))
+                    .andExpect(jsonPath("$.allCourses[0].responsibleUsers[0].legalName").value("alice"))
+                    .andExpect(jsonPath("$.allCourses[0].resources[0].id").value(11))
+                    .andExpect(jsonPath("$.allCourses[0].resources[0].type").value("link"))
+                    .andExpect(jsonPath("$.allCourses[0].resources[0].name").value("https://example.com"))
                     .andExpect(jsonPath("$.allCourses[1].id").value(200))
                     .andExpect(jsonPath("$.allCourses[1].title").value("Drink Course"))
-                    .andExpect(jsonPath("$.allCourses[1].responsible[0]").value("bob"))
+                    .andExpect(jsonPath("$.allCourses[1].responsibleUsers[0].legalName").value("bob"))
                     .andExpect(jsonPath("$.userProgress").isArray())
                     .andExpect(jsonPath("$.userProgress.length()").value(1))
                     .andExpect(jsonPath("$.userProgress[0].userId").value(2))
@@ -428,6 +449,73 @@ public class CourseControllerTest {
                             .with(authentication(authWithRole("OWNER"))))
                     .andExpect(status().isNotFound())
                     .andExpect(jsonPath("$.error").value("Organization not found"));
+        }
+    }
+
+    @Nested
+    @DisplayName("POST /courses/{courseId}/links")
+    class AddCourseLinkTests {
+
+        @Test
+        @DisplayName("OWNER can add link — returns 201")
+        void addCourseLink_owner_returns201() throws Exception {
+            CourseLink courseLink = new CourseLink();
+            ReflectionTestUtils.setField(courseLink, "id", 21L);
+            courseLink.setCourse(testCourse);
+            courseLink.setLink("https://example.com/course");
+
+            when(courseService.addCourseLink(100L, "https://example.com/course", 10L, 1L))
+                    .thenReturn(courseLink);
+
+            mockMvc.perform(post("/courses/100/links")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(new CreateCourseLinkRequest("https://example.com/course")))
+                            .with(authentication(authWithRole("OWNER")))
+                            .with(csrf()))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.id").value(21))
+                    .andExpect(jsonPath("$.courseId").value(100))
+                    .andExpect(jsonPath("$.link").value("https://example.com/course"));
+        }
+
+        @Test
+        @DisplayName("WORKER cannot add link — returns 403")
+        void addCourseLink_worker_returns403() throws Exception {
+            mockMvc.perform(post("/courses/100/links")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(new CreateCourseLinkRequest("https://example.com/course")))
+                            .with(authentication(authWithRole("WORKER")))
+                            .with(csrf()))
+                    .andExpect(status().isForbidden());
+
+            verify(courseService, never()).addCourseLink(any(), any(), any(), any());
+        }
+    }
+
+    @Nested
+    @DisplayName("DELETE /courses/{courseId}/links/{linkId}")
+    class RemoveCourseLinkTests {
+
+        @Test
+        @DisplayName("OWNER can delete link — returns 204")
+        void removeCourseLink_owner_returns204() throws Exception {
+            mockMvc.perform(delete("/courses/100/links/21")
+                            .with(authentication(authWithRole("OWNER")))
+                            .with(csrf()))
+                    .andExpect(status().isNoContent());
+
+            verify(courseService).removeCourseLink(100L, 21L, 10L, 1L);
+        }
+
+        @Test
+        @DisplayName("WORKER cannot delete link — returns 403")
+        void removeCourseLink_worker_returns403() throws Exception {
+            mockMvc.perform(delete("/courses/100/links/21")
+                            .with(authentication(authWithRole("WORKER")))
+                            .with(csrf()))
+                    .andExpect(status().isForbidden());
+
+            verify(courseService, never()).removeCourseLink(any(), any(), any(), any());
         }
     }
 

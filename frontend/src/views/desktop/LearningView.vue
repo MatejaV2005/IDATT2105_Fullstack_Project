@@ -1,143 +1,24 @@
 <script setup lang="ts">
+import api from '@/api/api'
 import LearningCompletionTable from '@/components/desktop/learning/LearningCompletionTable.vue'
 import LearningCourseRequirements from '@/components/desktop/learning/LearningCourseRequirements.vue'
 import LearningCreateCourseCard from '@/components/desktop/learning/LearningCreateCourseCard.vue'
 import Loading from '@/components/desktop/shared/Loading.vue'
 import SidebarPageContainer from '@/components/desktop/sidebar/SidebarPageContainer.vue'
-import type { LearningAllInfo } from '@/interfaces/api-interfaces'
-import { delay } from '@/utils'
-import { onMounted, ref } from 'vue'
+import { useOrgSession } from '@/composables/useOrgSession'
+import type {
+  CreateLearningCoursePayload,
+  LearningCourse,
+  LearningOrganizationUser,
+  LearningOverviewResponse,
+  LearningUserCourseProgress,
+  LearningUserProgress,
+} from '@/interfaces/api-interfaces'
+import { computed, ref, watch } from 'vue'
 
-const mockData: LearningAllInfo = {
-  allCourses: [
-    {
-      name: 'Serveringskurs',
-      description:
-        "Dere må lese here pdf'en & skrive en oppsummering. Dere må også gjøre alle oppgaver i NDLA sitt kurs og levere det inn til oss.",
-      resources: [
-        {
-          name: 'www.ndla.no/random_stuff',
-          type: 'link',
-          id: 1,
-        },
-        {
-          name: 'erna_sin_spise_guide.pdf',
-          type: 'file',
-          id: 2,
-        },
-      ],
-      responsible: ['Simen Velle', 'Vedum'],
-      uniqueId: 1234,
-    },
-    {
-      name: 'Drikkekurs',
-      description:
-        "Dere må lese here pdf'en & skrive en oppsummering. Dere må også gjøre alle oppgaver i NDLA sitt kurs og levere det inn til oss.",
-      resources: [
-        {
-          name: 'www.ndla.no/random_stuff',
-          type: 'link',
-          id: 9,
-        },
-        {
-          name: 'erna_sin_spise_guide.pdf',
-          type: 'file',
-          id: 4,
-        },
-      ],
-      responsible: ['Simen Velle', 'Ola svenneby'],
-      uniqueId: 9876,
-    },
-    {
-      name: 'Drikkekurs',
-      description:
-        "Dere må lese here pdf'en & skrive en oppsummering. Dere må også gjøre alle oppgaver i NDLA sitt kurs og levere det inn til oss.",
-      resources: [
-        {
-          name: 'www.ndla.no/random_stuff',
-          type: 'link',
-          id: 23,
-        },
-        {
-          name: 'erna_sin_spise_guide.pdf',
-          type: 'file',
-          id: 58,
-        },
-      ],
-      responsible: ['Simen Velle', 'Ola svenneby'],
-      uniqueId: 9816,
-    },
-  ],
-  userProgress: [
-    {
-      id: 11,
-      legalName: 'Mona Jul',
-      email: 'mona.jul@example.com',
-      courses: [
-        {
-          name: 'Serveringskurs',
-          completed: true,
-          uniqueId: 1234,
-        },
-        {
-          name: 'Drikkekurs',
-          completed: false,
-          uniqueId: 9876,
-        },
-      ],
-    },
-    {
-      id: 12,
-      legalName: 'Jagland',
-      email: 'jagland@example.com',
-      courses: [
-        {
-          name: 'Serveringskurs',
-          completed: true,
-          uniqueId: 1234,
-        },
-        {
-          name: 'Drikkekurs',
-          completed: true,
-          uniqueId: 9876,
-        },
-      ],
-    },
-    {
-      id: 13,
-      legalName: 'Bent Hoie',
-      email: 'bent.hoie@example.com',
-      courses: [
-        {
-          name: 'Serveringskurs',
-          completed: false,
-          uniqueId: 1234,
-        },
-        {
-          name: 'Drikkekurs',
-          completed: true,
-          uniqueId: 9876,
-        },
-      ],
-    },
-    {
-      id: 14,
-      legalName: 'Bondevik',
-      email: 'bondevik@example.com',
-      courses: [
-        {
-          name: 'Serveringskurs',
-          completed: false,
-          uniqueId: 1234,
-        },
-        {
-          name: 'Drikkekurs',
-          completed: false,
-          uniqueId: 9876,
-        },
-      ],
-    },
-  ],
+interface LearningPageData {
+  allCourses: LearningCourse[]
+  userProgress: LearningUserProgress[]
 }
 
 interface UpdateCourseCompletionPayload {
@@ -146,142 +27,119 @@ interface UpdateCourseCompletionPayload {
   completed: boolean
 }
 
-interface CreateCoursePayload {
-  title: string
-  description: string
-  links: string[]
-  resources: File[]
-}
+const { claims } = useOrgSession()
 
-function cloneLearningData(data: LearningAllInfo): LearningAllInfo {
-  return {
-    allCourses: data.allCourses.map((course) => ({
-      ...course,
-      resources: course.resources.map((resource) => ({ ...resource })),
-      responsible: [...course.responsible],
-    })),
-    userProgress: data.userProgress.map((user) => ({
-      ...user,
-      courses: user.courses.map((course) => ({ ...course })),
-    })),
-  }
-}
-
-const mockServerState = ref<LearningAllInfo>(cloneLearningData(mockData))
-
-const resource = ref<LearningAllInfo>({ allCourses: [], userProgress: [] })
+const resource = ref<LearningPageData>({ allCourses: [], userProgress: [] })
+const organizationUsers = ref<LearningOrganizationUser[]>([])
 const loading = ref(true)
-const error = ref<boolean | null>(null)
+const error = ref<string | null>(null)
 
 const isEditingCompletion = ref(false)
 const isSavingCompletion = ref(false)
 const saveCompletionError = ref(false)
-const draftUserProgress = ref<LearningAllInfo['userProgress']>([])
+const draftUserProgress = ref<LearningUserProgress[]>([])
 
 const isCreatingCourseRequest = ref(false)
 const createCourseError = ref(false)
 
-async function fetchLearning() {
-  // const response = await fetch('/api/learning/get-all-info')
-  // if (!response.ok) {
-  //   throw new Error(`Failed to fetch learning data (${response.status})`)
-  // }
-  // const data: LearningAllInfo = await response.json()
-  await delay(500)
-  resource.value = cloneLearningData(mockServerState.value)
+let activeFetchId = 0
+
+function sortUsers(users: LearningOrganizationUser[]) {
+  return [...users].sort((left, right) => left.legalName.localeCompare(right.legalName, 'nb-NO'))
 }
 
-async function updateCourseCompletion(payload: UpdateCourseCompletionPayload) {
-  // const response = await fetch('/api/courses/course-progress', {
-  //   method: 'PUT',
-  //   headers: { 'Content-Type': 'application/json' },
-  //   body: JSON.stringify(payload),
-  // })
-  // if (!response.ok) {
-  //   throw new Error(`Failed to update course completion (${response.status})`)
-  // }
-  await delay(220)
+function buildLearningPageData(
+  overview: LearningOverviewResponse,
+  users: LearningOrganizationUser[],
+): LearningPageData {
+  const progressByUser = new Map(
+    overview.userProgress.map((userProgress) => [
+      userProgress.userId,
+      new Map(
+        userProgress.courses.map((courseStatus) => [courseStatus.courseId, courseStatus.completed]),
+      ),
+    ]),
+  )
 
-  const userEntry = mockServerState.value.userProgress.find((entry) => entry.id === payload.userId)
-  if (!userEntry) {
-    return
-  }
-
-  const courseEntry = userEntry.courses.find((entry) => entry.uniqueId === payload.courseId)
-  if (!courseEntry) {
-    return
-  }
-
-  courseEntry.completed = payload.completed
-}
-
-async function mockCreateCourse(payload: CreateCoursePayload) {
-  // const formData = new FormData()
-  // formData.append('title', payload.title)
-  // formData.append('description', payload.description)
-  // payload.links.forEach((link) => formData.append('links', link))
-  // payload.resources.forEach((file) => formData.append('resources', file))
-  // const response = await fetch('/api/learning/create-course', {
-  //   method: 'POST',
-  //   body: formData,
-  // })
-  // if (!response.ok) {
-  //   throw new Error(`Failed to create course (${response.status})`)
-  // }
-  await delay(600)
-
-  const nextCourseId =
-    mockServerState.value.allCourses.length === 0
-      ? 1
-      : Math.max(...mockServerState.value.allCourses.map((course) => course.uniqueId)) + 1
-
-  const nextResourceIdStart =
-    mockServerState.value.allCourses
-      .flatMap((course) => course.resources)
-      .reduce((maxId, resource) => Math.max(maxId, resource.id), 0) + 1
-
-  const resources = [
-    ...payload.links.map((link, index) => ({
-      id: nextResourceIdStart + index,
-      name: link,
-      type: 'link' as const,
+  const normalizedUsers = sortUsers(users).map((user) => ({
+    id: user.id,
+    legalName: user.legalName,
+    email: user.email,
+    courses: overview.allCourses.map<LearningUserCourseProgress>((course) => ({
+      courseId: course.id,
+      title: course.title,
+      completed: progressByUser.get(user.id)?.get(course.id) ?? false,
+      hasProgressRecord: progressByUser.get(user.id)?.has(course.id) ?? false,
     })),
-    ...payload.resources.map((file, index) => ({
-      id: nextResourceIdStart + payload.links.length + index,
-      name: file.name,
-      type: 'file' as const,
-    })),
-  ]
-
-  mockServerState.value.allCourses = [
-    ...mockServerState.value.allCourses,
-    {
-      uniqueId: nextCourseId,
-      name: payload.title,
-      description: payload.description,
-      resources,
-      responsible: [],
-    },
-  ]
-
-  mockServerState.value.userProgress = mockServerState.value.userProgress.map((user) => ({
-    ...user,
-    courses: [
-      ...user.courses,
-      {
-        uniqueId: nextCourseId,
-        name: payload.title,
-        completed: false,
-      },
-    ],
   }))
+
+  return {
+    allCourses: overview.allCourses,
+    userProgress: normalizedUsers,
+  }
 }
 
-function startEditingCompletion() {
-  draftUserProgress.value = resource.value.userProgress.map((user) => ({
+function cloneUserProgress(users: LearningUserProgress[]) {
+  return users.map((user) => ({
     ...user,
     courses: user.courses.map((course) => ({ ...course })),
   }))
+}
+
+function getErrorMessage(err: unknown, fallback: string) {
+  const status = (err as { response?: { status?: number } }).response?.status
+
+  if (status === 403) {
+    return 'Du har ikke tilgang til opplæringssiden. Kun owner og manager kan åpne denne siden.'
+  }
+
+  return fallback
+}
+
+async function fetchLearning() {
+  const fetchId = ++activeFetchId
+
+  if (fetchId === activeFetchId) {
+    loading.value = true
+    error.value = null
+  }
+
+  try {
+    const [overviewResponse, organizationUsersResponse] = await Promise.all([
+      api.get<LearningOverviewResponse>('/courses/overview'),
+      api.get<LearningOrganizationUser[]>('/organizations/users'),
+    ])
+
+    if (fetchId !== activeFetchId) {
+      return
+    }
+
+    organizationUsers.value = sortUsers(organizationUsersResponse.data)
+    resource.value = buildLearningPageData(overviewResponse.data, organizationUsers.value)
+    isEditingCompletion.value = false
+    draftUserProgress.value = []
+    saveCompletionError.value = false
+    createCourseError.value = false
+  } catch (err) {
+    if (fetchId !== activeFetchId) {
+      return
+    }
+
+    resource.value = { allCourses: [], userProgress: [] }
+    organizationUsers.value = []
+    error.value = getErrorMessage(
+      err,
+      'Kunne ikke hente opplæringsdata fra serveren. Prøv igjen.',
+    )
+  } finally {
+    if (fetchId === activeFetchId) {
+      loading.value = false
+    }
+  }
+}
+
+function startEditingCompletion() {
+  draftUserProgress.value = cloneUserProgress(resource.value.userProgress)
   saveCompletionError.value = false
   isEditingCompletion.value = true
 }
@@ -302,12 +160,38 @@ function toggleDraftCourseCompletion(payload: { userId: number; courseId: number
     return
   }
 
-  const course = user.courses.find((entry) => entry.uniqueId === payload.courseId)
+  const course = user.courses.find((entry) => entry.courseId === payload.courseId)
   if (!course) {
     return
   }
 
   course.completed = !course.completed
+}
+
+async function persistCompletionChange(
+  originalCourse: LearningUserCourseProgress,
+  nextCourse: LearningUserCourseProgress,
+  userId: number,
+) {
+  if (originalCourse.hasProgressRecord) {
+    await api.patch(`/courses/${nextCourse.courseId}/progress/${userId}`, nextCourse.completed, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+    return
+  }
+
+  if (!nextCourse.completed) {
+    return
+  }
+
+  await api.post(`/courses/${nextCourse.courseId}/progress/${userId}`)
+  await api.patch(`/courses/${nextCourse.courseId}/progress/${userId}`, true, {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  })
 }
 
 async function saveCompletionChanges() {
@@ -324,16 +208,14 @@ async function saveCompletionChanges() {
     }
 
     for (const course of user.courses) {
-      const originalCourse = originalUser.courses.find(
-        (entry) => entry.uniqueId === course.uniqueId,
-      )
+      const originalCourse = originalUser.courses.find((entry) => entry.courseId === course.courseId)
       if (!originalCourse || originalCourse.completed === course.completed) {
         continue
       }
 
       updates.push({
         userId: user.id,
-        courseId: course.uniqueId,
+        courseId: course.courseId,
         completed: course.completed,
       })
     }
@@ -350,24 +232,35 @@ async function saveCompletionChanges() {
 
   try {
     for (const payload of updates) {
-      await updateCourseCompletion(payload)
+      const originalUser = resource.value.userProgress.find((entry) => entry.id === payload.userId)
+      const originalCourse = originalUser?.courses.find((entry) => entry.courseId === payload.courseId)
+      const nextUser = draftUserProgress.value.find((entry) => entry.id === payload.userId)
+      const nextCourse = nextUser?.courses.find((entry) => entry.courseId === payload.courseId)
+
+      if (!originalCourse || !nextCourse) {
+        continue
+      }
+
+      await persistCompletionChange(originalCourse, nextCourse, payload.userId)
     }
+
     await fetchLearning()
-    isEditingCompletion.value = false
-    draftUserProgress.value = []
   } catch (err) {
-    if (err instanceof Error) {
-      console.error(err.message)
-    } else {
-      console.error('Unknown error occurred')
-    }
+    console.error(err)
     saveCompletionError.value = true
   } finally {
     isSavingCompletion.value = false
   }
 }
 
-async function handleCreateCourse(payload: CreateCoursePayload): Promise<boolean> {
+async function uploadCourseFile(courseId: number, file: File) {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  await api.post(`/courses/${courseId}/files`, formData)
+}
+
+async function handleCreateCourse(payload: CreateLearningCoursePayload): Promise<boolean> {
   if (isCreatingCourseRequest.value) {
     return false
   }
@@ -376,15 +269,29 @@ async function handleCreateCourse(payload: CreateCoursePayload): Promise<boolean
   createCourseError.value = false
 
   try {
-    await mockCreateCourse(payload)
+    const createResponse = await api.post<{ id: number }>('/courses', {
+      title: payload.title,
+      courseDescription: payload.description,
+    })
+
+    const courseId = createResponse.data.id
+
+    await Promise.all(
+      organizationUsers.value.map((user) => api.post(`/courses/${courseId}/progress/${user.id}`)),
+    )
+
+    await Promise.all(
+      payload.links.map((link) => api.post(`/courses/${courseId}/links`, { link })),
+    )
+
+    for (const file of payload.resources) {
+      await uploadCourseFile(courseId, file)
+    }
+
     await fetchLearning()
     return true
   } catch (err) {
-    if (err instanceof Error) {
-      console.error(err.message)
-    } else {
-      console.error('Unknown error occurred')
-    }
+    console.error(err)
     createCourseError.value = true
     return false
   } finally {
@@ -392,21 +299,124 @@ async function handleCreateCourse(payload: CreateCoursePayload): Promise<boolean
   }
 }
 
-onMounted(async () => {
+async function saveCourseDetails(
+  courseId: number,
+  payload: { title: string; courseDescription: string },
+): Promise<boolean> {
   try {
+    await api.patch(`/courses/${courseId}`, payload)
     await fetchLearning()
-    error.value = false
+    return true
   } catch (err) {
-    if (err instanceof Error) {
-      console.error(err.message)
-    } else {
-      console.error('Unknown error occurred')
-    }
-    error.value = true
-  } finally {
-    loading.value = false
+    console.error(err)
+    return false
   }
-})
+}
+
+async function deleteCourse(courseId: number): Promise<boolean> {
+  try {
+    await api.delete(`/courses/${courseId}`)
+    await fetchLearning()
+    return true
+  } catch (err) {
+    console.error(err)
+    return false
+  }
+}
+
+async function addResponsibleUser(courseId: number, userId: number): Promise<boolean> {
+  try {
+    await api.post(`/courses/${courseId}/responsible/${userId}`)
+    await fetchLearning()
+    return true
+  } catch (err) {
+    console.error(err)
+    return false
+  }
+}
+
+async function removeResponsibleUser(courseId: number, userId: number): Promise<boolean> {
+  try {
+    await api.delete(`/courses/${courseId}/responsible/${userId}`)
+    await fetchLearning()
+    return true
+  } catch (err) {
+    console.error(err)
+    return false
+  }
+}
+
+async function addCourseLink(courseId: number, link: string): Promise<boolean> {
+  try {
+    await api.post(`/courses/${courseId}/links`, { link })
+    await fetchLearning()
+    return true
+  } catch (err) {
+    console.error(err)
+    return false
+  }
+}
+
+async function removeCourseLink(courseId: number, linkId: number): Promise<boolean> {
+  try {
+    await api.delete(`/courses/${courseId}/links/${linkId}`)
+    await fetchLearning()
+    return true
+  } catch (err) {
+    console.error(err)
+    return false
+  }
+}
+
+async function uploadCourseFiles(courseId: number, files: File[]): Promise<boolean> {
+  try {
+    for (const file of files) {
+      await uploadCourseFile(courseId, file)
+    }
+
+    await fetchLearning()
+    return true
+  } catch (err) {
+    console.error(err)
+    return false
+  }
+}
+
+async function removeCourseFile(courseId: number, fileId: number): Promise<boolean> {
+  try {
+    await api.delete(`/courses/${courseId}/files/${fileId}`)
+    await fetchLearning()
+    return true
+  } catch (err) {
+    console.error(err)
+    return false
+  }
+}
+
+async function downloadCourseFile(courseId: number, fileId: number, fileName: string) {
+  const response = await api.get(`/courses/${courseId}/files/${fileId}`, {
+    responseType: 'blob',
+  })
+
+  const blobUrl = URL.createObjectURL(response.data)
+  const link = document.createElement('a')
+  link.href = blobUrl
+  link.download = fileName
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(blobUrl)
+}
+
+const hasCourses = computed(() => resource.value.allCourses.length > 0)
+
+watch(
+  () => claims.value?.orgId ?? null,
+  () => {
+    void fetchLearning()
+  },
+  { immediate: true },
+)
 </script>
 
 <template>
@@ -414,30 +424,49 @@ onMounted(async () => {
     <div class="learning-area-container">
       <h1 class="instrument-serif-regular no-margin">Opplæring</h1>
 
-      <span class="navy-subtitle">Godkjenning</span>
       <Loading v-if="loading" />
-      <LearningCompletionTable
-        v-else
-        :all-courses="resource.allCourses"
-        :users="isEditingCompletion ? draftUserProgress : resource.userProgress"
-        :is-editing-completion="isEditingCompletion"
-        :is-saving-completion="isSavingCompletion"
-        :save-completion-error="saveCompletionError"
-        @start-editing="startEditingCompletion"
-        @save-changes="saveCompletionChanges"
-        @cancel-editing="cancelCompletionEditing"
-        @toggle-completion="toggleDraftCourseCompletion"
-      />
 
-      <span class="navy-subtitle">Opplæringskrav</span>
-      <Loading v-if="loading" />
-      <LearningCourseRequirements v-else :all-courses="resource.allCourses" />
+      <div v-else-if="error" class="learning-error-banner">
+        <p>{{ error }}</p>
+      </div>
 
-      <LearningCreateCourseCard
-        :is-submitting="isCreatingCourseRequest"
-        :create-error="createCourseError"
-        :on-create="handleCreateCourse"
-      />
+      <template v-else>
+        <span class="navy-subtitle">Godkjenning</span>
+        <LearningCompletionTable
+          :all-courses="resource.allCourses"
+          :users="isEditingCompletion ? draftUserProgress : resource.userProgress"
+          :is-editing-completion="isEditingCompletion"
+          :is-saving-completion="isSavingCompletion"
+          :save-completion-error="saveCompletionError"
+          @start-editing="startEditingCompletion"
+          @save-changes="saveCompletionChanges"
+          @cancel-editing="cancelCompletionEditing"
+          @toggle-completion="toggleDraftCourseCompletion"
+        />
+
+        <span class="navy-subtitle">Opplæringskrav</span>
+        <p v-if="!hasCourses" class="learning-empty-state">Ingen kurs funnet for denne organisasjonen.</p>
+        <LearningCourseRequirements
+          v-else
+          :all-courses="resource.allCourses"
+          :organization-users="organizationUsers"
+          :on-save-course-details="saveCourseDetails"
+          :on-delete-course="deleteCourse"
+          :on-add-responsible-user="addResponsibleUser"
+          :on-remove-responsible-user="removeResponsibleUser"
+          :on-add-course-link="addCourseLink"
+          :on-remove-course-link="removeCourseLink"
+          :on-upload-course-files="uploadCourseFiles"
+          :on-remove-course-file="removeCourseFile"
+          :on-download-course-file="downloadCourseFile"
+        />
+
+        <LearningCreateCourseCard
+          :is-submitting="isCreatingCourseRequest"
+          :create-error="createCourseError"
+          :on-create="handleCreateCourse"
+        />
+      </template>
     </div>
   </SidebarPageContainer>
 </template>
@@ -450,6 +479,16 @@ onMounted(async () => {
   border-radius: 1rem;
   padding: 1rem;
   margin-top: 2rem;
+}
+
+.learning-error-banner,
+.learning-empty-state {
+  margin: 0;
+  background-color: var(--red-cherry-20);
+  border: 1px solid var(--red-cherry-40);
+  color: var(--red-cherry);
+  border-radius: 0.75rem;
+  padding: 0.85rem 1rem;
 }
 
 @media (max-width: 1200px) {

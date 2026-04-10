@@ -1,77 +1,42 @@
 <script setup lang="ts">
-import Badge from '@/components/desktop/shared/Badge.vue'
-import DesktopButton from '@/components/desktop/shared/DesktopButton.vue'
-import type { LearningCourse } from '@/interfaces/api-interfaces'
-import { Edit2, File, Link } from '@lucide/vue'
+import LearningCourseCard from '@/components/desktop/learning/LearningCourseCard.vue'
+import type {
+  LearningCourse,
+  LearningOrganizationUser,
+} from '@/interfaces/api-interfaces'
 
 defineProps<{
   allCourses: LearningCourse[]
+  organizationUsers: LearningOrganizationUser[]
+  onSaveCourseDetails: (
+    courseId: number,
+    payload: { title: string; courseDescription: string },
+  ) => Promise<boolean>
+  onDeleteCourse: (courseId: number) => Promise<boolean>
+  onAddResponsibleUser: (courseId: number, userId: number) => Promise<boolean>
+  onRemoveResponsibleUser: (courseId: number, userId: number) => Promise<boolean>
+  onAddCourseLink: (courseId: number, link: string) => Promise<boolean>
+  onRemoveCourseLink: (courseId: number, linkId: number) => Promise<boolean>
+  onUploadCourseFiles: (courseId: number, files: File[]) => Promise<boolean>
+  onRemoveCourseFile: (courseId: number, fileId: number) => Promise<boolean>
+  onDownloadCourseFile: (courseId: number, fileId: number, fileName: string) => Promise<void>
 }>()
 </script>
 
 <template>
-  <div v-for="course in allCourses" :key="course.uniqueId" class="course">
-    <div class="course-header">
-      <h2 class="no-margin">
-        {{ course.name }}
-      </h2>
-      <DesktopButton content="Edit" :icon="Edit2" />
-    </div>
-    <div>
-      <span class="navy-subtitle"> Beskrivelse: </span>
-      <span>
-        {{ course.description }}
-      </span>
-    </div>
-    <div>
-      <span class="navy-subtitle"> Ressurser: </span>
-      <div class="resource-container">
-        <Badge
-          v-for="resource in course.resources"
-          :key="resource.id"
-          badge-color="navy"
-          :icon="resource.type === 'link' ? Link : File"
-        >
-          {{ resource.name }}
-        </Badge>
-      </div>
-    </div>
-  </div>
+  <LearningCourseCard
+    v-for="course in allCourses"
+    :key="course.id"
+    :course="course"
+    :organization-users="organizationUsers"
+    :on-save-course-details="onSaveCourseDetails"
+    :on-delete-course="onDeleteCourse"
+    :on-add-responsible-user="onAddResponsibleUser"
+    :on-remove-responsible-user="onRemoveResponsibleUser"
+    :on-add-course-link="onAddCourseLink"
+    :on-remove-course-link="onRemoveCourseLink"
+    :on-upload-course-files="onUploadCourseFiles"
+    :on-remove-course-file="onRemoveCourseFile"
+    :on-download-course-file="onDownloadCourseFile"
+  />
 </template>
-
-<style scoped>
-.course {
-  width: 100%;
-  background-color: var(--white-greek);
-  border-radius: 1rem;
-  padding: 1rem;
-  border: 1px solid var(--blue-navy-40);
-  display: flex;
-  gap: 1rem;
-  flex-direction: column;
-  .course-header {
-    display: flex;
-    justify-content: space-between;
-    padding-bottom: 1rem;
-    border-bottom: 1px solid var(--blue-navy-40);
-  }
-}
-
-.resource-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-@media (max-width: 768px) {
-  .course {
-    padding: 0.75rem;
-
-    .course-header {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 0.5rem;
-    }
-  }
-}
-</style>

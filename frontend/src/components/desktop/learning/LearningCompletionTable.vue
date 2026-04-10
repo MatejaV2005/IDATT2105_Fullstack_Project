@@ -19,7 +19,7 @@ const emit = defineEmits<{
 }>()
 
 function hasCompletedCourse(user: LearningUserProgress, courseId: number) {
-  return user.courses.some((course) => course.uniqueId === courseId && course.completed)
+  return user.courses.some((course) => course.courseId === courseId && course.completed)
 }
 </script>
 
@@ -29,30 +29,30 @@ function hasCompletedCourse(user: LearningUserProgress, courseId: number) {
       <thead>
         <tr>
           <th>Bruker</th>
-          <th v-for="course in allCourses" :key="course.uniqueId">
-            {{ course.name }}
+          <th v-for="course in allCourses" :key="course.id">
+            {{ course.title }}
           </th>
         </tr>
       </thead>
       <tbody>
         <tr v-for="user in users" :key="user.id">
           <td>{{ user.legalName }}</td>
-          <td v-for="course in allCourses" :key="`${user.id}-${course.uniqueId}`">
+          <td v-for="course in allCourses" :key="`${user.id}-${course.id}`">
             <button
               v-if="isEditingCompletion"
               class="completion-chip completion-toggle-chip"
-              :class="hasCompletedCourse(user, course.uniqueId) ? 'is-complete' : 'is-incomplete'"
+              :class="hasCompletedCourse(user, course.id) ? 'is-complete' : 'is-incomplete'"
               :disabled="isSavingCompletion"
-              @click="emit('toggleCompletion', { userId: user.id, courseId: course.uniqueId })"
+              @click="emit('toggleCompletion', { userId: user.id, courseId: course.id })"
             >
-              {{ hasCompletedCourse(user, course.uniqueId) ? 'Fullført' : 'Ikke fullført' }}
+              {{ hasCompletedCourse(user, course.id) ? 'Fullført' : 'Ikke fullført' }}
             </button>
             <span
               v-else
               class="completion-chip"
-              :class="hasCompletedCourse(user, course.uniqueId) ? 'is-complete' : 'is-incomplete'"
+              :class="hasCompletedCourse(user, course.id) ? 'is-complete' : 'is-incomplete'"
             >
-              {{ hasCompletedCourse(user, course.uniqueId) ? 'Fullført' : 'Ikke fullført' }}
+              {{ hasCompletedCourse(user, course.id) ? 'Fullført' : 'Ikke fullført' }}
             </span>
           </td>
         </tr>

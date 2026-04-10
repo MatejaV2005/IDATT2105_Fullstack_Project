@@ -1,20 +1,14 @@
 <script setup lang="ts">
 import Badge from '@/components/desktop/shared/Badge.vue'
 import DesktopButton from '@/components/desktop/shared/DesktopButton.vue'
+import type { CreateLearningCoursePayload } from '@/interfaces/api-interfaces'
 import { File, Link, Plus, Save, X } from '@lucide/vue'
 import { ref } from 'vue'
-
-interface CreateCoursePayload {
-  title: string
-  description: string
-  links: string[]
-  resources: File[]
-}
 
 const props = defineProps<{
   isSubmitting: boolean
   createError: boolean
-  onCreate: (payload: CreateCoursePayload) => Promise<boolean>
+  onCreate: (payload: CreateLearningCoursePayload) => Promise<boolean>
 }>()
 
 const isOpen = ref(false)
