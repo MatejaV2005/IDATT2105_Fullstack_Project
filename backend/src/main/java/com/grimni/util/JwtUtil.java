@@ -74,11 +74,14 @@ public class JwtUtil {
      */
     public String generateToken(User user, OrgUserBridge bridge) {
         Date expiration = new Date(System.currentTimeMillis() + 15 * 60 * 1000);
+        String legalName = user.getLegalName() != null && !user.getLegalName().isBlank()
+            ? user.getLegalName().trim()
+            : user.getEmail();
 
         try {
             String jwt = Jwts.builder()
             .subject(user.getId().toString())
-            .claim("legalName", user.getLegalName()) 
+            .claim("legalName", legalName)
             .claim("role", bridge != null ? bridge.getUserRole().name() : null)
             .claim("orgId", bridge != null ? bridge.getOrganization().getId() : null)
             .claim("email", user.getEmail())
