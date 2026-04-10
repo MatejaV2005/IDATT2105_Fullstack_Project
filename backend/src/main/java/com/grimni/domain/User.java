@@ -68,6 +68,9 @@ public class User extends CreatedAtEntity {
     @OneToMany(mappedBy = "reviewedBy")
     private List<Deviation> reviewedDeviations = new ArrayList<>();
 
+    @OneToMany(mappedBy = "reviewedBy")
+    private List<InternalControlReview> internalControlReviews = new ArrayList<>();
+
     public User() {
     }
 
@@ -221,6 +224,14 @@ public class User extends CreatedAtEntity {
 
     public void setReviewedDeviations(List<Deviation> reviewedDeviations) {
         this.reviewedDeviations = reviewedDeviations;
+    }
+
+    public List<InternalControlReview> getInternalControlReviews() {
+        return internalControlReviews;
+    }
+
+    public void setInternalControlReviews(List<InternalControlReview> internalControlReviews) {
+        this.internalControlReviews = internalControlReviews;
     }
 
     public List<Certificate> getCertificates() {
