@@ -1,6 +1,5 @@
 DROP TABLE IF EXISTS internal_control_review;
 DROP TABLE IF EXISTS certificates;
-DROP TABLE IF EXISTS internal_control_review;
 DROP TABLE IF EXISTS deviation;
 DROP TABLE IF EXISTS prerequisite_routine_record;
 DROP TABLE IF EXISTS ccp_record;
@@ -12,21 +11,22 @@ DROP TABLE IF EXISTS course_link;
 DROP TABLE IF EXISTS user_course_bridge_responsible;
 DROP TABLE IF EXISTS course_user_bridge_progress;
 DROP TABLE IF EXISTS danger_risk_combo;
-DROP TABLE IF EXISTS org_user_bridge_danger_analysis_collaborator;
-DROP TABLE IF EXISTS org_user_bridge;
-DROP TABLE IF EXISTS file_object;
 DROP TABLE IF EXISTS prerequisite_standard;
+DROP TABLE IF EXISTS mapping_point_user_bridge;
+DROP TABLE IF EXISTS mapping_point;
+DROP TABLE IF EXISTS todo;
+DROP TABLE IF EXISTS refresh_token;
+DROP TABLE IF EXISTS org_user_bridge;
 DROP TABLE IF EXISTS prerequisite_routine;
 DROP TABLE IF EXISTS prerequisite_category;
 DROP TABLE IF EXISTS ccp;
-DROP TABLE IF EXISTS mapping_point;
 DROP TABLE IF EXISTS product_category;
 DROP TABLE IF EXISTS course;
-DROP TABLE IF EXISTS todo;
-DROP TABLE IF EXISTS refresh_token;
+DROP TABLE IF EXISTS file_object;
 DROP TABLE IF EXISTS interval_rule;
 DROP TABLE IF EXISTS organization;
 DROP TABLE IF EXISTS users;
+
 
 CREATE TABLE users ( -- The users of the system
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -83,6 +83,21 @@ CREATE TABLE org_user_bridge ( -- showing who is a part of what orgs
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+CREATE TABLE file_object ( -- A file in seaweedfs
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    uploaded_by INT NOT NULL,
+    file_name TEXT NOT NULL,
+    org_id INT NOT NULL,
+    object_key TEXT NOT NULL,
+    read_access ENUM('OWNER', 'MANAGER', 'WORKER', 'ANYONE_IN_ORG', 'PUBLIC') NOT NULL,
+    delete_access ENUM('OWNER', 'MANAGER', 'WORKER', 'ANYONE_IN_ORG', 'PUBLIC') NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_file_object_uploaded_by
+        FOREIGN KEY (uploaded_by) REFERENCES users(id) ON DELETE NO ACTION,
+    CONSTRAINT fk_file_object_org
+        FOREIGN KEY (org_id) REFERENCES organization(id) ON DELETE NO ACTION
+);
+
 CREATE TABLE product_category ( -- For the danger analysis
     id INT AUTO_INCREMENT PRIMARY KEY,
     product_name TEXT NOT NULL,
@@ -106,21 +121,6 @@ CREATE TABLE danger_risk_combo ( -- A point under the product category showing a
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_danger_risk_combo_product_category
         FOREIGN KEY (product_category_id) REFERENCES product_category(id) ON DELETE CASCADE
-);
-
-CREATE TABLE file_object ( -- A file in seaweedfs
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    uploaded_by INT NOT NULL,
-    file_name TEXT NOT NULL,
-    org_id INT NOT NULL,
-    object_key TEXT NOT NULL,
-    read_access ENUM('OWNER', 'MANAGER', 'WORKER', 'ANYONE_IN_ORG', 'PUBLIC') NOT NULL,
-    delete_access ENUM('OWNER', 'MANAGER', 'WORKER', 'ANYONE_IN_ORG', 'PUBLIC') NOT NULL,
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_file_object_uploaded_by
-        FOREIGN KEY (uploaded_by) REFERENCES users(id) ON DELETE NO ACTION,
-    CONSTRAINT fk_file_object_org
-        FOREIGN KEY (org_id) REFERENCES organization(id) ON DELETE NO ACTION
 );
 
 CREATE TABLE course (
@@ -333,9 +333,7 @@ CREATE TABLE prerequisite_routine_record (
     CONSTRAINT fk_prerequisite_routine_record_routine
         FOREIGN KEY (routine_id) REFERENCES prerequisite_routine(id) ON DELETE SET NULL,
     CONSTRAINT fk_prerequisite_routine_record_performed_by
-        FOREIGN KEY (performed_by) REFERENCES users(id) ON DELETE NO ACTION,
-    CONSTRAINT fk_prerequisite_routine_record_last_verifier
-        FOREIGN KEY (last_verifier) REFERENCES users(id) ON DELETE NO ACTION
+        FOREIGN KEY (performed_by) REFERENCES users(id) ON DELETE NO ACTION
 );
 
 CREATE TABLE deviation ( -- A "avvik" / deviation for any mistake anywhere, not just ccp or a prerequisite routine
