@@ -64,6 +64,9 @@ export interface CriticalControlPoint {
   performers: CcpUser[]
   deputy: CcpUser[]
   ccpCorrectiveMeasure: CcpCorrectiveMeasure[]
+  intervalStart?: number | null
+  intervalRepeatTime?: number | null
+  repeatText?: string | null
   id: number
 }
 
@@ -79,16 +82,26 @@ export interface NewCriticalControlPoint {
   criticalMax: number
   unit: string
   monitoredDescription: string
+  intervalStart?: number | null
+  intervalRepeatTime?: number | null
   verifiers: number[] // list of user id's
   deviationRecievers: number[] // list of user id's
   performers: number[] // list of user id's
   deputy: number[] // list of user id's
   ccpCorrectiveMeasure: {
+    id?: number | null
     productCategoryId: number
     measureDescription: string
+    productName?: string
   }[]
 }
 // #endregion
+
+export interface DesktopProductCategory {
+  id: number
+  name: string
+  description: string
+}
 
 // #region TeamView
 interface TeamAssignments {
@@ -194,6 +207,30 @@ export interface CreateLearningCoursePayload {
   links: string[]
   resources: File[]
 }
+// #endregion
+
+// #region DangerAnalysisView
+export interface DangerRiskCombo {
+  id: number
+  danger: string
+  dangerCorrectiveMeasure: string
+  severityScore: number
+  likelihoodScore: number
+  createdAt: string
+}
+
+export interface DangerAnalysisProductCategory {
+  id: number
+  productName: string
+  productDescription: string
+  flowchartFileId: number | null
+  flowchartFileName: string | null
+  flowchartPreviewUrl: string | null
+  createdAt: string
+  dangerRiskCombos: DangerRiskCombo[]
+}
+
+export type DangerAnalysisAllInfo = DangerAnalysisProductCategory[]
 // #endregion
 
 // #region HaccpView
