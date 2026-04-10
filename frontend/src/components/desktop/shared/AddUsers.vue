@@ -13,6 +13,7 @@ const props = defineProps<{
   initialUserIds?: number[]
   initialUsers?: BasicUserWithAccessLevel[]
   users?: BasicUserWithAccessLevel[]
+  localOnly?: boolean
 }>()
 
 const allUsers = ref<BasicUserWithAccessLevel[]>([])
@@ -142,7 +143,9 @@ async function addUser(user: BasicUserWithAccessLevel) {
 
   try {
     isSubmitting.value = true
-    await api.post('/organizations/users', { userId: user.id, role: user.accessLevel })
+    if (!props.localOnly) {
+      await api.post('/organizations/users', { userId: user.id, role: user.accessLevel })
+    }
     selectedUsers.value = [...selectedUsers.value, user]
     selectedUserId.value = null
   } catch {

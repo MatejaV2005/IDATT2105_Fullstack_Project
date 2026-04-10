@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.grimni.dto.CreateCcpCorrectiveMeasureRequest;
 import com.grimni.dto.CreateCcpRequest;
 import com.grimni.dto.ReplaceCcpAssignmentsRequest;
+import com.grimni.dto.SetVerificationStatusRequest;
 import com.grimni.dto.UpdateCcpCorrectiveMeasureRequest;
 import com.grimni.dto.UpdateCcpFullRequest;
 import com.grimni.dto.UpdateCcpRequest;
@@ -76,6 +77,32 @@ public class CcpController {
         return ResponseEntity.ok(
             ccpService.getVerificationLogs(principal.userId(), principal.orgId(), principal.role())
         );
+    }
+
+    /**
+     * Updates the verification status of a single CCP record. Authorization (caller must be a
+     * VERIFIER on the linked CCP, or OWNER/MANAGER for unlinked records) and audit stamping
+     * (lastVerifier from JWT, verifiedAt from server clock) are enforced inside the service.
+     *
+     * @param request        The validated request containing the record id and the new status.
+     * @param authentication The security context containing the {@link JwtUserPrinciple}.
+     * @return {@link ResponseEntity} with HTTP 200 OK on success.
+     */
+    @Operation(summary = "Set CCP record verification status")
+    @PutMapping("/ccps/logs/set-verification-status")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> setVerificationStatus(
+            @Valid @RequestBody SetVerificationStatusRequest request,
+            Authentication authentication) {
+        JwtUserPrinciple principal = (JwtUserPrinciple) authentication.getPrincipal();
+        ccpService.setVerificationStatus(
+            request.id(),
+            request.verificationStatus(),
+            principal.userId(),
+            principal.orgId(),
+            principal.role()
+        );
+        return ResponseEntity.ok().build();
     }
 
     /**

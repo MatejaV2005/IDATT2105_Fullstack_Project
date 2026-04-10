@@ -356,6 +356,7 @@ function cancel() {
           :set-users="setVerifiers"
           :initial-user-ids="verifiers.map((user) => user.id)"
           :initial-users="verifiers"
+          local-only
         />
       </label>
       <label class="form-field">
@@ -365,6 +366,7 @@ function cancel() {
           :set-users="setDeviationRecievers"
           :initial-user-ids="deviationRecievers.map((user) => user.id)"
           :initial-users="deviationRecievers"
+          local-only
         />
       </label>
       <label class="form-field">
@@ -374,6 +376,7 @@ function cancel() {
           :set-users="setPerformers"
           :initial-user-ids="performers.map((user) => user.id)"
           :initial-users="performers"
+          local-only
         />
       </label>
       <label class="form-field">
@@ -383,6 +386,7 @@ function cancel() {
           :set-users="setDeputy"
           :initial-user-ids="deputy.map((user) => user.id)"
           :initial-users="deputy"
+          local-only
         />
       </label>
     </div>

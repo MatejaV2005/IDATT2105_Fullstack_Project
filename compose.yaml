@@ -9,14 +9,16 @@ services:
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     volumes:
       - db_data:/var/lib/mysql
+      - ./schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${MYSQL_ROOT_PASSWORD}"]
       interval: 10s
       timeout: 5s
       retries: 10
     # ! Only use port forwarding for dev
-    # ports: 
-    #   - "3306:3306"
+    ports: 
+     - "3306:3306"
   
   seaweedfs:
     image: chrislusf/seaweedfs:3.94

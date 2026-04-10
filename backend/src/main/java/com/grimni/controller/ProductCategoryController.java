@@ -41,7 +41,7 @@ public class ProductCategoryController {
      * @return {@link ResponseEntity} containing a collection of product category data.
      */
     @Operation(summary = "List product categories")
-    @GetMapping("/api/product-categories")
+    @GetMapping("/product-categories")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> getAll(Authentication authentication) {
         JwtUserPrinciple principal = (JwtUserPrinciple) authentication.getPrincipal();

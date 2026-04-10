@@ -1,9 +1,9 @@
 <script setup lang="ts">
+import api from '@/api/api'
 import CcpLogGroupCard from '@/components/desktop/records/CcpLogGroupCard.vue'
 import Loading from '@/components/desktop/shared/Loading.vue'
 import Paginator from '@/components/desktop/shared/Paginator.vue'
 import type { CcpLogsAllInfo, VerificationStatus } from '@/interfaces/api-interfaces'
-import { delay } from '@/utils'
 import { onMounted, ref } from 'vue'
 
 const resource = ref<CcpLogsAllInfo>([])
@@ -13,99 +13,16 @@ const changingStatusByRecordId = ref<Record<number, VerificationStatus | null>>(
 const changingStatusByGroupId = ref<Record<number, VerificationStatus | null>>({})
 const mutateError = ref('')
 
-const mockData: CcpLogsAllInfo = [
-  {
-    id: 1,
-    name: 'Kjøleskap temperatur',
-    records: [
-      {
-        id: 11,
-        value: 2.4,
-        min: 2,
-        max: 4,
-        unit: 'C',
-        comment: 'Kjøleskapet lager en rar lyd',
-        performedBy: {
-          id: 5,
-          legalName: 'Per Willy Amundsen',
-        },
-      },
-      {
-        id: 12,
-        value: 8,
-        min: 2,
-        max: 4,
-        unit: 'C',
-        comment: 'Midlertidig høy temperatur etter varelevering',
-        performedBy: {
-          id: 4,
-          legalName: 'Ane Brevik',
-        },
-      },
-    ],
-  },
-  {
-    id: 2,
-    name: 'Varmholding buffet',
-    records: [
-      {
-        id: 21,
-        value: 66,
-        min: 60,
-        max: 90,
-        unit: 'C',
-        comment: 'Normal måling',
-        performedBy: {
-          id: 7,
-          legalName: 'Mona Jul',
-        },
-      },
-    ],
-  },
-]
-
-// ! Purely for mocking db
-function cloneCcpLogs(data: CcpLogsAllInfo): CcpLogsAllInfo {
-  return data.map((group) => ({
-    ...group,
-    records: group.records.map((record) => ({
-      ...record,
-      performedBy: { ...record.performedBy },
-    })),
-  }))
-}
-
-const mockServerState = ref<CcpLogsAllInfo>(cloneCcpLogs(mockData)) // we use a state to ensure we can mock removing logs
-
 async function fetchCcpLogs() {
-  // const response = await fetch('/api/cpps/logs')
-  // if (!response.ok) {
-  //   throw new Error(`Failed to fetch ccp logs (${response.status})`)
-  // }
-  // const data: CcpLogsAllInfo = await response.json()
-
-  await delay(400)
-  resource.value = cloneCcpLogs(mockServerState.value)
+  const response = await api.get<CcpLogsAllInfo>('/ccps/logs')
+  resource.value = response.data
 }
 
 async function setVerificationStatus(recordId: number, verificationStatus: VerificationStatus) {
-  // const response = await fetch('/api/cpps/logs/set-verification-status', {
-  //   method: 'PUT',
-  //   headers: { 'Content-Type': 'application/json' },
-  //   body: JSON.stringify({
-  //     id: recordId,
-  //     verificationStatus: verificationStatus,
-  //   }),
-  // })
-  // if (!response.ok) {
-  //   throw new Error(`Failed to update verification status (${response.status})`)
-  // }
-
-  await delay(700)
-  mockServerState.value = mockServerState.value.map((group) => ({
-    ...group,
-    records: group.records.filter((record) => record.id !== recordId),
-  }))
+  await api.put('/ccps/logs/set-verification-status', {
+    id: recordId,
+    verificationStatus: verificationStatus,
+  })
 }
 
 onMounted(async () => {
