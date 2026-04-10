@@ -133,6 +133,7 @@ public class DeviationController {
      * @param authentication The security context containing the {@link JwtUserPrinciple}.
      * @return {@link ResponseEntity} containing the updated {@link DeviationResponse}.
      */
+    
     /**
      * Updates a deviation by closing it: sets {@code reviewedBy} to the caller, marks
      * {@code reviewStatus = CLOSED}, stamps {@code reviewedAt}, and stores the implemented
