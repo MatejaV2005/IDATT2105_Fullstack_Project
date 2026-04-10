@@ -27,7 +27,5 @@ export type DeviationLog = {
 }
 
 export type UpdateDeviationPayload = {
-  reviewed_by: number
-  review_status: 'CLOSED'
-  preventative_measure_actually_taken: string
+  preventativeMeasureActuallyTaken: string
 }
