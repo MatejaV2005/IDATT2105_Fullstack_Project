@@ -10,6 +10,7 @@ import com.grimni.dto.TeamUserOverviewResponse;
 import com.grimni.dto.TeamAssignmentsResponse;
 import com.grimni.dto.TeamCourseProgressResponse;
 import com.grimni.dto.UpdateOrganizationRequest;
+import com.grimni.dto.UpdateUserOrgRoleRequest;
 import com.grimni.dto.UserDirectoryResponse;
 import com.grimni.dto.UserOrgResponse;
 import com.grimni.security.JwtUserPrinciple;
@@ -587,6 +588,46 @@ public class OrganizationControllerTest {
                             .with(csrf()))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.error").value("User is already in the organization"));
+        }
+    }
+
+    @Nested
+    @DisplayName("PATCH /organizations/users")
+    class UpdateUserRoleInOrgTests {
+
+        @Test
+        @DisplayName("returns HTTP 200 with the updated user")
+        void updateUserRoleInOrg_success() throws Exception {
+            UpdateUserOrgRoleRequest request = new UpdateUserOrgRoleRequest(5L, OrgUserRole.MANAGER);
+
+            when(organizationService.updateUserRoleInOrg(5L, OrgUserRole.MANAGER, 10L, 1L))
+                    .thenReturn(new UserOrgResponse(5L, "charlie", "charlie@test.com", OrgUserRole.MANAGER));
+
+            mockMvc.perform(patch("/organizations/users")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request))
+                            .with(authentication(authWithRole("OWNER")))
+                            .with(csrf()))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.id").value(5))
+                    .andExpect(jsonPath("$.accessLevel").value("MANAGER"));
+        }
+
+        @Test
+        @DisplayName("returns HTTP 400 when trying to demote an owner")
+        void updateUserRoleInOrg_demoteOwner_returns400() throws Exception {
+            UpdateUserOrgRoleRequest request = new UpdateUserOrgRoleRequest(5L, OrgUserRole.WORKER);
+
+            when(organizationService.updateUserRoleInOrg(5L, OrgUserRole.WORKER, 10L, 1L))
+                    .thenThrow(new IllegalArgumentException("Cannot change role for an owner"));
+
+            mockMvc.perform(patch("/organizations/users")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request))
+                            .with(authentication(authWithRole("OWNER")))
+                            .with(csrf()))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.error").value("Cannot change role for an owner"));
         }
     }
 }

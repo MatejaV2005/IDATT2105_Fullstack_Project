@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import OrganizationSwitcher from '@/components/OrganizationSwitcher.vue'
 import { useOrgSession } from '@/composables/useOrgSession'
+import { getPostAuthRoute } from '@/utils/auth-routing'
 import { computed, onMounted } from 'vue'
 import { RouterLink, RouterView, useRoute } from 'vue-router'
 
 const route = useRoute()
-const { currentUserInitials, currentUserName, ensureOrgSessionLoaded, isAuthenticated } = useOrgSession()
+const { claims, currentUserInitials, currentUserName, ensureOrgSessionLoaded, isAuthenticated, organizations } =
+  useOrgSession()
 
 const tabs = [
   { name: 'rutiner', label: 'Rutiner', to: '/mobile/rutiner' },
@@ -16,7 +18,8 @@ const tabs = [
 
 const showTabs = computed(() => route.name !== 'login')
 const isLoginPage = computed(() => route.name === 'login')
-const profileLink = computed(() => (isAuthenticated.value ? '/mobile/rutiner' : '/mobile/login'))
+const authenticatedRoute = computed(() => getPostAuthRoute(claims.value, organizations.value))
+const profileLink = computed(() => (isAuthenticated.value ? authenticatedRoute.value : '/auth'))
 const profileName = computed(() => currentUserName.value || 'Logg inn')
 const profileInitials = computed(() => currentUserInitials.value)
 

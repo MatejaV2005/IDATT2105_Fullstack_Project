@@ -63,15 +63,17 @@ function submitAdd() {
 
     <label class="form-field">
       <span class="navy-subtitle">Rolle</span>
-      <select
-        v-model="selectedRole"
-        class="simple-text-input role-select"
-        :disabled="isSubmitting"
-      >
-        <option value="OWNER">OWNER</option>
-        <option value="MANAGER">MANAGER</option>
-        <option value="WORKER">WORKER</option>
-      </select>
+      <div class="role-select-shell">
+        <select
+          v-model="selectedRole"
+          class="simple-text-input role-select"
+          :disabled="isSubmitting"
+        >
+          <option value="OWNER">OWNER</option>
+          <option value="MANAGER">MANAGER</option>
+          <option value="WORKER">WORKER</option>
+        </select>
+      </div>
     </label>
 
     <DesktopButton
@@ -102,7 +104,37 @@ function submitAdd() {
   gap: 0.25rem;
 }
 
+.role-select-shell {
+  position: relative;
+}
+
+.role-select-shell::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 0.9rem;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-right: 2px solid var(--blue-navy);
+  border-bottom: 2px solid var(--blue-navy);
+  transform: translateY(-70%) rotate(45deg);
+  pointer-events: none;
+}
+
 .role-select {
   width: 100%;
+  appearance: none;
+  border: 1px solid var(--blue-navy-40);
+  border-radius: 0.75rem;
+  background-color: var(--blue-light-20);
+  color: var(--blue-navy);
+  padding: 0.8rem 2.6rem 0.8rem 0.95rem;
+  font-weight: 600;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.role-select:focus {
+  outline: 2px solid var(--blue-decor);
+  outline-offset: 2px;
 }
 </style>

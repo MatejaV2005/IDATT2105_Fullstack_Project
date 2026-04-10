@@ -260,6 +260,22 @@ async function uploadCourseFile(courseId: number, file: File) {
   await api.post(`/courses/${courseId}/files`, formData)
 }
 
+function buildCreateCourseFormData(payload: CreateLearningCoursePayload) {
+  const formData = new FormData()
+  formData.append('title', payload.title)
+  formData.append('description', payload.description)
+
+  for (const link of payload.links) {
+    formData.append('links', link)
+  }
+
+  for (const file of payload.resources) {
+    formData.append('resources', file)
+  }
+
+  return formData
+}
+
 async function handleCreateCourse(payload: CreateLearningCoursePayload): Promise<boolean> {
   if (isCreatingCourseRequest.value) {
     return false
@@ -269,23 +285,23 @@ async function handleCreateCourse(payload: CreateLearningCoursePayload): Promise
   createCourseError.value = false
 
   try {
-    const createResponse = await api.post<{ id: number }>('/courses', {
-      title: payload.title,
-      courseDescription: payload.description,
-    })
+    const createResponse = await api.post<{ id: number }>(
+      '/courses/create-course',
+      buildCreateCourseFormData(payload),
+    )
 
     const courseId = createResponse.data.id
 
-    await Promise.all(
+    const assignmentResults = await Promise.allSettled(
       organizationUsers.value.map((user) => api.post(`/courses/${courseId}/progress/${user.id}`)),
     )
 
-    await Promise.all(
-      payload.links.map((link) => api.post(`/courses/${courseId}/links`, { link })),
-    )
-
-    for (const file of payload.resources) {
-      await uploadCourseFile(courseId, file)
+    const failedAssignments = assignmentResults.filter((result) => result.status === 'rejected')
+    if (failedAssignments.length > 0) {
+      console.warn(
+        `Course ${courseId} was created, but ${failedAssignments.length} course assignments failed.`,
+        failedAssignments,
+      )
     }
 
     await fetchLearning()

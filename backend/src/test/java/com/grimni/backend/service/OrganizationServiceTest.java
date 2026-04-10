@@ -451,6 +451,52 @@ public class OrganizationServiceTest {
     }
 
     @Nested
+    @DisplayName("updateUserRoleInOrg")
+    class UpdateUserRoleInOrgTests {
+
+        @Test
+        @DisplayName("updates a non-owner membership role")
+        void updateUserRoleInOrg_success() {
+            OrgUserBridge requesterBridge = new OrgUserBridge();
+            requesterBridge.setUserRole(OrgUserRole.OWNER);
+
+            OrgUserBridge targetBridge = new OrgUserBridge();
+            targetBridge.setUser(testUser);
+            targetBridge.setUserRole(OrgUserRole.WORKER);
+
+            when(orgUserBridgeRepository.findByOrganizationIdAndUserId(10L, 1L))
+                    .thenReturn(Optional.of(requesterBridge));
+            when(orgUserBridgeRepository.findByOrganizationIdAndUserId(10L, 5L))
+                    .thenReturn(Optional.of(targetBridge));
+            when(orgUserBridgeRepository.save(any(OrgUserBridge.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            UserOrgResponse result = organizationService.updateUserRoleInOrg(5L, OrgUserRole.MANAGER, 10L, 1L);
+
+            assertEquals(OrgUserRole.MANAGER, result.accessLevel());
+            assertEquals(OrgUserRole.MANAGER, targetBridge.getUserRole());
+        }
+
+        @Test
+        @DisplayName("cannot demote an owner")
+        void updateUserRoleInOrg_demoteOwner_throws() {
+            OrgUserBridge requesterBridge = new OrgUserBridge();
+            requesterBridge.setUserRole(OrgUserRole.OWNER);
+
+            OrgUserBridge targetBridge = new OrgUserBridge();
+            targetBridge.setUser(testUser);
+            targetBridge.setUserRole(OrgUserRole.OWNER);
+
+            when(orgUserBridgeRepository.findByOrganizationIdAndUserId(10L, 1L))
+                    .thenReturn(Optional.of(requesterBridge));
+            when(orgUserBridgeRepository.findByOrganizationIdAndUserId(10L, 5L))
+                    .thenReturn(Optional.of(targetBridge));
+
+            assertThrows(IllegalArgumentException.class,
+                    () -> organizationService.updateUserRoleInOrg(5L, OrgUserRole.WORKER, 10L, 1L));
+        }
+    }
+
+    @Nested
     @DisplayName("getUserDirectory")
     class GetUserDirectoryTests {
 

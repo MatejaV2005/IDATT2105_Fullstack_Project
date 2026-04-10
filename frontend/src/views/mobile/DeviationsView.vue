@@ -1,14 +1,20 @@
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 
 import AppIcon from '@/components/AppIcon.vue'
 import PrimaryActionButton from '@/components/PrimaryActionButton.vue'
 import SectionHeading from '@/components/SectionHeading.vue'
-import { deviationCategories, type DeviationCategory } from '@/data/deviations'
 import api from '@/api/api'
+import {
+  getAvailableDeviationCategories,
+  getDefaultDeviationCategory,
+  type DeviationCategory,
+} from '@/data/deviations'
+import { useOrgSession } from '@/composables/useOrgSession'
 
 const route = useRoute()
+const { currentOrganization } = useOrgSession()
 
 const prefilledRecordId = Number.parseInt(String(route.query.ccpRecordId ?? ''), 10)
 const prefilledCategory = String(route.query.category ?? 'OTHER') as DeviationCategory
@@ -16,11 +22,19 @@ const prefilledMeasuredValue = String(route.query.measuredValue ?? '').trim()
 const prefilledUnit = String(route.query.unit ?? '').trim()
 const prefilledCcpName = String(route.query.ccpName ?? '').trim()
 
+const availableDeviationCategories = computed(() =>
+  getAvailableDeviationCategories(currentOrganization.value),
+)
+
+function resolveCategory(preferredCategory: DeviationCategory): DeviationCategory {
+  return availableDeviationCategories.value.some((item) => item.value === preferredCategory)
+    ? preferredCategory
+    : getDefaultDeviationCategory(currentOrganization.value)
+}
+
 const formState = reactive({
   ccpRecordId: Number.isFinite(prefilledRecordId) ? prefilledRecordId : null as number | null,
-  category: deviationCategories.some((item) => item.value === prefilledCategory)
-    ? prefilledCategory
-    : 'OTHER' as DeviationCategory,
+  category: resolveCategory(prefilledCategory),
   whatWentWrong: '',
   immediateActionTaken: '',
   potentialCause: '',
@@ -72,9 +86,7 @@ async function submitDeviation() {
 }
 
 function resetDeviationForm() {
-  formState.category = deviationCategories.some((item) => item.value === prefilledCategory)
-    ? prefilledCategory
-    : 'OTHER'
+  formState.category = resolveCategory(prefilledCategory)
   formState.whatWentWrong = ''
   formState.immediateActionTaken = ''
   formState.potentialCause = ''
@@ -82,6 +94,14 @@ function resetDeviationForm() {
   submitError.value = null
   submitSuccess.value = false
 }
+
+watch(
+  () => currentOrganization.value?.id ?? null,
+  () => {
+    formState.category = resolveCategory(prefilledCategory)
+  },
+  { immediate: true },
+)
 </script>
 
 <template>
@@ -161,7 +181,7 @@ function resetDeviationForm() {
             class="field-shell__select"
           >
             <option
-              v-for="cat in deviationCategories"
+              v-for="cat in availableDeviationCategories"
               :key="cat.value"
               :value="cat.value"
             >

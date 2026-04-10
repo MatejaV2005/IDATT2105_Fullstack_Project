@@ -1,6 +1,9 @@
 <script setup lang="ts">
-import MainNavbar from '@/components/desktop/navbar/MainNavbar.vue'
-import { ref } from 'vue'
+import api from '@/api/api'
+import { ensureOrgSessionLoaded, syncOrgSessionFromStorage, useOrgSession } from '@/composables/useOrgSession'
+import { setAuthToken } from '@/utils/auth'
+import { getPostAuthRoute } from '@/utils/auth-routing'
+import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 const name = ref('')
@@ -12,6 +15,13 @@ const isLoading = ref(false)
 const errorMessage = ref('')
 
 const router = useRouter()
+const { claims, organizations } = useOrgSession()
+
+onMounted(() => {
+  if (!claims.value) {
+    void router.replace('/auth')
+  }
+})
 
 async function handleSubmit() {
   if (!name.value || !address.value || !orgNumber.value || isLoading.value) {
@@ -22,26 +32,27 @@ async function handleSubmit() {
   isLoading.value = true
 
   const payload = {
-    name: name.value,
-    address: address.value,
-    orgNumber: orgNumber.value,
-    isGoingToServeAlcohol: isGoingToServeAlcohol.value,
-    isGoingToServeFood: isGoingToServeFood.value,
+    orgName: name.value.trim(),
+    orgAddress: address.value.trim(),
+    orgNumber: Number(orgNumber.value),
+    alcoholEnabled: isGoingToServeAlcohol.value,
+    foodEnabled: isGoingToServeFood.value,
   }
 
   try {
-    const response = await fetch('/api/organizations', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    })
+    await api.post('/organizations', payload)
 
-    if (!response.ok) {
-      errorMessage.value = 'Klarte ikke å lage organisasjonen. Prøv igjen.'
+    const refreshResponse = await api.post('/auth/refresh')
+    const nextToken = typeof refreshResponse.data === 'string' ? refreshResponse.data.trim() : ''
+
+    if (!nextToken) {
+      errorMessage.value = 'Organisasjonen ble opprettet, men session kunne ikke oppdateres.'
       return
     }
+
+    setAuthToken(nextToken)
+    syncOrgSessionFromStorage()
+    await ensureOrgSessionLoaded(true)
 
     name.value = ''
     address.value = ''
@@ -49,7 +60,7 @@ async function handleSubmit() {
     isGoingToServeAlcohol.value = false
     isGoingToServeFood.value = false
 
-    await router.push('/desktop')
+    await router.push(getPostAuthRoute(claims.value, organizations.value))
   } catch {
     errorMessage.value = 'Det oppstod en feil. Prøv igjen.'
   } finally {

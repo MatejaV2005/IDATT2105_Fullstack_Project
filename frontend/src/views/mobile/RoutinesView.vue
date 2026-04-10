@@ -246,7 +246,7 @@ function handleRoutineCheck(routine: RoutineCard, event: Event) {
 
 async function handlePrimaryAction() {
   if (!hasAuthenticatedSession.value) {
-    await router.push('/mobile/login')
+    await router.push('/auth')
     return
   }
 

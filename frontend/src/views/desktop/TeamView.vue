@@ -6,8 +6,13 @@ import Badge from '@/components/desktop/shared/Badge.vue'
 import DesktopButton from '@/components/desktop/shared/DesktopButton.vue'
 import Loading from '@/components/desktop/shared/Loading.vue'
 import { useOrgSession } from '@/composables/useOrgSession'
-import type { NewOrganizationUserPayload, TeamAllInfo, TeamDirectoryUser } from '@/interfaces/api-interfaces'
-import { UserMinus } from '@lucide/vue'
+import type {
+  NewOrganizationUserPayload,
+  TeamAllInfo,
+  TeamDirectoryUser,
+} from '@/interfaces/api-interfaces'
+import type { OrgAccessLevel } from '@/interfaces/util-interfaces'
+import { Save, UserMinus } from '@lucide/vue'
 import { computed, ref, watch } from 'vue'
 const { claims, currentUserRole } = useOrgSession()
 
@@ -19,8 +24,11 @@ const isAddingMember = ref(false)
 const addMemberError = ref(false)
 const isRemovingMember = ref(false)
 const removeMemberError = ref(false)
+const roleUpdateError = ref(false)
+const isUpdatingRoleUserId = ref<number | null>(null)
 const directoryErrorMessage = ref('')
 const isLoadingUsers = ref(false)
+const draftRoles = ref<Record<number, OrgAccessLevel>>({})
 
 const canManageMembers = computed(() => currentUserRole.value === 'OWNER')
 let activeFetchId = 0
@@ -33,6 +41,12 @@ function getErrorMessage(err: unknown, fallback: string) {
   }
 
   return fallback
+}
+
+function syncDraftRoles() {
+  draftRoles.value = Object.fromEntries(
+    resource.value.map((user) => [user.userId, user.orgRole as OrgAccessLevel]),
+  )
 }
 
 async function fetchTeam() {
@@ -50,6 +64,7 @@ async function fetchTeam() {
     }
 
     resource.value = teamResponse.data
+    syncDraftRoles()
 
     if (canManageMembers.value) {
       isLoadingUsers.value = true
@@ -81,6 +96,7 @@ async function fetchTeam() {
 
     resource.value = []
     availableUsers.value = []
+    draftRoles.value = {}
     error.value = getErrorMessage(err, 'Klarte ikke å hente teamsammensetningen.')
     isLoadingUsers.value = false
   } finally {
@@ -146,12 +162,47 @@ async function removeUserFromOrg(userId: number) {
   }
 }
 
+async function updateUserRole(userId: number) {
+  if (isUpdatingRoleUserId.value !== null) {
+    return
+  }
+
+  const user = resource.value.find((entry) => entry.userId === userId)
+  const nextRole = draftRoles.value[userId]
+
+  if (!user || !nextRole || user.orgRole === nextRole) {
+    return
+  }
+
+  isUpdatingRoleUserId.value = userId
+  roleUpdateError.value = false
+
+  try {
+    await api.patch('/organizations/users', {
+      userId,
+      role: nextRole,
+    })
+    await fetchTeam()
+  } catch (err) {
+    if (err instanceof Error) {
+      console.error(err.message)
+    } else {
+      console.error('Unknown error occurred')
+    }
+    roleUpdateError.value = true
+    draftRoles.value[userId] = user.orgRole as OrgAccessLevel
+  } finally {
+    isUpdatingRoleUserId.value = null
+  }
+}
+
 watch(
   () => [claims.value?.orgId, currentUserRole.value] as const,
   ([orgId]) => {
     if (!orgId) {
       resource.value = []
       availableUsers.value = []
+      draftRoles.value = {}
       loading.value = false
       error.value = null
       return
@@ -182,6 +233,9 @@ watch(
       <p v-if="removeMemberError" class="error-message">
         Klarte ikke å fjerne medlem fra organisasjonen.
       </p>
+      <p v-if="roleUpdateError" class="error-message">
+        Klarte ikke å oppdatere rolle i organisasjonen.
+      </p>
       <p
         v-if="error"
         class="error-message"
@@ -196,9 +250,41 @@ watch(
               <h2 class="no-margin">
                 {{ user.legalName }}
               </h2>
-              <Badge badge-color="navy">
+              <Badge
+                v-if="!canManageMembers"
+                badge-color="navy"
+              >
                 {{ user.orgRole }}
               </Badge>
+              <div
+                v-else
+                class="role-edit"
+              >
+                <div class="role-select-shell role-edit__field">
+                  <select
+                    v-model="draftRoles[user.userId]"
+                    class="simple-text-input role-edit__select"
+                    :disabled="isUpdatingRoleUserId === user.userId"
+                  >
+                    <option value="OWNER">OWNER</option>
+                    <option value="MANAGER">MANAGER</option>
+                    <option value="WORKER">WORKER</option>
+                  </select>
+                </div>
+                <DesktopButton
+                  :icon="Save"
+                  content="Lagre rolle"
+                  button-color="grey"
+                  :on-click="() => updateUserRole(user.userId)"
+                  :disabled="
+                    isUpdatingRoleUserId !== null ||
+                    draftRoles[user.userId] === undefined ||
+                    draftRoles[user.userId] === user.orgRole
+                  "
+                  :is-loading="isUpdatingRoleUserId === user.userId"
+                  loading-text="Lagrer"
+                />
+              </div>
             </div>
           </div>
           <DesktopButton
@@ -302,6 +388,53 @@ watch(
   border-radius: 0.5rem;
   padding: 0.6rem;
   background-color: var(--blue-light-20);
+}
+
+.role-edit {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.role-select-shell {
+  position: relative;
+  min-width: 11rem;
+}
+
+.role-select-shell::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 0.9rem;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-right: 2px solid var(--blue-navy);
+  border-bottom: 2px solid var(--blue-navy);
+  transform: translateY(-70%) rotate(45deg);
+  pointer-events: none;
+}
+
+.role-edit__field {
+  flex: 0 1 12rem;
+}
+
+.role-edit__select {
+  min-width: 11rem;
+  width: 100%;
+  appearance: none;
+  border: 1px solid var(--blue-navy-40);
+  border-radius: 0.75rem;
+  background-color: var(--blue-light-20);
+  color: var(--blue-navy);
+  padding: 0.8rem 2.6rem 0.8rem 0.95rem;
+  font-weight: 600;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.role-edit__select:focus {
+  outline: 2px solid var(--blue-decor);
+  outline-offset: 2px;
 }
 
 .mini-stat-grid {

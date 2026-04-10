@@ -1,3 +1,5 @@
+import type { OrganizationMembership } from '@/types/auth'
+
 export type DeviationCategory = 'IK_MAT' | 'IK_ALKOHOL' | 'OTHER'
 export type ReviewStatus = 'OPEN' | 'CLOSED'
 
@@ -24,6 +26,36 @@ export const deviationCategories: { value: DeviationCategory; label: string }[] 
   { value: 'IK_ALKOHOL', label: 'IK Alkohol' },
   { value: 'OTHER', label: 'Annet' },
 ]
+
+type DeviationCategoryScope = Pick<OrganizationMembership, 'foodEnabled' | 'alcoholEnabled'> | null
+
+export function getAvailableDeviationCategories(
+  scope: DeviationCategoryScope,
+): { value: DeviationCategory; label: string }[] {
+  return deviationCategories.filter((category) => {
+    if (category.value === 'IK_MAT') {
+      return Boolean(scope?.foodEnabled)
+    }
+
+    if (category.value === 'IK_ALKOHOL') {
+      return Boolean(scope?.alcoholEnabled)
+    }
+
+    return true
+  })
+}
+
+export function getDefaultDeviationCategory(scope: DeviationCategoryScope): DeviationCategory {
+  if (scope?.foodEnabled) {
+    return 'IK_MAT'
+  }
+
+  if (scope?.alcoholEnabled) {
+    return 'IK_ALKOHOL'
+  }
+
+  return 'OTHER'
+}
 
 export const reviewStatuses: { value: ReviewStatus; label: string }[] = [
   { value: 'OPEN', label: 'Åpen' },
