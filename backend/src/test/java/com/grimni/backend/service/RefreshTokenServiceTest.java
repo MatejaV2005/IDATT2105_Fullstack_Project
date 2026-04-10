@@ -11,6 +11,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseCookie;
 
+import com.grimni.domain.Organization;
 import com.grimni.domain.RefreshToken;
 import com.grimni.domain.User;
 import com.grimni.repository.RefreshTokenRepository;
@@ -39,6 +40,7 @@ public class RefreshTokenServiceTest {
     private RefreshTokenService service;
 
     private User testUser;
+    private Organization testOrganization;
 
     @BeforeEach
     void setUp() {
@@ -46,6 +48,8 @@ public class RefreshTokenServiceTest {
         testUser.setLegalName("alice"); // ? Wallah
         // User.id is DB-assigned (GenerationType.IDENTITY), no setter — use reflection
         ReflectionTestUtils.setField(testUser, "id", 1L);
+        testOrganization = new Organization();
+        testOrganization.setId(10L);
     }
 
     // -------------------------------------------------------------------------
@@ -73,7 +77,7 @@ public class RefreshTokenServiceTest {
             when(repository.save(any(RefreshToken.class))).thenAnswer(inv -> inv.getArgument(0));
             when(util.createRefreshTokenCookie("new-plaintext")).thenReturn(expectedCookie);
 
-            ResponseCookie result = service.rotateRefreshToken(testUser, incoming);
+            ResponseCookie result = service.rotateRefreshToken(testUser, incoming, testOrganization);
 
             assertNotNull(result);
             verify(util).hashToken(incoming);
@@ -89,7 +93,7 @@ public class RefreshTokenServiceTest {
             when(repository.findByRefreshToken("hashed-unknown")).thenReturn(Optional.empty());
 
             BadCredentialsException ex = assertThrows(BadCredentialsException.class,
-                    () -> service.rotateRefreshToken(testUser, "unknown-token"));
+                    () -> service.rotateRefreshToken(testUser, "unknown-token", testOrganization));
 
             assertEquals("Invalid refresh token", ex.getMessage());
             verify(repository, never()).delete(any());
@@ -132,7 +136,7 @@ public class RefreshTokenServiceTest {
             when(repository.save(any(RefreshToken.class))).thenAnswer(inv -> inv.getArgument(0));
             when(util.createRefreshTokenCookie(plaintext)).thenReturn(expectedCookie);
 
-            ResponseCookie result = service.createAndStoreRefreshToken(testUser);
+            ResponseCookie result = service.createAndStoreRefreshToken(testUser, testOrganization);
 
             assertEquals(expectedCookie, result);
 
@@ -141,6 +145,7 @@ public class RefreshTokenServiceTest {
             RefreshToken saved = captor.getValue();
 
             assertEquals(testUser, saved.getUser());
+            assertEquals(testOrganization, saved.getOrganization());
             assertEquals(hashed, saved.getRefreshToken());
             // createdAt is populated by the DB (@Column insertable=false), not by JPA in-memory.
             // In a unit test with no persistence, it will be null — assertion removed.
@@ -151,7 +156,7 @@ public class RefreshTokenServiceTest {
         @DisplayName("throws IllegalArgumentException when user is null")
         void createAndStore_nullUser_throws() {
             IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                    () -> service.createAndStoreRefreshToken(null));
+                    () -> service.createAndStoreRefreshToken(null, testOrganization));
 
             assertEquals("User cannot be null", ex.getMessage());
             verify(repository, never()).save(any());

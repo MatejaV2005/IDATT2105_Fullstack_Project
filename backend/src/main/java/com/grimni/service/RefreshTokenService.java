@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Service;
 
+import com.grimni.domain.Organization;
 import com.grimni.domain.RefreshToken;
 import com.grimni.domain.User;
 import com.grimni.repository.RefreshTokenRepository;
@@ -35,14 +36,15 @@ public class RefreshTokenService {
 
     // 2. Rotates the refresh token: validates, deletes old, issues new, returns new cookie
     // NOTE: POST and not GET due to REST state idempotency — rotation mutates DB state
-    public ResponseCookie rotateRefreshToken(User user, String incomingToken) {
+    public ResponseCookie rotateRefreshToken(User user, String incomingToken, Organization organization) {
         logger.info("Rotating refresh token for user: {}", user.getLegalName());
         RefreshToken existing = validateRefreshToken(incomingToken); // reuse validation, single DB hit
+        if (!existing.getUser().getId().equals(user.getId())) {
+            logger.warn("Refresh token rotation denied: token user {} does not match caller {}", existing.getUser().getId(), user.getId());
+            throw new BadCredentialsException("Refresh token does not belong to the authenticated user");
+        }
 
-        repository.delete(existing);
-
-        logger.info("Old refresh token deleted for user: {}", user.getLegalName());
-        return createAndStoreRefreshToken(user);
+        return rotateRefreshToken(existing, organization);
     }
 
     // 3. method for deleting tokens upon expiry/logout from database
@@ -73,7 +75,7 @@ public class RefreshTokenService {
      * @param user the authenticated user to create the refresh token for
      * @return a ResponseCookie containing the plaintext refresh token, scoped to /api/auth
     */
-    public ResponseCookie createAndStoreRefreshToken(User user) {
+    public ResponseCookie createAndStoreRefreshToken(User user, Organization organization) {
         if (user == null) {
             throw new IllegalArgumentException("User cannot be null");
         }
@@ -85,6 +87,7 @@ public class RefreshTokenService {
         // Create a new RefreshToken object for a specific user, set necessary fields and store it in database through JPA repository
         RefreshToken entity = new RefreshToken();
         entity.setUser(user);
+        entity.setOrganization(organization);
         entity.setRefreshToken(hashed);
         repository.save(entity);
         logger.info("Refresh token stored in database for user: {}", user.getLegalName());
@@ -96,5 +99,26 @@ public class RefreshTokenService {
     public User getUserByRefreshToken(String tokenValue) {
         RefreshToken refToken = validateRefreshToken(tokenValue);
         return refToken.getUser();
+    }
+
+    public RefreshToken getStoredRefreshToken(String tokenValue) {
+        return validateRefreshToken(tokenValue);
+    }
+
+    public RefreshToken getStoredRefreshTokenForUser(String tokenValue, Long userId) {
+        RefreshToken storedToken = validateRefreshToken(tokenValue);
+        if (!storedToken.getUser().getId().equals(userId)) {
+            logger.warn("Refresh token lookup denied: token user {} does not match authenticated user {}", storedToken.getUser().getId(), userId);
+            throw new BadCredentialsException("Refresh token does not belong to the authenticated user");
+        }
+
+        return storedToken;
+    }
+
+    public ResponseCookie rotateRefreshToken(RefreshToken existingToken, Organization organization) {
+        logger.info("Rotating refresh token for user: {}", existingToken.getUser().getLegalName());
+        repository.delete(existingToken);
+        logger.info("Old refresh token deleted for user: {}", existingToken.getUser().getLegalName());
+        return createAndStoreRefreshToken(existingToken.getUser(), organization);
     }
 }

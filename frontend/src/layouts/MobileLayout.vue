@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { appMeta } from '@/data/mockHaccp'
-import { computed } from 'vue'
+import OrganizationSwitcher from '@/components/OrganizationSwitcher.vue'
+import { useOrgSession } from '@/composables/useOrgSession'
+import { computed, onMounted } from 'vue'
 import { RouterLink, RouterView, useRoute } from 'vue-router'
 
 const route = useRoute()
+const { currentUserInitials, currentUserName, ensureOrgSessionLoaded, isAuthenticated } = useOrgSession()
 
 const tabs = [
   { name: 'rutiner', label: 'Rutiner', to: '/mobile/rutiner' },
@@ -14,10 +16,13 @@ const tabs = [
 
 const showTabs = computed(() => route.name !== 'login')
 const isLoginPage = computed(() => route.name === 'login')
+const profileLink = computed(() => (isAuthenticated.value ? '/mobile/rutiner' : '/mobile/login'))
+const profileName = computed(() => currentUserName.value || 'Logg inn')
+const profileInitials = computed(() => currentUserInitials.value)
 
-function showOrganisationSelector() {
-  window.alert('Bytte av organisasjon er ikke implementert ennå.')
-}
+onMounted(() => {
+  void ensureOrgSessionLoaded()
+})
 </script>
 
 <template>
@@ -32,7 +37,7 @@ function showOrganisationSelector() {
           >
             <img
               src="@/assets/logo/logo-medium.png"
-              :alt="appMeta.companyName"
+              alt="Grimni"
             >
           </RouterLink>
 
@@ -40,32 +45,10 @@ function showOrganisationSelector() {
             v-if="showTabs"
             class="top-app-bar__center"
           >
-            <button
-              type="button"
-              class="org-switcher"
-              aria-label="Bytt organisasjon"
-              @click="showOrganisationSelector"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M10 12h4" />
-                <path d="M10 8h4" />
-                <path d="M14 21v-3a2 2 0 0 0-4 0v3" />
-                <path d="M6 10H4a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-2" />
-                <path d="M6 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16" />
-              </svg>
-              <span class="org-switcher__text">{{ appMeta.currentOrganizationName }}</span>
-            </button>
+            <OrganizationSwitcher
+              variant="mobile"
+              redirect-to="/mobile/rutiner"
+            />
           </div>
           <div
             v-else
@@ -74,11 +57,11 @@ function showOrganisationSelector() {
 
           <RouterLink
             class="profile-button transition"
-            to="/mobile/login"
+            :to="profileLink"
             aria-label="Gå til logg inn"
           >
-            <span class="profile-button__avatar">{{ appMeta.userInitials }}</span>
-            <span class="profile-button__name">{{ appMeta.userName }}</span>
+            <span class="profile-button__avatar">{{ profileInitials }}</span>
+            <span class="profile-button__name">{{ profileName }}</span>
           </RouterLink>
         </header>
 
