@@ -286,14 +286,14 @@ async function removeUserFromOrg(userId: number) {
       <div v-for="user in resource" :key="user.userId" class="team-user">
         <div class="user-header">
           <div>
-            <RouterLink class="user-link" :to="`/desktop/users/${user.userId}`">
+            <div class="center-content">
               <h2 class="no-margin">
                 {{ user.legalName }}
               </h2>
               <Badge badge-color="navy">
                 {{ user.orgRole }}
               </Badge>
-            </RouterLink>
+            </div>
           </div>
           <DesktopButton
             :icon="UserMinus"
@@ -379,18 +379,6 @@ async function removeUserFromOrg(userId: number) {
   gap: 0.5rem;
   flex-wrap: wrap;
   margin-top: 0.5rem;
-}
-
-.user-link {
-  color: var(--blue-navy);
-  text-decoration: none;
-  display: flex;
-  gap: 1rem;
-}
-
-.user-link:hover,
-.user-link:focus {
-  text-decoration: underline;
 }
 
 .user-info-grid {

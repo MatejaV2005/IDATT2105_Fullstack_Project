@@ -5,7 +5,7 @@ import Loading from '@/components/desktop/shared/Loading.vue'
 import SidebarPageContainer from '@/components/desktop/sidebar/SidebarPageContainer.vue'
 import type { LearningAllInfo } from '@/interfaces/api-interfaces'
 import { delay } from '@/utils'
-import { Edit2, File, Link, Plus } from '@lucide/vue'
+import { Check, Edit2, File, Link, Plus, X } from '@lucide/vue'
 import { onMounted, ref } from 'vue'
 
 const mockData: LearningAllInfo = {
@@ -18,10 +18,12 @@ const mockData: LearningAllInfo = {
         {
           name: 'www.ndla.no/random_stuff',
           type: 'link',
+          id: 1,
         },
         {
           name: 'erna_sin_spise_guide.pdf',
           type: 'file',
+          id: 2,
         },
       ],
       responsible: ['Simen Velle', 'Vedum'],
@@ -35,10 +37,12 @@ const mockData: LearningAllInfo = {
         {
           name: 'www.ndla.no/random_stuff',
           type: 'link',
+          id: 9,
         },
         {
           name: 'erna_sin_spise_guide.pdf',
           type: 'file',
+          id: 4,
         },
       ],
       responsible: ['Simen Velle', 'Ola svenneby'],
@@ -52,10 +56,12 @@ const mockData: LearningAllInfo = {
         {
           name: 'www.ndla.no/random_stuff',
           type: 'link',
+          id: 23,
         },
         {
           name: 'erna_sin_spise_guide.pdf',
           type: 'file',
+          id: 58,
         },
       ],
       responsible: ['Simen Velle', 'Ola svenneby'],
@@ -64,7 +70,9 @@ const mockData: LearningAllInfo = {
   ],
   userProgress: [
     {
-      name: 'Mona Jul',
+      id: 11,
+      legalName: 'Mona Jul',
+      email: 'mona.jul@example.com',
       courses: [
         {
           name: 'Serveringskurs',
@@ -79,7 +87,9 @@ const mockData: LearningAllInfo = {
       ],
     },
     {
-      name: 'Jagland',
+      id: 12,
+      legalName: 'Jagland',
+      email: 'jagland@example.com',
       courses: [
         {
           name: 'Serveringskurs',
@@ -94,7 +104,9 @@ const mockData: LearningAllInfo = {
       ],
     },
     {
-      name: 'Bent Høie',
+      id: 13,
+      legalName: 'Bent Hoie',
+      email: 'bent.hoie@example.com',
       courses: [
         {
           name: 'Serveringskurs',
@@ -109,7 +121,9 @@ const mockData: LearningAllInfo = {
       ],
     },
     {
-      name: 'Bondevik',
+      id: 14,
+      legalName: 'Bondevik',
+      email: 'bondevik@example.com',
       courses: [
         {
           name: 'Serveringskurs',
@@ -126,21 +140,73 @@ const mockData: LearningAllInfo = {
   ],
 }
 
+function cloneLearningData(data: LearningAllInfo): LearningAllInfo {
+  return {
+    allCourses: data.allCourses.map((course) => ({
+      ...course,
+      resources: course.resources.map((resource) => ({ ...resource })),
+      responsible: [...course.responsible],
+    })),
+    userProgress: data.userProgress.map((user) => ({
+      ...user,
+      courses: user.courses.map((course) => ({ ...course })),
+    })),
+  }
+}
+
+const mockServerState = ref<LearningAllInfo>(cloneLearningData(mockData))
+
 const resource = ref<LearningAllInfo>({ allCourses: [], userProgress: [] })
 const loading = ref(true)
 const error = ref<boolean | null>(null)
+const isEditingCompletion = ref(false)
+const isSavingCompletion = ref(false)
+const saveCompletionError = ref(false)
+const draftUserProgress = ref<LearningAllInfo['userProgress']>([])
+
+interface UpdateCourseCompletionPayload {
+  userId: number
+  courseId: number
+  completed: boolean
+}
+
+async function fetchLearning() {
+  // const response = await fetch('/api/learning/get-all-info')
+  // if (!response.ok) {
+  //   throw new Error(`Failed to fetch learning data (${response.status})`)
+  // }
+  // const data: LearningAllInfo = await response.json()
+  await delay(500)
+  resource.value = cloneLearningData(mockServerState.value)
+}
+
+async function updateCourseCompletion(payload: UpdateCourseCompletionPayload) {
+  // const response = await fetch('/api/learning/course-progress', {
+  //   method: 'PUT',
+  //   headers: { 'Content-Type': 'application/json' },
+  //   body: JSON.stringify(payload),
+  // })
+  // if (!response.ok) {
+  //   throw new Error(`Failed to update course completion (${response.status})`)
+  // }
+  await delay(220)
+
+  const userEntry = mockServerState.value.userProgress.find((entry) => entry.id === payload.userId)
+  if (!userEntry) {
+    return
+  }
+
+  const courseEntry = userEntry.courses.find((entry) => entry.uniqueId === payload.courseId)
+  if (!courseEntry) {
+    return
+  }
+
+  courseEntry.completed = payload.completed
+}
 
 onMounted(async () => {
   try {
-    // const response = await fetch('/api/learning/get-all-info')
-    // if (!response.ok) {
-    //     throw new Error(`Failed to get user (${response.status})`)
-    // }
-    // const data = await response.json()
-    await delay(2000)
-    const data = mockData
-    resource.value = data
-    loading.value = false
+    await fetchLearning()
     error.value = false
   } catch (err) {
     if (err instanceof Error) {
@@ -149,6 +215,8 @@ onMounted(async () => {
       console.error('Unknown error occurred')
     }
     error.value = true
+  } finally {
+    loading.value = false
   }
 })
 
@@ -158,6 +226,97 @@ function hasCompletedCourse(
 ) {
   return user.courses.some((course) => course.uniqueId === courseId && course.completed)
 }
+
+function startEditingCompletion() {
+  draftUserProgress.value = resource.value.userProgress.map((user) => ({
+    ...user,
+    courses: user.courses.map((course) => ({ ...course })),
+  }))
+  saveCompletionError.value = false
+  isEditingCompletion.value = true
+}
+
+function cancelCompletionEditing() {
+  if (isSavingCompletion.value) {
+    return
+  }
+
+  isEditingCompletion.value = false
+  draftUserProgress.value = []
+  saveCompletionError.value = false
+}
+
+function toggleDraftCourseCompletion(userId: number, courseId: number) {
+  const user = draftUserProgress.value.find((entry) => entry.id === userId)
+  if (!user) {
+    return
+  }
+
+  const course = user.courses.find((entry) => entry.uniqueId === courseId)
+  if (!course) {
+    return
+  }
+
+  course.completed = !course.completed
+}
+
+async function saveCompletionChanges() {
+  if (isSavingCompletion.value) {
+    return
+  }
+
+  const updates: UpdateCourseCompletionPayload[] = []
+
+  for (const user of draftUserProgress.value) {
+    const originalUser = resource.value.userProgress.find((entry) => entry.id === user.id)
+    if (!originalUser) {
+      continue
+    }
+
+    for (const course of user.courses) {
+      const originalCourse = originalUser.courses.find(
+        (entry) => entry.uniqueId === course.uniqueId,
+      )
+      if (!originalCourse || originalCourse.completed === course.completed) {
+        continue
+      }
+
+      updates.push({
+        userId: user.id,
+        courseId: course.uniqueId,
+        completed: course.completed,
+      })
+    }
+  }
+
+  if (updates.length === 0) {
+    isEditingCompletion.value = false
+    draftUserProgress.value = []
+    return
+  }
+
+  isSavingCompletion.value = true
+  saveCompletionError.value = false
+
+  try {
+    for (const payload of updates) {
+      await updateCourseCompletion(payload)
+    }
+    await fetchLearning()
+    isEditingCompletion.value = false
+    draftUserProgress.value = []
+  } catch (err) {
+    if (err instanceof Error) {
+      console.error(err.message)
+    } else {
+      console.error('Unknown error occurred')
+    }
+    saveCompletionError.value = true
+  } finally {
+    isSavingCompletion.value = false
+  }
+}
+
 function sayHello() {
   alert('HELLO THERE!')
 }
@@ -166,38 +325,39 @@ function sayHello() {
 <template>
   <SidebarPageContainer active-page="/desktop/bedrift-opplaering">
     <div class="learning-area-container">
-      <h1 class="instrument-serif-regular no-margin">
-        Opplæring
-      </h1>
+      <h1 class="instrument-serif-regular no-margin">Opplæring</h1>
       <span class="navy-subtitle">Godkjenning</span>
       <Loading v-if="loading" />
-      <div
-        v-if="!loading"
-        class="course-completion"
-      >
+      <div v-if="!loading" class="course-completion">
         <table>
           <thead>
             <tr>
               <th>Bruker</th>
-              <th
-                v-for="course in resource.allCourses"
-                :key="course.uniqueId"
-              >
+              <th v-for="course in resource.allCourses" :key="course.uniqueId">
                 {{ course.name }}
               </th>
             </tr>
           </thead>
           <tbody>
             <tr
-              v-for="user in resource.userProgress"
-              :key="user.name"
+              v-for="user in isEditingCompletion ? draftUserProgress : resource.userProgress"
+              :key="user.id"
             >
-              <td>{{ user.name }}</td>
-              <td
-                v-for="course in resource.allCourses"
-                :key="`${user.name}-${course.uniqueId}`"
-              >
+              <td>{{ user.legalName }}</td>
+              <td v-for="course in resource.allCourses" :key="`${user.id}-${course.uniqueId}`">
+                <button
+                  v-if="isEditingCompletion"
+                  class="completion-chip completion-toggle-chip"
+                  :class="
+                    hasCompletedCourse(user, course.uniqueId) ? 'is-complete' : 'is-incomplete'
+                  "
+                  :disabled="isSavingCompletion"
+                  @click="toggleDraftCourseCompletion(user.id, course.uniqueId)"
+                >
+                  {{ hasCompletedCourse(user, course.uniqueId) ? 'Fullført' : 'Ikke fullført' }}
+                </button>
                 <span
+                  v-else
                   class="completion-chip"
                   :class="
                     hasCompletedCourse(user, course.uniqueId) ? 'is-complete' : 'is-incomplete'
@@ -209,27 +369,45 @@ function sayHello() {
             </tr>
           </tbody>
         </table>
-        <DesktopButton
-          content="Rediger"
-          :icon="Edit2"
-          class="navy-button-flat-top"
-        />
+        <div class="completion-actions">
+          <DesktopButton
+            v-if="!isEditingCompletion"
+            content="Rediger"
+            :icon="Edit2"
+            class="navy-button-flat-top"
+            :on-click="startEditingCompletion"
+          />
+          <div v-else class="completion-action-row">
+            <DesktopButton
+              content="Lagre"
+              :icon="Check"
+              :on-click="saveCompletionChanges"
+              :is-loading="isSavingCompletion"
+              loading-text="Lagrer"
+              class="completion-action-button"
+            />
+            <DesktopButton
+              content="Avbryt"
+              :icon="X"
+              :on-click="cancelCompletionEditing"
+              :disabled="isSavingCompletion"
+              button-color="boring-ghost"
+              class="completion-action-button"
+            />
+          </div>
+          <p v-if="saveCompletionError" class="completion-error">
+            Klarte ikke oppdatere kursstatus. Prøv igjen.
+          </p>
+        </div>
       </div>
       <span class="navy-subtitle">Opplæringskrav</span>
       <Loading v-if="loading" />
-      <div
-        v-for="course in resource.allCourses"
-        :key="course.uniqueId"
-        class="course"
-      >
+      <div v-for="course in resource.allCourses" :key="course.uniqueId" class="course">
         <div class="course-header">
           <h2 class="no-margin">
             {{ course.name }}
           </h2>
-          <DesktopButton
-            content="Edit"
-            :icon="Edit2"
-          />
+          <DesktopButton content="Edit" :icon="Edit2" />
         </div>
         <div>
           <span class="navy-subtitle"> Beskrivelse: </span>
@@ -242,7 +420,7 @@ function sayHello() {
           <div class="resource-container">
             <Badge
               v-for="resource in course.resources"
-              :key="`${course.uniqueId}-${resource.name}`"
+              :key="resource.id"
               badge-color="navy"
               :icon="resource.type === 'link' ? Link : File"
             >
@@ -251,11 +429,7 @@ function sayHello() {
           </div>
         </div>
       </div>
-      <DesktopButton
-        :icon="Plus"
-        content="Legg til kurs"
-        :on-click="sayHello"
-      />
+      <DesktopButton :icon="Plus" content="Legg til kurs" :on-click="sayHello" />
     </div>
   </SidebarPageContainer>
 </template>
@@ -299,6 +473,28 @@ function sayHello() {
   border-top-left-radius: 0;
 }
 
+.completion-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.completion-action-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.completion-action-button {
+  width: 100%;
+  border-radius: 0;
+}
+
+.completion-error {
+  margin: 0;
+  color: var(--red-cherry);
+  padding: 0 0.5rem 0.5rem;
+}
+
 .course-completion {
   max-height: 26rem;
   overflow: auto;
@@ -335,6 +531,18 @@ thead th {
   padding: 0.15rem 0.6rem;
   font-size: 0.85rem;
   font-weight: 600;
+}
+
+.completion-toggle-chip {
+  border: 0;
+}
+
+.completion-toggle-chip:hover:not(:disabled) {
+  box-shadow: 0rem 0.2rem 0.35rem var(--black-no-face-20);
+}
+
+.completion-toggle-chip:disabled {
+  opacity: 0.7;
 }
 
 .is-complete {
@@ -389,6 +597,10 @@ thead th {
 
   .completion-chip {
     font-size: 0.8rem;
+  }
+
+  .completion-action-row {
+    flex-direction: column;
   }
 }
 </style>
