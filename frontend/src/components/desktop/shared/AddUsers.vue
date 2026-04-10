@@ -13,6 +13,7 @@ const props = defineProps<{
   initialUserIds?: number[]
   initialUsers?: BasicUserWithAccessLevel[]
   users?: BasicUserWithAccessLevel[]
+  localOnly?: boolean
 }>()
 
 const allUsers = ref<BasicUserWithAccessLevel[]>([])

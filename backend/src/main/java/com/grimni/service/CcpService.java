@@ -187,6 +187,66 @@ public class CcpService {
     }
 
     /**
+     * Updates the verification status of a single CCP record.
+     * <p>
+     * Mirrors the authorization rules used by {@link #getVerificationLogs}: the caller must
+     * be either a VERIFIER on the linked CCP, or OWNER/MANAGER if the record is unlinked.
+     * Stamps {@code lastVerifier} from the JWT and {@code verifiedAt} with the server clock,
+     * so callers cannot rewrite who verified or when.
+     *
+     * @param recordId  the CCP record to update.
+     * @param newStatus the new {@link com.grimni.domain.enums.VerificationStatus} to apply.
+     * @param userId    the requesting user's ID (becomes {@code lastVerifier}).
+     * @param orgId     the caller's organization scope.
+     * @param role      the caller's role string for the OWNER/MANAGER fallback path.
+     * @return the persisted {@link CcpRecord}.
+     * @throws jakarta.persistence.EntityNotFoundException        if the record or user doesn't exist.
+     * @throws org.springframework.security.access.AccessDeniedException if the caller is not allowed to verify this record.
+     */
+    @Transactional
+    public CcpRecord setVerificationStatus(
+            Long recordId,
+            com.grimni.domain.enums.VerificationStatus newStatus,
+            Long userId,
+            Long orgId,
+            String role) {
+        ensureAuthenticatedMember(userId, orgId);
+
+        CcpRecord record = ccpRecordRepository.findById(recordId)
+            .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("CCP record not found"));
+
+        if (record.getOrganization() == null || !record.getOrganization().getId().equals(orgId)) {
+            throw new org.springframework.security.access.AccessDeniedException("CCP record does not belong to your organization");
+        }
+
+        boolean isManagerOrOwner = "OWNER".equals(role) || "MANAGER".equals(role);
+        boolean allowed;
+        if (record.getCcp() != null) {
+            allowed = ccpUserBridgeRepository.existsByUserAndCcpAndRoles(
+                userId,
+                record.getCcp().getId(),
+                orgId,
+                java.util.Set.of(RoutineUserRole.VERIFIER)
+            );
+        } else {
+            allowed = isManagerOrOwner;
+        }
+
+        if (!allowed) {
+            throw new org.springframework.security.access.AccessDeniedException("You are not authorized to verify this record");
+        }
+
+        User verifier = userRepository.findById(userId)
+            .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("User not found"));
+
+        record.setVerificationStatus(newStatus);
+        record.setLastVerifier(verifier);
+        record.setVerifiedAt(LocalDateTime.now());
+
+        return ccpRecordRepository.save(record);
+    }
+
+    /**
      * Creates a new CCP entity including its interval rules, initial user assignments, and corrective measures.
      *
      * @param request data for the new CCP.
