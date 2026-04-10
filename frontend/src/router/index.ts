@@ -1,6 +1,7 @@
 import DesktopLayout from '@/layouts/DesktopLayout.vue'
 import MobileLayout from '@/layouts/MobileLayout.vue'
 import AuthView from '@/views/AuthView.vue'
+import NotFoundView from '@/views/NotFoundView.vue'
 import CcpLogsView from '@/views/desktop/CcpLogsView.vue'
 import CreateOrgView from '@/views/desktop/CreateOrgView.vue'
 import CriticalControlPointsView from '@/views/desktop/CriticalControlPointsView.vue'
@@ -20,6 +21,9 @@ import DeviationsView from '@/views/mobile/DeviationsView.vue'
 import LoggingView from '@/views/mobile/LoggingView.vue'
 import MappingPointsView from '@/views/mobile/MappingPointsView.vue'
 import RoutinesView from '@/views/mobile/RoutinesView.vue'
+import { ensureOrgSessionLoaded, useOrgSession } from '@/composables/useOrgSession'
+import { getPostAuthRoute } from '@/utils/auth-routing'
+import { getAuthToken } from '@/utils/auth'
 import { createRouter, createWebHistory } from 'vue-router'
 
 const router = createRouter({
@@ -162,7 +166,63 @@ const router = createRouter({
       path: '/',
       redirect: '/auth',
     },
+    {
+      path: '/:pathMatch(.*)*',
+      component: NotFoundView,
+    },
   ],
+})
+
+router.beforeEach(async (to) => {
+  const { claims, organizations } = useOrgSession()
+  const hasStoredToken = Boolean(getAuthToken()?.trim())
+
+  if (to.path === '/auth') {
+    if (!hasStoredToken || !claims.value) {
+      return true
+    }
+
+    await ensureOrgSessionLoaded()
+    return getPostAuthRoute(claims.value, organizations.value)
+  }
+
+  const isDesktopRoute = to.path.startsWith('/desktop')
+  const isMobileRoute = to.path.startsWith('/mobile')
+
+  if (!isDesktopRoute && !isMobileRoute) {
+    return true
+  }
+
+  if (!hasStoredToken || !claims.value) {
+    return '/auth'
+  }
+
+  await ensureOrgSessionLoaded()
+
+  const postAuthRoute = getPostAuthRoute(claims.value, organizations.value)
+  const hasOrganization = postAuthRoute !== '/desktop/no-org'
+  const isNoOrgFlowRoute =
+    to.path === '/desktop/no-org' ||
+    to.path === '/desktop/create-org' ||
+    to.path === '/desktop/users/me'
+
+  if (!hasOrganization && !isNoOrgFlowRoute) {
+    return '/desktop/no-org'
+  }
+
+  if (isDesktopRoute && hasOrganization && isNoOrgFlowRoute) {
+    return postAuthRoute
+  }
+
+  if (isDesktopRoute && hasOrganization && postAuthRoute === '/mobile/rutiner') {
+    return '/mobile/rutiner'
+  }
+
+  if (isMobileRoute && hasOrganization && postAuthRoute === '/desktop/users/me') {
+    return '/desktop/users/me'
+  }
+
+  return true
 })
 
 export default router

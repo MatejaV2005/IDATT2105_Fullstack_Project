@@ -1,45 +1,66 @@
 <script setup lang="ts">
+import api from '@/api/api'
 import Badge from '@/components/desktop/shared/Badge.vue'
 import DesktopButton from '@/components/desktop/shared/DesktopButton.vue'
 import Loading from '@/components/desktop/shared/Loading.vue'
 import SidebarPageContainer from '@/components/desktop/sidebar/SidebarPageContainer.vue'
+import { useOrgSession } from '@/composables/useOrgSession'
 import type { TasksOverviewInfo } from '@/interfaces/api-interfaces'
-import { delay } from '@/utils'
 import { SendHorizonal } from '@lucide/vue'
-import { onMounted, ref } from 'vue'
+import { ref, watch } from 'vue'
 
 const resource = ref<TasksOverviewInfo | null>(null)
 const loading = ref(true)
-const error = ref<boolean | null>(null)
+const error = ref<string | null>(null)
 
-onMounted(async () => {
-  try {
-    // const ccpResponse = await fetch('/api/ccps/verification-count')
-    // const deviationResponse = await fetch('/api/deviation-review-count')
-    // if (!ccpResponse.ok || !deviationResponse.ok) {
-    //   throw new Error('Failed to fetch task overview')
-    // }
-    // const ccpData = await ccpResponse.json()
-    // const deviationData = await deviationResponse.json()
-    await delay(2000)
+const { claims } = useOrgSession()
+let activeFetchId = 0
 
-    const data: TasksOverviewInfo = {
-      remainingCcpVerifications: 10,
-      remainingDeviationReviews: 8,
-    }
+function getErrorMessage(err: unknown, fallback: string) {
+  const status = (err as { response?: { status?: number } }).response?.status
 
-    resource.value = data
-    loading.value = false
-    error.value = false
-  } catch (err) {
-    if (err instanceof Error) {
-      console.error(err.message)
-    } else {
-      console.error('Unknown error occurred')
-    }
-    error.value = true
+  if (status === 403) {
+    return 'Du har ikke tilgang til oppgaveoversikten i denne organisasjonen.'
   }
-})
+
+  return fallback
+}
+
+async function fetchTaskOverview() {
+  const fetchId = ++activeFetchId
+  loading.value = true
+  error.value = null
+
+  try {
+    const [ccpResponse, deviationResponse] = await Promise.all([
+      api.get<number>('/ccps/verification-count'),
+      api.get<number>('/deviations/deviation-review-count'),
+    ])
+
+    if (fetchId !== activeFetchId) {
+      return
+    }
+
+    resource.value = {
+      remainingCcpVerifications: Number(ccpResponse.data) || 0,
+      remainingDeviationReviews: Number(deviationResponse.data) || 0,
+    }
+  } catch (err) {
+    if (fetchId === activeFetchId) {
+      resource.value = null
+      error.value = getErrorMessage(err, 'Klarte ikke å hente oppgaver.')
+      console.error(err)
+    }
+  } finally {
+    if (fetchId === activeFetchId) {
+      loading.value = false
+    }
+  }
+}
+
+watch(() => claims.value?.orgId ?? null, () => {
+  void fetchTaskOverview()
+}, { immediate: true })
 </script>
 
 <template>
@@ -47,7 +68,7 @@ onMounted(async () => {
     <div class="tasks-page-container">
       <h1 class="instrument-serif-regular no-margin">Oversikt over mine oppgaver</h1>
       <Loading v-if="loading" />
-      <p v-else-if="error" class="tasks-error-message">Klarte ikke å hente oppgaver.</p>
+      <p v-else-if="error" class="tasks-error-message">{{ error }}</p>
 
       <template v-else-if="resource">
         <div class="task-card">
