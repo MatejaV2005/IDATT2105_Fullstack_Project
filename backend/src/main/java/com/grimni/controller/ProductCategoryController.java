@@ -13,7 +13,12 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 /**
- * Provides read access to product categories within an organization.
+ * REST controller providing read-only access to product categories.
+ * <p>
+ * This controller allows users to retrieve the classification schema for products 
+ * within their organization. Product categories are essential for inventory management, 
+ * danger analysis, and organizational reporting within the HACCP system.
+ * </p>
  */
 @Tag(name = "Product Categories", description = "List product categories for the organization")
 @RestController
@@ -25,7 +30,16 @@ public class ProductCategoryController {
         this.productCategoryService = productCategoryService;
     }
 
-    /** Returns all product categories for the caller's organization. */
+    /**
+     * Retrieves a comprehensive list of all product categories associated with the caller's organization.
+     * <p>
+     * Access is granted to any authenticated user within the organization to ensure 
+     * visibility across various operational workflows.
+     * </p>
+     *
+     * @param authentication The security context containing the {@link JwtUserPrinciple}.
+     * @return {@link ResponseEntity} containing a collection of product category data.
+     */
     @Operation(summary = "List product categories")
     @GetMapping("/api/product-categories")
     @PreAuthorize("isAuthenticated()")

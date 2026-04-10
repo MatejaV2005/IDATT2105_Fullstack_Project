@@ -134,7 +134,7 @@ public class PrerequisiteCategoryControllerTest {
     }
 
     @Nested
-    @DisplayName("POST /prerequisite-categories/{categoryId}/routines")
+    @DisplayName("POST /prerequisite-categories/create-routine")
     class CreateRoutineTests {
 
         @Test
@@ -142,6 +142,7 @@ public class PrerequisiteCategoryControllerTest {
         void createRoutine_success() throws Exception {
             String requestBody = """
                 {
+                  "categoryId": 12,
                   "title": "Vask gulvene",
                   "description": "Vask gulvene etter stengetid.",
                   "measures": "Vask ekstra godt neste gang",
@@ -170,7 +171,7 @@ public class PrerequisiteCategoryControllerTest {
                 )
             );
 
-            mockMvc.perform(post("/prerequisite-categories/12/routines")
+            mockMvc.perform(post("/prerequisite-categories/create-routine")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(requestBody)
                     .with(authentication(authWithRole("MANAGER")))

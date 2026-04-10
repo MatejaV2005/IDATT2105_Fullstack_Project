@@ -42,6 +42,7 @@ import com.grimni.dto.CreateCcpCorrectiveMeasureRequest;
 import com.grimni.dto.CreateCcpRequest;
 import com.grimni.dto.CcpResponse;
 import com.grimni.dto.ReplaceCcpAssignmentsRequest;
+import com.grimni.dto.UpdateCcpFullRequest;
 import com.grimni.repository.CcpCorrectiveMeasureRepository;
 import com.grimni.repository.CcpRecordRepository;
 import com.grimni.repository.CcpRepository;
@@ -277,6 +278,99 @@ public class CcpServiceTest {
             assertEquals("Assigned users must belong to the active organization", exception.getMessage());
             verify(ccpUserBridgeRepository, never()).deleteByCcp_Id(any());
             verify(ccpUserBridgeRepository, never()).saveAll(anyCollection());
+        }
+    }
+
+    @Nested
+    @DisplayName("updateCcpFull")
+    class UpdateCcpFullTests {
+
+        @Test
+        @DisplayName("updates fields, replaces assignments, and replaces corrective measures")
+        void updateCcpFull_success() {
+            User performer = new User();
+            ReflectionTestUtils.setField(performer, "id", 2L);
+            performer.setLegalName("Jens Stoltenberg");
+
+            UpdateCcpFullRequest request = new UpdateCcpFullRequest(
+                33L,
+                "Updated name",
+                "Updated how",
+                "Updated equipment",
+                "Updated instructions",
+                "Updated immediate action",
+                new BigDecimal("65.0"),
+                new BigDecimal("85.0"),
+                "C",
+                "Updated description",
+                List.of(1L),
+                List.of(),
+                List.of(2L),
+                List.of(),
+                List.of(new CreateCcpCorrectiveMeasureRequest(90L, "Re-heat to 75C"))
+            );
+
+            when(orgUserBridgeRepository.findByOrganizationIdAndUserId(10L, 99L)).thenReturn(Optional.of(orgMembership(99L)));
+            when(ccpRepository.findByIdAndOrganization_Id(33L, 10L)).thenReturn(Optional.of(ccp));
+            when(ccpRepository.save(any(Ccp.class))).thenAnswer(inv -> inv.getArgument(0));
+            when(userRepository.findAllById(Set.of(1L, 2L))).thenReturn(List.of(verifier, performer));
+            when(orgUserBridgeRepository.findByOrganizationIdAndUserIdIn(10L, Set.of(1L, 2L))).thenReturn(List.of(
+                orgMembership(1L),
+                orgMembership(2L)
+            ));
+            when(ccpUserBridgeRepository.saveAll(anyCollection())).thenAnswer(inv -> List.copyOf(inv.getArgument(0)));
+            when(productCategoryRepository.findByOrganization_IdAndIdIn(10L, Set.of(90L))).thenReturn(List.of(productCategory));
+            when(ccpCorrectiveMeasureRepository.saveAll(anyCollection())).thenAnswer(inv -> {
+                @SuppressWarnings("unchecked")
+                List<CcpCorrectiveMeasure> measures = List.copyOf((Collection<CcpCorrectiveMeasure>) inv.getArgument(0));
+                ReflectionTestUtils.setField(measures.get(0), "id", 777L);
+                return measures;
+            });
+
+            CcpResponse result = ccpService.updateCcpFull(request, 99L, 10L);
+
+            assertEquals(33L, result.id());
+            assertEquals("Updated name", result.name());
+            assertEquals("Updated how", result.how());
+            assertEquals(new BigDecimal("65.0"), result.criticalMin());
+            assertEquals(new BigDecimal("85.0"), result.criticalMax());
+            assertEquals(1, result.verifiers().size());
+            assertEquals(1, result.performers().size());
+            assertEquals(1, result.ccpCorrectiveMeasures().size());
+            assertEquals("Re-heat to 75C", result.ccpCorrectiveMeasures().get(0).measureDescription());
+
+            verify(ccpUserBridgeRepository).deleteByCcp_Id(33L);
+            verify(ccpCorrectiveMeasureRepository).deleteByCcp_Id(33L);
+
+            ArgumentCaptor<Collection<CcpUserBridge>> bridgeCaptor = ArgumentCaptor.forClass(Collection.class);
+            verify(ccpUserBridgeRepository).saveAll(bridgeCaptor.capture());
+            assertEquals(2, bridgeCaptor.getValue().size());
+
+            // The interval rule must NOT be updated by this endpoint
+            verify(intervalRuleRepository, never()).save(any(IntervalRule.class));
+        }
+
+        @Test
+        @DisplayName("rejects criticalMin greater than criticalMax")
+        void updateCcpFull_invalidThresholds() {
+            UpdateCcpFullRequest request = new UpdateCcpFullRequest(
+                33L, null, null, null, null, null,
+                new BigDecimal("100.0"), new BigDecimal("50.0"),
+                null, null, List.of(), List.of(), List.of(), List.of(), List.of()
+            );
+
+            when(orgUserBridgeRepository.findByOrganizationIdAndUserId(10L, 99L)).thenReturn(Optional.of(orgMembership(99L)));
+            when(ccpRepository.findByIdAndOrganization_Id(33L, 10L)).thenReturn(Optional.of(ccp));
+
+            IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> ccpService.updateCcpFull(request, 99L, 10L)
+            );
+
+            assertEquals("Critical minimum cannot be greater than critical maximum", exception.getMessage());
+            verify(ccpRepository, never()).save(any(Ccp.class));
+            verify(ccpUserBridgeRepository, never()).deleteByCcp_Id(any());
+            verify(ccpCorrectiveMeasureRepository, never()).deleteByCcp_Id(any());
         }
     }
 

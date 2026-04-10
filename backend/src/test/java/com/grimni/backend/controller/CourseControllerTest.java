@@ -202,6 +202,119 @@ public class CourseControllerTest {
     }
 
     @Nested
+    @DisplayName("POST /courses/create-course (multipart)")
+    class CreateCourseMultipartTests {
+
+        @Test
+        @DisplayName("OWNER can create course with links and resources — returns 201")
+        void createCourseMultipart_owner_returns201() throws Exception {
+            MockMultipartFile resource1 = new MockMultipartFile(
+                    "resources", "intro.pdf", "application/pdf", "first-file".getBytes());
+            MockMultipartFile resource2 = new MockMultipartFile(
+                    "resources", "guide.pdf", "application/pdf", "second-file".getBytes());
+
+            when(courseService.createCourseWithLinks(
+                    eq("Safety Course"),
+                    eq("Learn safety"),
+                    eq(List.of("https://a.example", "https://b.example")),
+                    eq(10L),
+                    eq(1L)
+            )).thenReturn(testCourse);
+
+            when(userRepository.findById(1L)).thenReturn(Optional.of(targetUser));
+            when(organizationRepository.findById(10L)).thenReturn(Optional.of(testOrg));
+
+            FileObject saved1 = new FileObject();
+            ReflectionTestUtils.setField(saved1, "id", 50L);
+            FileObject saved2 = new FileObject();
+            ReflectionTestUtils.setField(saved2, "id", 51L);
+            when(simpleStorageService.upload(any(), any(), anyLong(), any(), any(), any(), any(), any(), any()))
+                    .thenReturn(saved1, saved2);
+
+            mockMvc.perform(multipart("/courses/create-course")
+                            .file(resource1)
+                            .file(resource2)
+                            .param("title", "Safety Course")
+                            .param("description", "Learn safety")
+                            .param("links", "https://a.example")
+                            .param("links", "https://b.example")
+                            .with(authentication(authWithRole("OWNER")))
+                            .with(csrf()))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.id").value(100))
+                    .andExpect(jsonPath("$.title").value("Safety Course"))
+                    .andExpect(jsonPath("$.courseDescription").value("Learn safety"));
+
+            verify(simpleStorageService, times(2))
+                    .upload(any(), any(), anyLong(), any(), any(), any(), any(), any(), any());
+            verify(simpleStorageService).linkFileToCourse(50L, 100L);
+            verify(simpleStorageService).linkFileToCourse(51L, 100L);
+        }
+
+        @Test
+        @DisplayName("works without resources or links — returns 201 and uploads nothing")
+        void createCourseMultipart_noFilesNoLinks_returns201() throws Exception {
+            when(courseService.createCourseWithLinks(
+                    eq("Safety Course"),
+                    eq("Learn safety"),
+                    eq(List.of()),
+                    eq(10L),
+                    eq(1L)
+            )).thenReturn(testCourse);
+
+            mockMvc.perform(multipart("/courses/create-course")
+                            .param("title", "Safety Course")
+                            .param("description", "Learn safety")
+                            .with(authentication(authWithRole("OWNER")))
+                            .with(csrf()))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.id").value(100));
+
+            verify(simpleStorageService, never())
+                    .upload(any(), any(), anyLong(), any(), any(), any(), any(), any(), any());
+            verify(simpleStorageService, never()).linkFileToCourse(any(), any());
+        }
+
+        @Test
+        @DisplayName("blank title — returns 400")
+        void createCourseMultipart_blankTitle_returns400() throws Exception {
+            mockMvc.perform(multipart("/courses/create-course")
+                            .param("title", "  ")
+                            .param("description", "Learn safety")
+                            .with(authentication(authWithRole("OWNER")))
+                            .with(csrf()))
+                    .andExpect(status().isBadRequest());
+
+            verify(courseService, never()).createCourseWithLinks(any(), any(), any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("WORKER cannot create — returns 403")
+        void createCourseMultipart_worker_returns403() throws Exception {
+            mockMvc.perform(multipart("/courses/create-course")
+                            .param("title", "Safety Course")
+                            .param("description", "Learn safety")
+                            .with(authentication(authWithRole("WORKER")))
+                            .with(csrf()))
+                    .andExpect(status().isForbidden());
+
+            verify(courseService, never()).createCourseWithLinks(any(), any(), any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("unauthenticated — returns 403")
+        void createCourseMultipart_unauthenticated_returns403() throws Exception {
+            mockMvc.perform(multipart("/courses/create-course")
+                            .param("title", "Safety Course")
+                            .param("description", "Learn safety")
+                            .with(csrf()))
+                    .andExpect(status().isForbidden());
+
+            verify(courseService, never()).createCourseWithLinks(any(), any(), any(), any(), any());
+        }
+    }
+
+    @Nested
     @DisplayName("GET /courses")
     class GetCoursesTests {
 

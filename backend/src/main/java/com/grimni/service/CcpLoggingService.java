@@ -32,6 +32,17 @@ import com.grimni.repository.UserRepository;
 
 import jakarta.persistence.EntityNotFoundException;
 
+/**
+ * Service for managing the logging and retrieval of Critical Control Point (CCP) records.
+ * <p>
+ * This service handles the business logic for CCP monitoring, including:
+ * <ul>
+ * <li>Validating user authorization and organizational membership.</li>
+ * <li>Calculating active monitoring windows based on recurring intervals.</li>
+ * <li>Enforcing "one submission per interval" constraints.</li>
+ * <li>Analyzing measured values against critical limits for food safety compliance.</li>
+ * </ul>
+ */
 @Service
 public class CcpLoggingService {
 
@@ -60,6 +71,17 @@ public class CcpLoggingService {
         this.userRepository = userRepository;
     }
 
+    /**
+     * Retrieves all CCPs assigned to the authenticated user within a specific organization.
+     * <p>
+     * Filters for CCPs where the user holds an execution role (Performer or Deputy) and 
+     * enriches the response with information about current interval status and latest logs.
+     *
+     * @param authenticatedUserId the unique ID of the requesting user.
+     * @param orgId the unique ID of the organization scope.
+     * @return a sorted list of {@link AssignedCcpResponse} objects.
+     * @throws EntityNotFoundException if the user-organization membership is not found.
+     */
     @Transactional(readOnly = true)
     public List<AssignedCcpResponse> getAssignedCcps(Long authenticatedUserId, Long orgId) {
         ensureAuthenticatedMember(authenticatedUserId, orgId);
@@ -87,6 +109,21 @@ public class CcpLoggingService {
             .toList();
     }
 
+    /**
+     * Persists a new measurement record for a specific CCP.
+     * <p>
+     * Validates that the user is assigned to the CCP, that the interval window is currently active, 
+     * and that no other record has been submitted for the same time window.
+     *
+     * @param ccpId unique identifier of the target CCP.
+     * @param request the DTO containing measurement data and comments.
+     * @param authenticatedUserId the unique ID of the performing user.
+     * @param orgId the unique ID of the organization scope.
+     * @return {@link SubmittedCcpRecordResponse} containing the saved record ID and limit analysis.
+     * @throws EntityNotFoundException if the CCP or user does not exist.
+     * @throws AccessDeniedException if the user is not authorized to log for this CCP.
+     * @throws IllegalArgumentException if the window is inactive or the CCP is already completed for this interval.
+     */
     @Transactional
     public SubmittedCcpRecordResponse createRecord(
             Long ccpId,
@@ -150,11 +187,17 @@ public class CcpLoggingService {
         );
     }
 
+    /**
+     * Verifies that the user belongs to the specified organization.
+     */
     private OrgUserBridge ensureAuthenticatedMember(Long authenticatedUserId, Long orgId) {
         return orgUserBridgeRepository.findByOrganizationIdAndUserId(orgId, authenticatedUserId)
             .orElseThrow(() -> new EntityNotFoundException("Organization not found"));
     }
 
+    /**
+     * Maps CCP and its historical records to a response DTO for assigned users.
+     */
     private AssignedCcpResponse toAssignedCcpResponse(Ccp ccp, List<CcpRecord> records) {
         IntervalWindow currentWindow = getCurrentWindow(ccp.getIntervalRule());
         CcpRecord currentIntervalRecord = currentWindow.active()
@@ -182,6 +225,9 @@ public class CcpLoggingService {
         );
     }
 
+    /**
+     * Generates a human-readable description of the recurrence rule.
+     */
     private String buildRepeatText(IntervalRule intervalRule) {
         if (intervalRule == null || intervalRule.getIntervalStart() == null || intervalRule.getIntervalRepeatTime() == null) {
             return null;
@@ -192,6 +238,9 @@ public class CcpLoggingService {
             + ", repeats every " + humanizeDuration(intervalRule.getIntervalRepeatTime());
     }
 
+    /**
+     * Converts a duration in seconds to a human-readable string (weeks, days, hours, etc.).
+     */
     private String humanizeDuration(Long seconds) {
         if (seconds == null) {
             return "unknown interval";
@@ -215,6 +264,9 @@ public class CcpLoggingService {
         return seconds + (seconds == 1 ? " second" : " seconds");
     }
 
+    /**
+     * Checks if the measured value falls outside the defined critical safety range.
+     */
     private boolean isOutsideCriticalRange(BigDecimal measuredValue, BigDecimal criticalMin, BigDecimal criticalMax) {
         if (measuredValue == null) {
             return false;
@@ -225,6 +277,9 @@ public class CcpLoggingService {
         return criticalMax != null && measuredValue.compareTo(criticalMax) > 0;
     }
 
+    /**
+     * Calculates the current temporal window for a CCP based on its recurrence rule.
+     */
     private IntervalWindow getCurrentWindow(IntervalRule intervalRule) {
         if (intervalRule == null || intervalRule.getIntervalStart() == null || intervalRule.getIntervalRepeatTime() == null) {
             return new IntervalWindow(false, null, null, null);
@@ -259,10 +314,16 @@ public class CcpLoggingService {
         );
     }
 
+    /**
+     * Utility to convert {@link Instant} to local time using the system default zone.
+     */
     private LocalDateTime toLocalDateTime(Instant instant) {
         return LocalDateTime.ofInstant(instant, zoneId);
     }
 
+    /**
+     * Temporal metadata for an active or future interval window.
+     */
     private record IntervalWindow(
         boolean active,
         LocalDateTime start,

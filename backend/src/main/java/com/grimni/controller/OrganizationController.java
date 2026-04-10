@@ -29,9 +29,16 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
 /**
- * Manages organizations and their members.
- * Supports creating/updating organizations, listing users, adding/removing members,
- * and retrieving danger-analysis collaborators.
+ * REST controller for managing organizational entities and their administrative memberships.
+ * <p>
+ * This controller serves as the primary gateway for multi-tenant management, providing
+ * capabilities for:
+ * <ul>
+ * <li>Organization lifecycle management (CRUD).</li>
+ * <li>User membership and role-based access control (RBAC) within an organization.</li>
+ * <li>Collaborator identification for specialized tasks such as HACCP danger analysis.</li>
+ * </ul>
+ * All operations are strictly validated against the authenticated user's scope and permissions.
  */
 @Tag(name = "Organizations", description = "Organization CRUD and member management")
 @RestController
@@ -44,7 +51,13 @@ public class OrganizationController {
         this.organizationService = organizationService;
     }
 
-    /** Creates a new organization with the caller as OWNER. */
+    /**
+     * Initializes a new organization entity and assigns the creator as the primary OWNER.
+     *
+     * @param request        The validated data required to initialize the organization.
+     * @param authentication The security context containing the {@link JwtUserPrinciple}.
+     * @return {@link ResponseEntity} containing the created {@link OrganizationResponse}.
+     */
     @Operation(summary = "Create organization")
     @PostMapping
     @PreAuthorize("isAuthenticated()")
@@ -56,7 +69,12 @@ public class OrganizationController {
         return ResponseEntity.status(HttpStatus.CREATED).body(OrganizationResponse.fromEntity(org));
     }
 
-    /** Returns the caller's active organization. */
+    /**
+     * Retrieves the details of the authenticated user's current active organization.
+     *
+     * @param authentication The security context containing the {@link JwtUserPrinciple}.
+     * @return {@link ResponseEntity} containing the {@link OrganizationResponse}.
+     */
     @Operation(summary = "Get organization")
     @GetMapping
     @PreAuthorize("isAuthenticated()")
@@ -66,7 +84,14 @@ public class OrganizationController {
         return ResponseEntity.ok(OrganizationResponse.fromEntity(org));
     }
 
-    /** Partially updates the caller's organization. */
+    /**
+     * Performs a partial update on the current organization's configuration.
+     * <p>Access is restricted to users with OWNER or MANAGER authority.</p>
+     *
+     * @param request        The validated request containing organization updates.
+     * @param authentication The security context containing the {@link JwtUserPrinciple}.
+     * @return {@link ResponseEntity} containing the updated {@link OrganizationResponse}.
+     */
     @Operation(summary = "Update organization")
     @PatchMapping
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
@@ -78,7 +103,12 @@ public class OrganizationController {
         return ResponseEntity.ok(OrganizationResponse.fromEntity(org));
     }
 
-    /** Returns all users in the caller's organization. */
+    /**
+     * Lists all users currently registered as members of the authenticated user's organization.
+     *
+     * @param authentication The security context containing the {@link JwtUserPrinciple}.
+     * @return {@link ResponseEntity} containing a list of organizational members.
+     */
     @Operation(summary = "List organization users")
     @GetMapping("/users")
     @PreAuthorize("isAuthenticated()")
@@ -87,7 +117,14 @@ public class OrganizationController {
         return ResponseEntity.ok(organizationService.getAllUsersInOrg(principal.orgId()));
     }
 
-    /** Adds a user to the organization with a specified role. OWNER only. */
+    /**
+     * Grants a user membership to the organization with a specific assigned role.
+     * <p>Strictly restricted to users with OWNER authority.</p>
+     *
+     * @param request        The request containing the target user ID and their intended role.
+     * @param authentication The security context containing the {@link JwtUserPrinciple}.
+     * @return {@link ResponseEntity} confirming the user's addition with HTTP 201 status.
+     */
     @Operation(summary = "Add user to organization")
     @PostMapping("/users")
     @PreAuthorize("hasAuthority('OWNER')")
@@ -99,7 +136,12 @@ public class OrganizationController {
                 organizationService.addUserToOrg(request.userId(), request.role(), principal.orgId()));
     }
 
-    /** Returns users eligible to collaborate on danger analysis. */
+    /**
+     * Retrieves a specialized list of members qualified to participate in danger-analysis workflows.
+     *
+     * @param authentication The security context containing the {@link JwtUserPrinciple}.
+     * @return {@link ResponseEntity} containing a list of {@link CollaboratorResponse} objects.
+     */
     @Operation(summary = "List danger-analysis collaborators")
     @GetMapping("/danger-analysis-collaborators")
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
@@ -110,7 +152,14 @@ public class OrganizationController {
         return ResponseEntity.ok(response);
     }
 
-    /** Removes a user from the organization. Cannot remove an OWNER. */
+    /**
+     * Revokes a user's membership from the organization.
+     * <p>Note: Protection is in place to prevent the removal of the primary OWNER.</p>
+     *
+     * @param request        The request specifying the user ID to be removed.
+     * @param authentication The security context containing the {@link JwtUserPrinciple}.
+     * @return {@link ResponseEntity} with HTTP 200 OK status on success.
+     */
     @Operation(summary = "Remove user from organization")
     @DeleteMapping("/users")
     @PreAuthorize("hasAuthority('OWNER')")

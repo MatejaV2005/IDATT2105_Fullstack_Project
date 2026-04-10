@@ -29,6 +29,17 @@ import com.grimni.repository.UserRepository;
 
 import jakarta.persistence.EntityNotFoundException;
 
+/**
+ * Service for managing the execution and logging of recurring prerequisite routines.
+ * <p>
+ * This service handles the operational lifecycle of routines, including:
+ * <ul>
+ * <li>Identifying routines assigned to specific users for execution.</li>
+ * <li>Calculating active validity windows based on {@link IntervalRule} configurations.</li>
+ * <li>Enforcing business constraints to prevent duplicate completions within the same interval.</li>
+ * <li>Persisting completion records (logs) to maintain audit trails for compliance.</li>
+ * </ul>
+ */
 @Service
 public class RoutineLoggingService {
 
@@ -55,6 +66,17 @@ public class RoutineLoggingService {
         this.userRepository = userRepository;
     }
 
+    /**
+     * Retrieves all routines assigned to the authenticated user that are eligible for execution.
+     * <p>
+     * Returns routines where the user is either a Performer or a Deputy. Each routine
+     * is enriched with the status of its current interval window and the latest historical log.
+     *
+     * @param authenticatedUserId the unique ID of the requesting user.
+     * @param orgId the unique ID of the organization scope.
+     * @return a sorted list of {@link AssignedRoutineResponse} objects.
+     * @throws EntityNotFoundException if the user is not a member of the organization.
+     */
     @Transactional(readOnly = true)
     public List<AssignedRoutineResponse> getAssignedRoutines(Long authenticatedUserId, Long orgId) {
         ensureAuthenticatedMember(authenticatedUserId, orgId);
@@ -82,6 +104,24 @@ public class RoutineLoggingService {
             .toList();
     }
 
+    /**
+     * Records the completion of a specific routine for the current active interval.
+     * <p>
+     * This method performs strict validation to ensure:
+     * <ul>
+     * <li>The user is authorized to perform the routine.</li>
+     * <li>The routine's interval window is currently active.</li>
+     * <li>The routine has not already been completed for the current window.</li>
+     * </ul>
+     *
+     * @param routineId the unique identifier of the routine to complete.
+     * @param authenticatedUserId the unique ID of the user performing the action.
+     * @param orgId the organization ID for scope validation.
+     * @return the updated {@link AssignedRoutineResponse} reflecting the completion.
+     * @throws EntityNotFoundException if the routine or user is not found.
+     * @throws AccessDeniedException if the user does not have an execution role for this routine.
+     * @throws IllegalArgumentException if the window is inactive or already completed.
+     */
     @Transactional
     public AssignedRoutineResponse completeRoutine(Long routineId, Long authenticatedUserId, Long orgId) {
         ensureAuthenticatedMember(authenticatedUserId, orgId);
@@ -132,11 +172,17 @@ public class RoutineLoggingService {
         return toAssignedRoutineResponse(routine, records);
     }
 
+    /**
+     * Verifies user membership within the organization.
+     */
     private OrgUserBridge ensureAuthenticatedMember(Long authenticatedUserId, Long orgId) {
         return orgUserBridgeRepository.findByOrganizationIdAndUserId(orgId, authenticatedUserId)
             .orElseThrow(() -> new EntityNotFoundException("Organization not found"));
     }
 
+    /**
+     * Maps a routine and its historical logs to an assigned routine response DTO.
+     */
     private AssignedRoutineResponse toAssignedRoutineResponse(
             PrerequisiteRoutine routine,
             List<PrerequisiteRoutineRecord> records) {
@@ -162,6 +208,9 @@ public class RoutineLoggingService {
         );
     }
 
+    /**
+     * Calculates the chronological boundaries of the current routine interval.
+     */
     private IntervalWindow getCurrentWindow(IntervalRule intervalRule) {
         if (intervalRule == null || intervalRule.getIntervalStart() == null || intervalRule.getIntervalRepeatTime() == null) {
             return new IntervalWindow(false, null, null, null);
@@ -200,6 +249,9 @@ public class RoutineLoggingService {
         return LocalDateTime.ofInstant(instant, zoneId);
     }
 
+    /**
+     * Internal record representing the state and boundaries of a temporal interval window.
+     */
     private record IntervalWindow(
         boolean active,
         LocalDateTime start,

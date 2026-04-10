@@ -17,6 +17,7 @@ import com.grimni.dto.CreateCcpCorrectiveMeasureRequest;
 import com.grimni.dto.CreateCcpRequest;
 import com.grimni.dto.ReplaceCcpAssignmentsRequest;
 import com.grimni.dto.UpdateCcpCorrectiveMeasureRequest;
+import com.grimni.dto.UpdateCcpFullRequest;
 import com.grimni.dto.UpdateCcpRequest;
 import com.grimni.security.JwtUserPrinciple;
 import com.grimni.service.CcpService;
@@ -26,9 +27,15 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
 /**
- * Manages Critical Control Points (CCPs) in the HACCP system.
- * Supports CRUD for CCPs, user assignments, corrective measures,
- * and verification logs/counts.
+ * REST controller for managing Critical Control Points (CCPs) within the HACCP compliance framework.
+ * * <p>This controller provides endpoints for the full lifecycle of CCPs, including:
+ * <ul>
+ * <li>CRUD operations for CCP definitions</li>
+ * <li>User assignment management</li>
+ * <li>Corrective measure configuration</li>
+ * <li>Verification monitoring and logging</li>
+ * </ul>
+ * * All operations are scoped by the user's organization and authenticated principal.
  */
 @Tag(name = "Critical Control Points", description = "HACCP CCP management, assignments, and corrective measures")
 @RestController
@@ -40,7 +47,12 @@ public class CcpController {
         this.ccpService = ccpService;
     }
 
-    /** Returns the number of CCP records pending verification. */
+    /**
+     * Retrieves the total count of CCP records currently awaiting verification.
+     *
+     * @param authentication The security context containing the {@link JwtUserPrinciple}.
+     * @return {@link ResponseEntity} containing the total count of pending verifications as a {@link Long}.
+     */
     @Operation(summary = "Get verification count")
     @GetMapping("/ccps/verification-count")
     @PreAuthorize("isAuthenticated()")
@@ -50,7 +62,12 @@ public class CcpController {
         return ResponseEntity.ok(count);
     }
 
-    /** Returns CCP verification logs visible to the caller. */
+    /**
+     * Retrieves historical verification logs associated with CCPs.
+     *
+     * @param authentication The security context containing the {@link JwtUserPrinciple}.
+     * @return {@link ResponseEntity} containing a list of verification logs filtered by user permissions.
+     */
     @Operation(summary = "Get verification logs")
     @GetMapping("/ccps/logs")
     @PreAuthorize("isAuthenticated()")
@@ -61,7 +78,13 @@ public class CcpController {
         );
     }
 
-    /** Returns all CCPs with full detail for the caller's organization. */
+    /**
+     * Retrieves all CCP definitions and associated metadata for the caller's organization.
+     *
+     * @param authentication The security context containing the {@link JwtUserPrinciple}.
+     * @return {@link ResponseEntity} containing the full CCP data set.
+     * @throws RuntimeException if the records cannot be located or accessed.
+     */
     @Operation(summary = "Get all CCP info")
     @GetMapping("/haccp/critical-control-points/get-all-info")
     @PreAuthorize("isAuthenticated()")
@@ -76,7 +99,16 @@ public class CcpController {
         }
     }    
 
-    /** Creates a new CCP. */
+    /**
+     * Registers a new Critical Control Point.
+     * * <p>Access restricted to OWNER and MANAGER roles.</p>
+     *
+     * @param request The data transfer object containing new CCP details.
+     * @param authentication The security context containing the {@link JwtUserPrinciple}.
+     * @return {@link ResponseEntity} containing the created CCP resource.
+     * @throws IllegalArgumentException if the request data fails validation logic.
+     * @throws RuntimeException if an internal error occurs during persistence.
+     */
     @Operation(summary = "Create CCP")
     @PostMapping("/haccp/critical-control-points")
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
@@ -95,7 +127,41 @@ public class CcpController {
         }
     }
 
-    /** Partially updates a CCP. */
+    /**
+     * Performs a full update of a CCP including fields, user assignments, and corrective measures
+     * in a single transactional operation.
+     *
+     * @param request The data transfer object containing the CCP id, all updatable fields,
+     *                user assignment lists, and corrective measure entries.
+     * @param authentication The security context containing the {@link JwtUserPrinciple}.
+     * @return {@link ResponseEntity} containing the fully updated CCP resource.
+     */
+    @Operation(summary = "Update CCP (full)")
+    @PutMapping("/haccp/critical-control-points")
+    @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
+    public ResponseEntity<?> updateCcpFull(
+            @Valid @RequestBody UpdateCcpFullRequest request,
+            Authentication authentication) {
+        try {
+            JwtUserPrinciple principal = (JwtUserPrinciple) authentication.getPrincipal();
+            return ResponseEntity.ok(
+                ccpService.updateCcpFull(request, principal.userId(), principal.orgId())
+            );
+        } catch (IllegalArgumentException exception) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(exception.getMessage());
+        } catch (RuntimeException exception) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(exception.getMessage());
+        }
+    }
+
+    /**
+     * Updates specific fields of an existing CCP.
+     *
+     * @param ccpId The unique identifier of the CCP to update.
+     * @param request The data transfer object containing updated fields.
+     * @param authentication The security context containing the {@link JwtUserPrinciple}.
+     * @return {@link ResponseEntity} containing the updated CCP resource.
+     */
     @Operation(summary = "Update CCP")
     @PatchMapping("/haccp/critical-control-points/{ccpId}")
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
@@ -115,7 +181,13 @@ public class CcpController {
         }
     }
 
-    /** Deletes a CCP by ID. */
+    /**
+     * Removes a CCP from the system.
+     *
+     * @param ccpId The unique identifier of the CCP to delete.
+     * @param authentication The security context containing the {@link JwtUserPrinciple}.
+     * @return A 204 No Content response on success.
+     */
     @Operation(summary = "Delete CCP")
     @DeleteMapping("/haccp/critical-control-points/{ccpId}")
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
@@ -129,7 +201,14 @@ public class CcpController {
         }
     }
 
-    /** Replaces all user assignments for a CCP. */
+    /**
+     * Overwrites the current set of user assignments for a specific CCP.
+     *
+     * @param ccpId The unique identifier of the target CCP.
+     * @param request The object containing the new set of assigned user IDs.
+     * @param authentication The security context containing the {@link JwtUserPrinciple}.
+     * @return {@link ResponseEntity} reflecting the new state of assignments.
+     */
     @Operation(summary = "Replace CCP assignments")
     @PutMapping("/haccp/critical-control-points/{ccpId}/assignments")
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
@@ -149,7 +228,14 @@ public class CcpController {
         }
     }
 
-    /** Creates a corrective measure for a CCP. */
+    /**
+     * Appends a new corrective measure configuration to a specific CCP.
+     *
+     * @param ccpId The unique identifier of the CCP.
+     * @param request The data transfer object for the corrective measure.
+     * @param authentication The security context containing the {@link JwtUserPrinciple}.
+     * @return {@link ResponseEntity} containing the created corrective measure.
+     */
     @Operation(summary = "Create corrective measure")
     @PostMapping("/haccp/critical-control-points/{ccpId}/corrective-measures")
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
@@ -169,7 +255,14 @@ public class CcpController {
         }
     }
 
-    /** Partially updates a corrective measure. */
+    /**
+     * Updates an existing corrective measure's parameters.
+     *
+     * @param measureId The unique identifier of the corrective measure.
+     * @param request The data transfer object containing update values.
+     * @param authentication The security context containing the {@link JwtUserPrinciple}.
+     * @return {@link ResponseEntity} containing the updated corrective measure.
+     */
     @Operation(summary = "Update corrective measure")
     @PatchMapping("/haccp/critical-control-points/corrective-measures/{measureId}")
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
@@ -189,7 +282,13 @@ public class CcpController {
         }
     }
 
-    /** Deletes a corrective measure by ID. */
+    /**
+     * Deletes a specific corrective measure by its unique identifier.
+     *
+     * @param measureId The unique identifier of the corrective measure to remove.
+     * @param authentication The security context containing the {@link JwtUserPrinciple}.
+     * @return A 204 No Content response on success.
+     */
     @Operation(summary = "Delete corrective measure")
     @DeleteMapping("/haccp/critical-control-points/corrective-measures/{measureId}")
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")

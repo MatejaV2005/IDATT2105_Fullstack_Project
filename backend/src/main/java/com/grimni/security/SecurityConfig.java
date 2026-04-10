@@ -33,7 +33,8 @@ public class SecurityConfig {
 
         // expose endpoint /auth/login - /auth/register - /auth/refresh - /health, as available to all, but any other requests to other endpoints require authentication
         http.authorizeHttpRequests(auth -> auth
-                .requestMatchers("/auth/login", "/auth/register", "/auth/refresh", "/health").permitAll() // for this url endpoint, all requests are permitted
+                .requestMatchers("/auth/login", "/auth/register", "/auth/refresh", "/health",
+                        "/swagger-ui/**", "/v3/api-docs/**").permitAll() // for this url endpoint, all requests are permitted
                 .anyRequest().authenticated()); // to any other requests to endpoints, authentication is needed
 
         // since SecurityConfig is initially run before Server Dispatchlet, it blocks due to CORS restriction, therefore we have

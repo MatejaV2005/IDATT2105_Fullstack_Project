@@ -1,5 +1,6 @@
 package com.grimni.controller;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -91,6 +92,82 @@ public class CourseController {
             Authentication authentication) {
         JwtUserPrinciple principal = (JwtUserPrinciple) authentication.getPrincipal();
         Course course = courseService.createCourse(request, principal.orgId(), principal.userId());
+        return ResponseEntity.status(HttpStatus.CREATED).body(CourseResponse.fromEntity(course));
+    }
+
+    /**
+     * Creates a new course from a multipart form payload, persisting reference links
+     * and uploading any attached file resources.
+     *
+     * @param title          the course title.
+     * @param description    the course description.
+     * @param links          optional list of reference URLs (form field repeated as "links").
+     * @param resources      optional list of uploaded files (form field repeated as "resources").
+     * @param authentication the security context containing the {@link JwtUserPrinciple}.
+     * @return {@link ResponseEntity} containing the created {@link CourseResponse}.
+     */
+    @Operation(summary = "Create course (multipart)")
+    @PostMapping(value = "/create-course", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
+    public ResponseEntity<?> createCourseMultipart(
+            @RequestParam("title") String title,
+            @RequestParam("description") String description,
+            @RequestParam(value = "links", required = false) List<String> links,
+            @RequestParam(value = "resources", required = false) List<MultipartFile> resources,
+            Authentication authentication) {
+        JwtUserPrinciple principal = (JwtUserPrinciple) authentication.getPrincipal();
+        Long orgId = principal.orgId();
+        Long userId = principal.userId();
+
+        if (title == null || title.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Title cannot be blank");
+        }
+        if (description == null || description.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Description cannot be blank");
+        }
+
+        Course course = courseService.createCourseWithLinks(
+                title,
+                description,
+                links == null ? Collections.emptyList() : links,
+                orgId,
+                userId
+        );
+
+        if (resources != null && !resources.isEmpty()) {
+            User uploadedBy = userRepository.findById(userId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
+            Organization organization = organizationRepository.findById(orgId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Organization not found"));
+
+            for (MultipartFile file : resources) {
+                if (file == null || file.isEmpty()) {
+                    continue;
+                }
+
+                String originalFilename = file.getOriginalFilename() == null
+                        ? "unnamed" : StringUtils.cleanPath(file.getOriginalFilename());
+                String key = "courses/" + course.getId() + "/" + UUID.randomUUID() + "-" + originalFilename;
+
+                try {
+                    FileObject savedFile = simpleStorageService.upload(
+                            key,
+                            file.getInputStream(),
+                            file.getSize(),
+                            file.getContentType(),
+                            AccessLevel.ANYONE_IN_ORG,
+                            AccessLevel.MANAGER,
+                            uploadedBy,
+                            originalFilename,
+                            organization
+                    );
+                    simpleStorageService.linkFileToCourse(savedFile.getId(), course.getId());
+                } catch (java.io.IOException exception) {
+                    throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Upload failed", exception);
+                }
+            }
+        }
+
         return ResponseEntity.status(HttpStatus.CREATED).body(CourseResponse.fromEntity(course));
     }
 
