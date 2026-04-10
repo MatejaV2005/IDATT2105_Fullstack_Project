@@ -635,7 +635,7 @@ html {
 }
 
 .field-shell__input--with-suffix {
-  padding-right: 52px;
+  padding-right: 64px;
 }
 
 .field-shell__input--date,
@@ -661,8 +661,10 @@ html {
   position: absolute;
   right: 12px;
   top: 11px;
-  color: var(--color-ink-300);
-  font: 700 16px/24px var(--font-display);
+  color: var(--color-ink-500);
+  font: 700 14px/24px var(--font-body);
+  letter-spacing: 0.02em;
+  pointer-events: none;
 }
 
 .field-shell__input::placeholder,

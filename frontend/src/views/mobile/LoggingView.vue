@@ -97,7 +97,19 @@ function formatMeasurement(value: number | null, unit: string | null): string {
     return 'Ikke registrert'
   }
 
-  return `${value}${unit ? ` ${unit}` : ''}`
+  return `${value}${unit ? ` ${formatUnit(unit)}` : ''}`
+}
+
+function formatUnit(unit: string | null): string {
+  if (!unit) {
+    return ''
+  }
+
+  if (unit === 'C') {
+    return '°C'
+  }
+
+  return unit
 }
 
 async function readErrorMessage(response: Response, fallback: string) {
@@ -364,7 +376,7 @@ watch(() => claims.value?.orgId ?? null, () => {
         <dl class="detail-list">
           <div class="detail-list__item">
             <dt>Kritisk grense</dt>
-            <dd>{{ ccp.criticalMin }} - {{ ccp.criticalMax }} {{ ccp.unit }}</dd>
+            <dd>{{ ccp.criticalMin }} - {{ ccp.criticalMax }} {{ formatUnit(ccp.unit) }}</dd>
           </div>
           <div class="detail-list__item">
             <dt>Frist</dt>
@@ -377,13 +389,6 @@ watch(() => claims.value?.orgId ?? null, () => {
           <div class="detail-list__item">
             <dt>Sist tidspunkt</dt>
             <dd>{{ formatDateTime(ccp.lastCompletedAt) }}</dd>
-          </div>
-          <div
-            v-if="ccp.repeatText"
-            class="detail-list__item detail-list__item--stacked"
-          >
-            <dt>Intervall</dt>
-            <dd>{{ ccp.repeatText }}</dd>
           </div>
         </dl>
 
@@ -399,7 +404,7 @@ watch(() => claims.value?.orgId ?? null, () => {
               inputmode="decimal"
               @input="updateCard(ccp.ccpId, { value: ($event.target as HTMLInputElement).value })"
             >
-            <span class="field-shell__suffix">{{ ccp.unit }}</span>
+            <span class="field-shell__suffix">{{ formatUnit(ccp.unit) }}</span>
           </label>
 
           <button
