@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import SidebarPageContainer from '@/components/desktop/sidebar/SidebarPageContainer.vue'
 import { ensureOrgSessionLoaded, useOrgSession } from '@/composables/useOrgSession'
 import { getPostAuthRoute } from '@/utils/auth-routing'
 import { computed, onMounted } from 'vue'
@@ -26,7 +25,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <SidebarPageContainer>
+  <main class="no-org-shell">
     <section class="no-org-page">
       <h1 class="instrument-serif-regular no-margin">
         Du er logget inn, men har ingen organisasjon ennå
@@ -69,14 +68,22 @@ onMounted(() => {
         </article>
       </div>
     </section>
-  </SidebarPageContainer>
+  </main>
 </template>
 
 <style scoped>
+.no-org-shell {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  padding: 2rem;
+}
+
 .no-org-page {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  width: min(1100px, 100%);
   padding: 1rem;
   margin-top: 2rem;
 }
@@ -127,6 +134,10 @@ onMounted(() => {
 }
 
 @media (max-width: 900px) {
+  .no-org-shell {
+    padding: 1rem;
+  }
+
   .no-org-grid {
     grid-template-columns: 1fr;
   }

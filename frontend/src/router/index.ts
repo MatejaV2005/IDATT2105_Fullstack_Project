@@ -20,6 +20,8 @@ import DeviationsView from '@/views/mobile/DeviationsView.vue'
 import LoggingView from '@/views/mobile/LoggingView.vue'
 import MappingPointsView from '@/views/mobile/MappingPointsView.vue'
 import RoutinesView from '@/views/mobile/RoutinesView.vue'
+import { ensureOrgSessionLoaded, useOrgSession } from '@/composables/useOrgSession'
+import { getPostAuthRoute } from '@/utils/auth-routing'
 import { createRouter, createWebHistory } from 'vue-router'
 
 const router = createRouter({
@@ -163,6 +165,34 @@ const router = createRouter({
       redirect: '/auth',
     },
   ],
+})
+
+router.beforeEach(async (to) => {
+  if (!to.path.startsWith('/desktop')) {
+    return true
+  }
+
+  const { claims, organizations } = useOrgSession()
+
+  if (!claims.value) {
+    return true
+  }
+
+  await ensureOrgSessionLoaded()
+
+  const postAuthRoute = getPostAuthRoute(claims.value, organizations.value)
+  const hasOrganization = postAuthRoute !== '/desktop/no-org'
+  const isNoOrgFlowRoute = to.path === '/desktop/no-org' || to.path === '/desktop/create-org'
+
+  if (!hasOrganization && !isNoOrgFlowRoute) {
+    return '/desktop/no-org'
+  }
+
+  if (hasOrganization && isNoOrgFlowRoute) {
+    return postAuthRoute
+  }
+
+  return true
 })
 
 export default router
