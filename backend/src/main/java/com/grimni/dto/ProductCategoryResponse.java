@@ -1,4 +1,4 @@
 package com.grimni.dto;
 
-public record ProductCategoryResponse(Long id, String productDescription) {
+public record ProductCategoryResponse(Long id, String productName, String productDescription) {
 }
