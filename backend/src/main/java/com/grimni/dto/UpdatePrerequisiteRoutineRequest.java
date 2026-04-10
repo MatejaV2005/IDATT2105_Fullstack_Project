@@ -1,10 +1,15 @@
 package com.grimni.dto;
 
+import java.util.List;
+
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 
 public record UpdatePrerequisiteRoutineRequest(
+    @NotNull Long routineId,
+
     @Size(min = 1, message = "Title cannot be empty")
     String title,
 
@@ -20,5 +25,9 @@ public record UpdatePrerequisiteRoutineRequest(
     Long intervalStart,
 
     @Positive(message = "Interval repeat time must be positive")
-    Long intervalRepeatTime
+    Long intervalRepeatTime,
+
+    List<Long> performers,
+
+    List<Long> deputy
 ) {}

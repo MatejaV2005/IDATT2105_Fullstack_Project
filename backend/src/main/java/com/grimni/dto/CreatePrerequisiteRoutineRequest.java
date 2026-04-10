@@ -8,6 +8,9 @@ import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 
 public record CreatePrerequisiteRoutineRequest(
+    @NotNull(message = "Category ID is required")
+    Long categoryId,
+
     @NotBlank(message = "Title cannot be blank")
     String title,
 

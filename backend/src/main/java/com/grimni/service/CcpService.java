@@ -39,6 +39,7 @@ import com.grimni.dto.CreateCcpCorrectiveMeasureRequest;
 import com.grimni.dto.CreateCcpRequest;
 import com.grimni.dto.ReplaceCcpAssignmentsRequest;
 import com.grimni.dto.UpdateCcpCorrectiveMeasureRequest;
+import com.grimni.dto.UpdateCcpFullRequest;
 import com.grimni.dto.UpdateCcpRequest;
 import com.grimni.repository.CcpCorrectiveMeasureRepository;
 import com.grimni.repository.CcpRecordRepository;
@@ -50,6 +51,13 @@ import com.grimni.repository.PrerequisiteRoutineRepository;
 import com.grimni.repository.ProductCategoryRepository;
 import com.grimni.repository.UserRepository;
 
+/**
+ * Service for managing Critical Control Points (CCPs) within the HACCP compliance framework.
+ * <p>
+ * This service provides the administrative backbone for CCPs, including their configuration,
+ * personnel assignments (Verifiers, Performers, etc.), and corrective measure definitions.
+ * It also manages temporal verification logic and historical record monitoring.
+ */
 @Service
 public class CcpService {
 
@@ -87,6 +95,16 @@ public class CcpService {
         this.prerequisiteRoutineRepository = prerequisiteRoutineRepository;
     }
 
+    /**
+     * Retrieves all comprehensive information for CCPs belonging to a specific organization.
+     * <p>
+     * Fetches CCP definitions along with their respective user assignments and corrective measures
+     * in an optimized manner using bulk loading of related bridge entities.
+     *
+     * @param authenticatedUserId the ID of the requesting user.
+     * @param orgId the ID of the organization scope.
+     * @return a list of {@link CcpResponse} encompassing the full CCP configurations.
+     */
     @Transactional(readOnly = true)
     public List<CcpResponse> getAllInfo(Long authenticatedUserId, Long orgId) {
         ensureAuthenticatedMember(authenticatedUserId, orgId);
@@ -107,6 +125,14 @@ public class CcpService {
             .toList();
     }
 
+    /**
+     * Calculates the number of CCP records currently awaiting verification for a specific user.
+     *
+     * @param userId the requesting user's ID.
+     * @param orgId the organization ID.
+     * @param role the user's role string for permission checking.
+     * @return count of pending verifications.
+     */
     @Transactional(readOnly = true)
     public long getVerificationCount(Long userId, Long orgId, String role) {
         ensureAuthenticatedMember(userId, orgId);
@@ -114,6 +140,14 @@ public class CcpService {
         return ccpRecordRepository.countWaitingVerifications(orgId, userId, isManagerOrOwner);
     }
 
+    /**
+     * Retrieves a detailed history of CCP records waiting for verification, grouped by CCP.
+     *
+     * @param userId requesting user's ID.
+     * @param orgId organization scope.
+     * @param role user role for visibility calculations.
+     * @return a list of {@link CcpHistoryResponse} objects containing pending records.
+     */
     @Transactional(readOnly = true)
     public List<CcpHistoryResponse> getVerificationLogs(Long userId, Long orgId, String role) {
         ensureAuthenticatedMember(userId, orgId);
@@ -152,6 +186,14 @@ public class CcpService {
             .toList();
     }
 
+    /**
+     * Creates a new CCP entity including its interval rules, initial user assignments, and corrective measures.
+     *
+     * @param request data for the new CCP.
+     * @param authenticatedUserId ID of the creator.
+     * @param orgId organization scope.
+     * @return the created CCP's response DTO.
+     */
     @Transactional
     public CcpResponse createCcp(
             CreateCcpRequest request,
@@ -195,6 +237,15 @@ public class CcpService {
         return toCcpResponse(ccp, savedAssignments, savedMeasures);
     }
 
+    /**
+     * Updates an existing CCP's definition and temporal rules.
+     *
+     * @param ccpId ID of CCP to update.
+     * @param request data containing updated fields.
+     * @param authenticatedUserId requesting user's ID.
+     * @param orgId organization scope.
+     * @return updated CCP response DTO.
+     */
     @Transactional
     public CcpResponse updateCcp(
             Long ccpId,
@@ -258,12 +309,97 @@ public class CcpService {
         );
     }
 
+    /**
+     * Performs a complete update of a CCP in a single transactional call: updates the CCP fields,
+     * replaces all user assignments, and replaces all corrective measures.
+     *
+     * @param request the full update request containing CCP id, fields, assignments, and measures.
+     * @param authenticatedUserId requesting user's ID.
+     * @param orgId organization scope.
+     * @return updated CCP response DTO with refreshed assignments and measures.
+     */
+    @Transactional
+    public CcpResponse updateCcpFull(
+            UpdateCcpFullRequest request,
+            Long authenticatedUserId,
+            Long orgId) {
+        ensureAuthenticatedMember(authenticatedUserId, orgId);
+        Ccp ccp = getCcpInOrg(request.id(), orgId);
+
+        BigDecimal nextCriticalMin = request.criticalMin() != null ? request.criticalMin() : ccp.getCriticalMin();
+        BigDecimal nextCriticalMax = request.criticalMax() != null ? request.criticalMax() : ccp.getCriticalMax();
+        validateThresholds(nextCriticalMin, nextCriticalMax);
+
+        if (request.name() != null) {
+            ccp.setCcpName(request.name());
+        }
+        if (request.how() != null) {
+            ccp.setHow(request.how());
+        }
+        if (request.equipment() != null) {
+            ccp.setEquipment(request.equipment());
+        }
+        if (request.instructionsAndCalibration() != null) {
+            ccp.setInstructionsAndCalibration(request.instructionsAndCalibration());
+        }
+        if (request.immediateCorrectiveAction() != null) {
+            ccp.setImmediateCorrectiveAction(request.immediateCorrectiveAction());
+        }
+        if (request.criticalMin() != null) {
+            ccp.setCriticalMin(request.criticalMin());
+        }
+        if (request.criticalMax() != null) {
+            ccp.setCriticalMax(request.criticalMax());
+        }
+        if (request.unit() != null) {
+            ccp.setUnit(request.unit());
+        }
+        if (request.monitoredDescription() != null) {
+            ccp.setMonitoredDescription(request.monitoredDescription());
+        }
+
+        Ccp savedCcp = ccpRepository.save(ccp);
+
+        List<CcpUserBridge> savedAssignments = replaceAssignmentsInternal(
+            savedCcp,
+            request.verifiers(),
+            request.deviationRecievers(),
+            request.performers(),
+            request.deputy()
+        );
+
+        ccpCorrectiveMeasureRepository.deleteByCcp_Id(savedCcp.getId());
+        List<CcpCorrectiveMeasure> savedMeasures = saveCorrectiveMeasuresInternal(
+            savedCcp,
+            request.ccpCorrectiveMeasure(),
+            orgId
+        );
+
+        return toCcpResponse(savedCcp, savedAssignments, savedMeasures);
+    }
+
+    /**
+     * Deletes a CCP and performs cleanup on its associated assignments, measures, and orphaned interval rules.
+     *
+     * @param ccpId unique ID of the target CCP.
+     * @param authenticatedUserId requesting user ID.
+     * @param orgId organization scope.
+     */
     @Transactional
     public void deleteCcp(Long ccpId, Long authenticatedUserId, Long orgId) {
         ensureAuthenticatedMember(authenticatedUserId, orgId);
         deleteCcpEntity(getCcpInOrg(ccpId, orgId));
     }
 
+    /**
+     * Replaces the current user roles (Verifiers, Performers, etc.) for a specific CCP.
+     *
+     * @param ccpId unique ID of the target CCP.
+     * @param request DTO containing the new sets of user IDs for each role.
+     * @param authenticatedUserId requesting user ID.
+     * @param orgId organization scope.
+     * @return updated CCP response with new assignments.
+     */
     @Transactional
     public CcpResponse replaceAssignments(
             Long ccpId,
@@ -284,6 +420,15 @@ public class CcpService {
         return toCcpResponse(ccp, savedAssignments, loadCorrectiveMeasures(ccp.getId()));
     }
 
+    /**
+     * Creates a new corrective measure linked to a product category and CCP.
+     *
+     * @param ccpId the target CCP.
+     * @param request measure details.
+     * @param authenticatedUserId user ID.
+     * @param orgId organization scope.
+     * @return created corrective measure DTO.
+     */
     @Transactional
     public CcpCorrectiveMeasureResponse createCorrectiveMeasure(
             Long ccpId,
@@ -302,6 +447,15 @@ public class CcpService {
         return toCorrectiveMeasureResponse(ccpCorrectiveMeasureRepository.save(measure));
     }
 
+    /**
+     * Updates an existing corrective measure configuration.
+     *
+     * @param measureId unique ID of the measure.
+     * @param request updated data.
+     * @param authenticatedUserId user ID.
+     * @param orgId organization scope.
+     * @return updated measure DTO.
+     */
     @Transactional
     public CcpCorrectiveMeasureResponse updateCorrectiveMeasure(
             Long measureId,
@@ -321,6 +475,13 @@ public class CcpService {
         return toCorrectiveMeasureResponse(ccpCorrectiveMeasureRepository.save(measure));
     }
 
+    /**
+     * Deletes a specific corrective measure.
+     *
+     * @param measureId unique ID of the measure.
+     * @param authenticatedUserId user ID.
+     * @param orgId organization scope.
+     */
     @Transactional
     public void deleteCorrectiveMeasure(Long measureId, Long authenticatedUserId, Long orgId) {
         ensureAuthenticatedMember(authenticatedUserId, orgId);
@@ -347,6 +508,9 @@ public class CcpService {
             .orElseThrow(() -> new RuntimeException("CCP corrective measure not found"));
     }
 
+    /**
+     * Internal helper to wipe and rewrite user assignments for a CCP.
+     */
     private List<CcpUserBridge> replaceAssignmentsInternal(
             Ccp ccp,
             List<Long> verifierUserIds,
@@ -386,6 +550,9 @@ public class CcpService {
         return ccpUserBridgeRepository.saveAll(newBridges);
     }
 
+    /**
+     * Internal helper to persist a collection of corrective measures.
+     */
     private List<CcpCorrectiveMeasure> saveCorrectiveMeasuresInternal(
             Ccp ccp,
             List<CreateCcpCorrectiveMeasureRequest> requestedMeasures,
@@ -481,6 +648,9 @@ public class CcpService {
             .collect(Collectors.groupingBy(measure -> measure.getCcp().getId()));
     }
 
+    /**
+     * Executes the deletion of a CCP and cleans up its orphaned IntervalRules.
+     */
     private void deleteCcpEntity(Ccp ccp) {
         Long intervalId = ccp.getIntervalRule() != null ? ccp.getIntervalRule().getId() : null;
 
@@ -510,6 +680,9 @@ public class CcpService {
         }
     }
 
+    /**
+     * Maps a CCP domain entity to a comprehensive response DTO.
+     */
     private CcpResponse toCcpResponse(
             Ccp ccp,
             List<CcpUserBridge> userBridges,

@@ -145,6 +145,84 @@ public class CourseServiceTest {
     }
 
     @Nested
+    @DisplayName("createCourseWithLinks")
+    class CreateCourseWithLinksTests {
+
+        @Test
+        @DisplayName("creates course and persists each link")
+        void createCourseWithLinks_savesLinks() {
+            stubOrgMembership(10L, 1L);
+            when(organizationRepository.findById(10L)).thenReturn(Optional.of(testOrg));
+            when(courseRepository.save(any(Course.class))).thenAnswer(inv -> {
+                Course c = inv.getArgument(0);
+                c.setId(100L);
+                return c;
+            });
+
+            Course result = courseService.createCourseWithLinks(
+                    "Safety Course",
+                    "Learn safety",
+                    List.of("https://a.example", "https://b.example"),
+                    10L,
+                    1L
+            );
+
+            assertEquals("Safety Course", result.getTitle());
+            assertEquals("Learn safety", result.getCourseDescription());
+
+            ArgumentCaptor<CourseLink> linkCaptor = ArgumentCaptor.forClass(CourseLink.class);
+            verify(courseLinkRepository, times(2)).save(linkCaptor.capture());
+            List<CourseLink> savedLinks = linkCaptor.getAllValues();
+            assertEquals("https://a.example", savedLinks.get(0).getLink());
+            assertEquals("https://b.example", savedLinks.get(1).getLink());
+            assertEquals(result, savedLinks.get(0).getCourse());
+        }
+
+        @Test
+        @DisplayName("skips null and blank link entries")
+        void createCourseWithLinks_skipsBlankLinks() {
+            stubOrgMembership(10L, 1L);
+            when(organizationRepository.findById(10L)).thenReturn(Optional.of(testOrg));
+            when(courseRepository.save(any(Course.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            courseService.createCourseWithLinks(
+                    "Safety Course",
+                    "Learn safety",
+                    java.util.Arrays.asList("https://a.example", "", "  ", null),
+                    10L,
+                    1L
+            );
+
+            verify(courseLinkRepository, times(1)).save(any(CourseLink.class));
+        }
+
+        @Test
+        @DisplayName("handles null links list without saving any")
+        void createCourseWithLinks_nullLinks() {
+            stubOrgMembership(10L, 1L);
+            when(organizationRepository.findById(10L)).thenReturn(Optional.of(testOrg));
+            when(courseRepository.save(any(Course.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            courseService.createCourseWithLinks("Safety Course", "Learn safety", null, 10L, 1L);
+
+            verify(courseLinkRepository, never()).save(any(CourseLink.class));
+        }
+
+        @Test
+        @DisplayName("throws when user not in org")
+        void createCourseWithLinks_userNotInOrg_throws() {
+            when(orgUserBridgeRepository.findByOrganizationIdAndUserId(10L, 99L))
+                    .thenReturn(Optional.empty());
+
+            assertThrows(EntityNotFoundException.class,
+                    () -> courseService.createCourseWithLinks("t", "d", List.of(), 10L, 99L));
+
+            verify(courseRepository, never()).save(any());
+            verify(courseLinkRepository, never()).save(any());
+        }
+    }
+
+    @Nested
     @DisplayName("getCoursesByOrg")
     class GetCoursesByOrgTests {
 

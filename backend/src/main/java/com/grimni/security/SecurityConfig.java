@@ -14,6 +14,15 @@ import org.springframework.web.cors.CorsConfiguration;
 
 import com.grimni.util.JwtAuthFilter;
 
+/**
+ * Main security configuration class for the Spring Boot application.
+ * <p>
+ * This class defines the security filter chain, which dictates how the application handles 
+ * authentication, authorization, CORS, and CSRF protection. It leverages a stateless 
+ * session policy suitable for JWT-based architectures and integrates the custom 
+ * {@link JwtAuthFilter} into the standard Spring Security pipeline.
+ * </p>
+ */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
@@ -24,6 +33,22 @@ public class SecurityConfig {
         this.jwtAuthFilter = jwtAuthFilter;
     }
 
+    /**
+     * Configures the {@link SecurityFilterChain} to define the application's security perimeter.
+     * <p>
+     * Key configurations include:
+     * <ul>
+     * <li><b>Stateless Sessions:</b> Disables HTTP sessions to ensure every request is independently authenticated via JWT.</li>
+     * <li><b>Endpoint Authorization:</b> Permitting public access to authentication, health, and documentation endpoints while securing all others.</li>
+     * <li><b>CORS Policy:</b> Explicitly allowing cross-origin requests from trusted local development environments.</li>
+     * <li><b>Custom Filter Placement:</b> Injecting {@link JwtAuthFilter} prior to the {@link UsernamePasswordAuthenticationFilter}.</li>
+     * <li><b>CSRF Protection:</b> Disabled, as JWTs are inherently protected against CSRF when stored correctly and state is not maintained via sessions.</li>
+     * </ul>
+     *
+     * @param http the {@link HttpSecurity} object used to build the security configuration.
+     * @return the built {@link SecurityFilterChain}.
+     * @throws Exception if an error occurs during the security configuration process.
+     */
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         
@@ -33,7 +58,8 @@ public class SecurityConfig {
 
         // expose endpoint /auth/login - /auth/register - /auth/refresh - /health, as available to all, but any other requests to other endpoints require authentication
         http.authorizeHttpRequests(auth -> auth
-                .requestMatchers("/auth/login", "/auth/register", "/auth/refresh", "/health").permitAll() // for this url endpoint, all requests are permitted
+                .requestMatchers("/auth/login", "/auth/register", "/auth/refresh", "/health",
+                        "/swagger-ui/**", "/v3/api-docs/**").permitAll() // for this url endpoint, all requests are permitted
                 .anyRequest().authenticated()); // to any other requests to endpoints, authentication is needed
 
         // since SecurityConfig is initially run before Server Dispatchlet, it blocks due to CORS restriction, therefore we have

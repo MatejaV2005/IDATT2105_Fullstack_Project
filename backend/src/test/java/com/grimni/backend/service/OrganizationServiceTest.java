@@ -321,4 +321,74 @@ public class OrganizationServiceTest {
             assertTrue(result.isEmpty());
         }
     }
+
+    // -------------------------------------------------------------------------
+    // addUserToOrg
+    // -------------------------------------------------------------------------
+    @Nested
+    @DisplayName("addUserToOrg")
+    class AddUserToOrgTests {
+
+        @Test
+        @DisplayName("adds user to organization with given role")
+        void addUserToOrg_success() {
+            Organization org = createOrg(10L, "Test Org");
+            User newUser = new User();
+            ReflectionTestUtils.setField(newUser, "id", 5L);
+            newUser.setLegalName("charlie");
+            newUser.setEmail("charlie@test.com");
+
+            when(organizationRepository.findById(10L)).thenReturn(Optional.of(org));
+            when(userRepository.findById(5L)).thenReturn(Optional.of(newUser));
+            when(orgUserBridgeRepository.findByOrganizationIdAndUserId(10L, 5L)).thenReturn(Optional.empty());
+            when(orgUserBridgeRepository.save(any(OrgUserBridge.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            UserOrgResponse result = organizationService.addUserToOrg(5L, OrgUserRole.WORKER, 10L);
+
+            assertEquals(5L, result.id());
+            assertEquals("charlie", result.legalName());
+            assertEquals("charlie@test.com", result.email());
+            assertEquals(OrgUserRole.WORKER, result.accessLevel());
+            verify(orgUserBridgeRepository).save(any(OrgUserBridge.class));
+        }
+
+        @Test
+        @DisplayName("throws when user is already a member")
+        void addUserToOrg_alreadyMember_throws() {
+            Organization org = createOrg(10L, "Test Org");
+            when(organizationRepository.findById(10L)).thenReturn(Optional.of(org));
+            when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+            when(orgUserBridgeRepository.findByOrganizationIdAndUserId(10L, 1L))
+                    .thenReturn(Optional.of(new OrgUserBridge()));
+
+            assertThrows(IllegalArgumentException.class,
+                    () -> organizationService.addUserToOrg(1L, OrgUserRole.WORKER, 10L));
+
+            verify(orgUserBridgeRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("throws when organization not found")
+        void addUserToOrg_orgNotFound_throws() {
+            when(organizationRepository.findById(999L)).thenReturn(Optional.empty());
+
+            assertThrows(EntityNotFoundException.class,
+                    () -> organizationService.addUserToOrg(1L, OrgUserRole.WORKER, 999L));
+
+            verify(orgUserBridgeRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("throws when user not found")
+        void addUserToOrg_userNotFound_throws() {
+            Organization org = createOrg(10L, "Test Org");
+            when(organizationRepository.findById(10L)).thenReturn(Optional.of(org));
+            when(userRepository.findById(999L)).thenReturn(Optional.empty());
+
+            assertThrows(EntityNotFoundException.class,
+                    () -> organizationService.addUserToOrg(999L, OrgUserRole.WORKER, 10L));
+
+            verify(orgUserBridgeRepository, never()).save(any());
+        }
+    }
 }

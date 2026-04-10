@@ -135,13 +135,21 @@ onMounted(async () => {
   }
 })
 
-function addUser(user: BasicUserWithAccessLevel) {
+async function addUser(user: BasicUserWithAccessLevel) {
   if (isSubmitting.value) {
     return
   }
 
-  selectedUsers.value = [...selectedUsers.value, user]
-  selectedUserId.value = null
+  try {
+    isSubmitting.value = true
+    await api.post('/organizations/users', { userId: user.id, role: user.accessLevel })
+    selectedUsers.value = [...selectedUsers.value, user]
+    selectedUserId.value = null
+  } catch {
+    errorMessage.value = 'Klarte ikke å legge til bruker.'
+  } finally {
+    isSubmitting.value = false
+  }
 }
 
 function setSelectedUserId(userId: number | null) {

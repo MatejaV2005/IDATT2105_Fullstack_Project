@@ -10,7 +10,6 @@ import com.grimni.domain.Course;
 import com.grimni.domain.CourseLink;
 import com.grimni.domain.CourseResponsibleUser;
 import com.grimni.domain.CourseUserProgress;
-import com.grimni.domain.FileCourseBridge;
 import com.grimni.domain.Organization;
 import com.grimni.domain.User;
 import com.grimni.domain.ids.CourseUserProgressId;
@@ -26,8 +25,23 @@ import com.grimni.repository.OrgUserBridgeRepository;
 import com.grimni.repository.OrganizationRepository;
 import com.grimni.repository.UserRepository;
 
+import org.springframework.transaction.annotation.Transactional;
+
 import jakarta.persistence.EntityNotFoundException;
 
+/**
+ * Service class for managing organizational training courses, user enrollment, and progress tracking.
+ * <p>
+ * This service facilitates the full educational lifecycle within an organization, including:
+ * <ul>
+ * <li>Course administration (CRUD operations).</li>
+ * <li>User enrollment and completion tracking.</li>
+ * <li>Responsibility mapping for verifiers and administrative oversight.</li>
+ * <li>Resource management (Linking external URLs and internal files to courses).</li>
+ * <li>Comprehensive reporting through organizational course overviews.</li>
+ * </ul>
+ * All operations are governed by organizational multi-tenancy rules to ensure data isolation.
+ */
 @Service
 public class CourseService {
 
@@ -38,9 +52,9 @@ public class CourseService {
     private final OrgUserBridgeRepository orgUserBridgeRepository;
     private final CourseUserProgressRepository courseUserProgressRepository;
     private final CourseResponsibleUserRepository courseResponsibleUserRepository;
-    private final CourseLinkRepository courseLinkRepository;
     private final FileCourseBridgeRepository fileCourseBridgeRepository;
     private final UserRepository userRepository;
+    private final CourseLinkRepository courseLinkRepository;
 
     public CourseService(CourseRepository courseRepository,
                          OrganizationRepository organizationRepository,
@@ -60,6 +74,51 @@ public class CourseService {
         this.userRepository = userRepository;
     }
 
+    /**
+     * Creates a new course together with its associated reference links in a single transaction.
+     *
+     * @param title       the course title.
+     * @param description the course description.
+     * @param links       optional list of reference URLs to attach to the course.
+     * @param orgId       the organization scope.
+     * @param userId      the ID of the user performing the creation.
+     * @return the persisted {@link Course} entity.
+     */
+    @Transactional
+    public Course createCourseWithLinks(String title, String description, List<String> links, Long orgId, Long userId) {
+        validateUserBelongsToOrg(orgId, userId);
+
+        Organization org = organizationRepository.findById(orgId)
+                .orElseThrow(() -> new EntityNotFoundException("Organization not found"));
+
+        Course course = new Course();
+        course.setTitle(title);
+        course.setCourseDescription(description);
+        course.setOrganization(org);
+        course = courseRepository.save(course);
+
+        if (links != null) {
+            for (String link : links) {
+                if (link == null || link.isBlank()) {
+                    continue;
+                }
+                CourseLink courseLink = new CourseLink();
+                courseLink.setCourse(course);
+                courseLink.setLink(link.trim());
+                courseLinkRepository.save(courseLink);
+            }
+        }
+
+        return course;
+    }
+
+    /**
+     * Validates that a user holds a valid membership within a specific organization.
+     *
+     * @param orgId  the unique identifier of the organization.
+     * @param userId the unique identifier of the user.
+     * @throws EntityNotFoundException if no membership bridge exists between the user and organization.
+     */
     private void validateUserBelongsToOrg(Long orgId, Long userId) {
         orgUserBridgeRepository.findByOrganizationIdAndUserId(orgId, userId)
                 .orElseThrow(() -> {
@@ -68,6 +127,14 @@ public class CourseService {
                 });
     }
 
+    /**
+     * Retrieves a course and ensures it is associated with the provided organization ID.
+     *
+     * @param courseId the unique identifier of the course.
+     * @param orgId    the organization ID to validate against.
+     * @return the {@link Course} entity.
+     * @throws EntityNotFoundException if the course is not found or belongs to a different organization.
+     */
     private Course findCourseAndValidateOrg(Long courseId, Long orgId) {
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> {
@@ -81,6 +148,15 @@ public class CourseService {
         return course;
     }
 
+    /**
+     * Registers a new training course within the organization.
+     *
+     * @param request the course details (title and description).
+     * @param orgId   the organization ID scope.
+     * @param userId  the ID of the user performing the creation.
+     * @return the persisted {@link Course} entity.
+     * @throws EntityNotFoundException if the organization is not found.
+     */
     public Course createCourse(CreateCourseRequest request, Long orgId, Long userId) {
         logger.info("Creating course '{}' in organization {} by user {}", request.title(), orgId, userId);
 
@@ -102,6 +178,13 @@ public class CourseService {
         return course;
     }
 
+    /**
+     * Lists all courses available within a specific organization.
+     *
+     * @param orgId  the organization ID.
+     * @param userId the ID of the requesting user.
+     * @return a list of {@link Course} entities.
+     */
     public List<Course> getCoursesByOrg(Long orgId, Long userId) {
         logger.info("Fetching courses for organization {} by user {}", orgId, userId);
 
@@ -112,6 +195,14 @@ public class CourseService {
         return courses;
     }
 
+    /**
+     * Fetches detailed information for a single course.
+     *
+     * @param courseId the ID of the course.
+     * @param orgId    the organization ID for scope validation.
+     * @param userId   the ID of the requesting user.
+     * @return the validated {@link Course} entity.
+     */
     public Course getCourseById(Long courseId, Long orgId, Long userId) {
         logger.info("Fetching course {} in organization {} by user {}", courseId, orgId, userId);
 
@@ -122,6 +213,15 @@ public class CourseService {
         return course;
     }
 
+    /**
+     * Updates an existing course's metadata.
+     *
+     * @param courseId the ID of the course to update.
+     * @param request  the updated fields (title, description).
+     * @param orgId    the organization ID for scope validation.
+     * @param userId   the ID of the user performing the update.
+     * @return the updated {@link Course} entity.
+     */
     public Course updateCourse(Long courseId, UpdateCourseRequest request, Long orgId, Long userId) {
         logger.info("Updating course {} in organization {} by user {}", courseId, orgId, userId);
 
@@ -137,6 +237,13 @@ public class CourseService {
         return course;
     }
 
+    /**
+     * Deletes a course from the organization.
+     *
+     * @param courseId the ID of the course to remove.
+     * @param orgId    the organization ID for scope validation.
+     * @param userId   the ID of the user performing the deletion.
+     */
     public void deleteCourse(Long courseId, Long orgId, Long userId) {
         logger.info("Deleting course {} in organization {} by user {}", courseId, orgId, userId);
 
@@ -148,7 +255,14 @@ public class CourseService {
         logger.info("Course {} deleted from organization {}", courseId, orgId);
     }
 
-    // Course User Progress
+    /**
+     * Retrieves all user progress records associated with a specific course.
+     *
+     * @param courseId the unique identifier of the course.
+     * @param orgId    the organization ID.
+     * @param userId   the ID of the requesting user.
+     * @return a list of {@link CourseUserProgress} entities.
+     */
     public List<CourseUserProgress> getProgressByCourse(Long courseId, Long orgId, Long userId) {
         logger.info("Fetching all assigned users for course {} in organization {}", courseId, orgId);
 
@@ -160,6 +274,16 @@ public class CourseService {
         return progress;
     }
 
+    /**
+     * Fetches the completion status and progress details for a specific user on a course.
+     *
+     * @param courseId     the ID of the course.
+     * @param targetUserId the ID of the user whose progress is being queried.
+     * @param orgId        the organization ID.
+     * @param userId       the ID of the requesting user.
+     * @return the {@link CourseUserProgress} record.
+     * @throws EntityNotFoundException if the user has no progress record for the course.
+     */
     public CourseUserProgress getProgressForUser(Long courseId, Long targetUserId, Long orgId, Long userId) {
         logger.info("Fetching progress for user {} on course {} in organization {}", targetUserId, courseId, orgId);
 
@@ -173,6 +297,17 @@ public class CourseService {
                 });
     }
 
+    /**
+     * Assigns a user to a course and initializes their progress record.
+     *
+     * @param courseId     the ID of the course.
+     * @param targetUserId the ID of the user to enroll.
+     * @param orgId        the organization ID scope.
+     * @param userId       the ID of the user performing the assignment.
+     * @return the newly created {@link CourseUserProgress} entity.
+     * @throws IllegalArgumentException if the user is already assigned to the course.
+     * @throws EntityNotFoundException if the target user or course is not found.
+     */
     public CourseUserProgress assignUserToCourse(Long courseId, Long targetUserId, Long orgId, Long userId) {
         logger.info("Assigning user {} to course {} in organization {}", targetUserId, courseId, orgId);
 
@@ -201,6 +336,17 @@ public class CourseService {
         return progress;
     }
 
+    /**
+     * Updates the completion status of a user's course enrollment.
+     *
+     * @param courseId     the ID of the course.
+     * @param targetUserId the ID of the user.
+     * @param isCompleted  the new completion status.
+     * @param orgId        the organization ID.
+     * @param userId       the ID of the user performing the update.
+     * @return the updated {@link CourseUserProgress} entity.
+     * @throws EntityNotFoundException if no progress record exists for the given user and course.
+     */
     public CourseUserProgress updateProgress(Long courseId, Long targetUserId, Boolean isCompleted, Long orgId, Long userId) {
         logger.info("Updating progress for user {} on course {} to completed={}", targetUserId, courseId, isCompleted);
 
@@ -220,6 +366,15 @@ public class CourseService {
         return progress;
     }
 
+    /**
+     * Unenrolls a user from a course, removing their progress record.
+     *
+     * @param courseId     the ID of the course.
+     * @param targetUserId the ID of the user to remove.
+     * @param orgId        the organization ID.
+     * @param userId       the ID of the requesting user.
+     * @throws EntityNotFoundException if the progress record is missing.
+     */
     public void removeUserFromCourse(Long courseId, Long targetUserId, Long orgId, Long userId) {
         logger.info("Removing user {} from course {} in organization {}", targetUserId, courseId, orgId);
 
@@ -236,7 +391,14 @@ public class CourseService {
         logger.info("User {} removed from course {} in organization {}", targetUserId, courseId, orgId);
     }
 
-    // Course Responsible Users (verifiers)
+    /**
+     * Retrieves the list of users designated as responsible (verifiers) for a specific course.
+     *
+     * @param courseId the ID of the course.
+     * @param orgId    the organization ID.
+     * @param userId   the ID of the requesting user.
+     * @return a list of {@link CourseResponsibleUser} entities.
+     */
     public List<CourseResponsibleUser> getResponsibleUsers(Long courseId, Long orgId, Long userId) {
         logger.info("Fetching responsible users for course {} in organization {}", courseId, orgId);
 
@@ -248,6 +410,17 @@ public class CourseService {
         return responsible;
     }
 
+    /**
+     * Assigns a user as a responsible party (verifier/manager) for a specific course.
+     *
+     * @param courseId     the ID of the course.
+     * @param targetUserId the ID of the user to designate.
+     * @param orgId        the organization ID.
+     * @param userId       the ID of the user performing the assignment.
+     * @return the persisted {@link CourseResponsibleUser} entity.
+     * @throws IllegalArgumentException if the user is already assigned as responsible for the course.
+     * @throws EntityNotFoundException if the target user or course is missing.
+     */
     public CourseResponsibleUser assignResponsibleUser(Long courseId, Long targetUserId, Long orgId, Long userId) {
         logger.info("Assigning user {} as responsible for course {} in organization {}", targetUserId, courseId, orgId);
 
@@ -275,6 +448,15 @@ public class CourseService {
         return responsible;
     }
 
+    /**
+     * Revokes the responsibility status of a user for a specific course.
+     *
+     * @param courseId     the ID of the course.
+     * @param targetUserId the ID of the user to remove.
+     * @param orgId        the organization ID.
+     * @param userId       the ID of the requesting user.
+     * @throws EntityNotFoundException if the user was not designated as responsible for the course.
+     */
     public void removeResponsibleUser(Long courseId, Long targetUserId, Long orgId, Long userId) {
         logger.info("Removing responsible user {} from course {} in organization {}", targetUserId, courseId, orgId);
 
@@ -291,6 +473,15 @@ public class CourseService {
         logger.info("Responsible user {} removed from course {} in organization {}", targetUserId, courseId, orgId);
     }
 
+    /**
+     * Adds an external URL reference to a course.
+     *
+     * @param courseId the ID of the course.
+     * @param link     the URL string to add.
+     * @param orgId    the organization ID scope.
+     * @param userId   the ID of the user performing the action.
+     * @return the persisted {@link CourseLink} entity.
+     */
     public CourseLink addCourseLink(Long courseId, String link, Long orgId, Long userId) {
         logger.info("Adding link to course {} in organization {} by user {}", courseId, orgId, userId);
 
@@ -306,6 +497,14 @@ public class CourseService {
         return courseLink;
     }
 
+    /**
+     * Removes an external URL reference from a course.
+     *
+     * @param courseId the ID of the course.
+     * @param linkId   the unique ID of the link to remove.
+     * @param orgId    the organization ID scope.
+     * @param userId   the ID of the user performing the action.
+     */
     public void removeCourseLink(Long courseId, Long linkId, Long orgId, Long userId) {
         logger.info("Removing link {} from course {} in organization {}", linkId, courseId, orgId);
 
@@ -322,12 +521,22 @@ public class CourseService {
         logger.info("Removed link {} from course {} in organization {}", linkId, courseId, orgId);
     }
 
+    /**
+     * Compiles a comprehensive overview of all courses and user progress for an entire organization.
+     * <p>
+     * Aggregates course metadata, responsible users, associated resources (links and files), 
+     * and completion statuses for all members.
+     *
+     * @param orgId  the organization ID.
+     * @param userId the ID of the user requesting the overview.
+     * @return a {@link CourseOverviewResponse} containing detailed statistics and individual progress mappings.
+     */
     public CourseOverviewResponse getCourseOverview(Long orgId, Long userId) {
-    logger.info("Fetching course overview for organization {}", orgId);
+        logger.info("Fetching course overview for organization {}", orgId);
 
-    validateUserBelongsToOrg(orgId, userId);
+        validateUserBelongsToOrg(orgId, userId);
 
-    List<Course> courses = courseRepository.findByOrganizationId(orgId);
+        List<Course> courses = courseRepository.findByOrganizationId(orgId);
 
     List<CourseOverviewResponse.CourseDetailResponse> allCourses = courses.stream()
             .map(course -> {
@@ -365,9 +574,9 @@ public class CourseService {
                 );
             }).toList();
 
-    List<CourseUserProgress> allProgress = courseUserProgressRepository.findByCourseIdIn(
-            courses.stream().map(Course::getId).toList()
-    );
+        List<CourseUserProgress> allProgress = courseUserProgressRepository.findByCourseIdIn(
+                courses.stream().map(Course::getId).toList()
+        );
 
         List<CourseOverviewResponse.UserProgressOverview> userProgress = allProgress.stream()
                 .collect(java.util.stream.Collectors.groupingBy(p -> p.getUser().getId()))
@@ -390,5 +599,4 @@ public class CourseService {
         logger.info("Course overview assembled: {} courses, {} users", allCourses.size(), userProgress.size());
         return new CourseOverviewResponse(allCourses, userProgress);
     }
-
 }

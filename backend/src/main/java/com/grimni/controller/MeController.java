@@ -28,8 +28,23 @@ import com.grimni.service.OrganizationService;
 import com.grimni.service.RoutineLoggingService;
 import com.grimni.service.UserService;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
+/**
+ * REST controller providing user-centric endpoints for the currently authenticated principal.
+ * <p>
+ * This controller serves as a "Personal Workspace" API, allowing users to:
+ * <ul>
+ * <li>Manage their personal profile and organizational memberships.</li>
+ * <li>Access personal professional credentials and certificates.</li>
+ * <li>Interact with assigned operational tasks, including Routines and Critical Control Points (CCPs).</li>
+ * <li>Execute immediate compliance actions like logging measurements and reporting deviations.</li>
+ * </ul>
+ * All operations are implicitly scoped to the {@code userId} and {@code orgId} derived from the JWT.
+ */
+@Tag(name = "Me", description = "Current user's profile, assignments, and actions")
 @RestController
 @RequestMapping("/me")
 public class MeController {
@@ -56,6 +71,13 @@ public class MeController {
         this.deviationService = deviationService;
     }
 
+    /**
+     * Retrieves all organizations associated with the authenticated user.
+     *
+     * @param authentication The security context containing the {@link JwtUserPrinciple}.
+     * @return {@link ResponseEntity} containing a list of {@link OrganizationResponse} objects.
+     */
+    @Operation(summary = "List my organizations")
     @GetMapping("/organizations")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> getMyOrganizations(Authentication authentication) {
@@ -67,6 +89,13 @@ public class MeController {
         return ResponseEntity.ok(orgs);
     }
 
+    /**
+     * Retrieves all professional certificates assigned to the authenticated user.
+     *
+     * @param authentication The security context containing the {@link JwtUserPrinciple}.
+     * @return {@link ResponseEntity} containing a list of {@link CertificateResponse} objects.
+     */
+    @Operation(summary = "List my certificates")
     @GetMapping("/certificates")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> getMyCertificates(Authentication authentication) {
@@ -78,6 +107,13 @@ public class MeController {
         return ResponseEntity.ok(certs);
     }
 
+    /**
+     * Retrieves the profile details of the currently authenticated user.
+     *
+     * @param authentication The security context containing the {@link JwtUserPrinciple}.
+     * @return {@link ResponseEntity} containing the {@link UserResponse}.
+     */
+    @Operation(summary = "Get my profile")
     @GetMapping
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> getMyProfile(Authentication authentication) {
@@ -86,6 +122,14 @@ public class MeController {
         return ResponseEntity.ok(UserResponse.fromEntity(user));
     }
 
+    /**
+     * Updates the authenticated user's profile information.
+     *
+     * @param request        Validated update request containing the new profile data.
+     * @param authentication The security context containing the {@link JwtUserPrinciple}.
+     * @return {@link ResponseEntity} containing the updated {@link UserResponse}.
+     */
+    @Operation(summary = "Update my profile")
     @PutMapping
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> updateMyProfile(
@@ -96,6 +140,13 @@ public class MeController {
         return ResponseEntity.ok(UserResponse.fromEntity(user));
     }
 
+    /**
+     * Lists all routines assigned to the authenticated user within their current organization.
+     *
+     * @param authentication The security context containing the {@link JwtUserPrinciple}.
+     * @return {@link ResponseEntity} containing the list of assigned routines and their status.
+     */
+    @Operation(summary = "List my assigned routines")
     @GetMapping("/routines")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> getMyAssignedRoutines(Authentication authentication) {
@@ -105,6 +156,14 @@ public class MeController {
         );
     }
 
+    /**
+     * Logs the completion of a specific routine for the authenticated user.
+     *
+     * @param routineId      The unique identifier of the routine to mark as complete.
+     * @param authentication The security context containing the {@link JwtUserPrinciple}.
+     * @return {@link ResponseEntity} confirming the routine completion record.
+     */
+    @Operation(summary = "Complete a routine")
     @PostMapping("/routines/{routineId}/records")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> completeRoutine(
@@ -116,6 +175,13 @@ public class MeController {
         );
     }
 
+    /**
+     * Lists all Critical Control Points (CCPs) assigned to the authenticated user.
+     *
+     * @param authentication The security context containing the {@link JwtUserPrinciple}.
+     * @return {@link ResponseEntity} containing the assigned CCPs.
+     */
+    @Operation(summary = "List my assigned CCPs")
     @GetMapping("/ccps")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> getMyAssignedCcps(Authentication authentication) {
@@ -125,6 +191,15 @@ public class MeController {
         );
     }
 
+    /**
+     * Records a new measurement or observation for a specific Critical Control Point.
+     *
+     * @param ccpId          The unique identifier of the CCP.
+     * @param request        Validated data containing the measurement values.
+     * @param authentication The security context containing the {@link JwtUserPrinciple}.
+     * @return {@link ResponseEntity} containing the created CCP record.
+     */
+    @Operation(summary = "Log CCP record")
     @PostMapping("/ccps/{ccpId}/records")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> createCcpRecord(
@@ -137,6 +212,16 @@ public class MeController {
         );
     }
 
+    /**
+     * Reports a process deviation (avvik) initiated by the authenticated user.
+     * <p>
+     * The deviation is automatically associated with the user's active organization.
+     *
+     * @param request        The validated deviation report request.
+     * @param authentication The security context containing the {@link JwtUserPrinciple}.
+     * @return {@link ResponseEntity} containing the {@link com.grimni.dto.DeviationResponse}.
+     */
+    @Operation(summary = "Report deviation (as me)")
     @PostMapping("/deviations")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> createDeviation(

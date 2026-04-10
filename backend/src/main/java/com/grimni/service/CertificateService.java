@@ -22,6 +22,13 @@ import com.grimni.repository.UserRepository;
 
 import jakarta.persistence.EntityNotFoundException;
 
+/**
+ * Service class for managing organizational certificates and professional credentials.
+ * <p>
+ * This service handles the business logic for verifying user-to-organization relationships,
+ * linking certificates to specific training courses, and managing associated file attachments.
+ * All operations are scoped by organization ID to ensure multi-tenant data isolation.
+ */
 @Service
 public class CertificateService {
 
@@ -48,6 +55,13 @@ public class CertificateService {
         this.orgUserBridgeRepository = orgUserBridgeRepository;
     }
 
+    /**
+     * Validates that a specific user holds an active membership within an organization.
+     *
+     * @param orgId the unique identifier of the organization.
+     * @param userId the unique identifier of the user to validate.
+     * @throws EntityNotFoundException if the user-organization bridge does not exist.
+     */
     private void validateUserBelongsToOrg(Long orgId, Long userId) {
         orgUserBridgeRepository.findByOrganizationIdAndUserId(orgId, userId)
                 .orElseThrow(() -> {
@@ -56,6 +70,15 @@ public class CertificateService {
                 });
     }
 
+    /**
+     * Creates and persists a new certificate for a target user within an organization.
+     *
+     * @param request the DTO containing certificate name, target user, and file information.
+     * @param orgId the organization ID where the certificate will be stored.
+     * @param userId the ID of the user performing the creation.
+     * @return the persisted {@link Certificate} entity.
+     * @throws EntityNotFoundException if the organization, target user, or file reference is missing.
+     */
     public Certificate createCertificate(CreateCertificateRequest request, Long orgId, Long userId) {
         logger.info("Creating certificate '{}' in organization {} by user {}", request.certificateName(), orgId, userId);
 
@@ -100,6 +123,12 @@ public class CertificateService {
         return cert;
     }
 
+    /**
+     * Retrieves all certificates associated with a specific user across all organizations.
+     *
+     * @param userId the unique identifier of the user.
+     * @return a list of {@link Certificate} entities.
+     */
     public List<Certificate> getCertificatesForUser(Long userId) {
         logger.info("Fetching certificates for user {}", userId);
         List<Certificate> certs = certificateRepository.findByUserId(userId);
@@ -107,6 +136,13 @@ public class CertificateService {
         return certs;
     }
 
+    /**
+     * Retrieves all certificates belonging to a specific organization.
+     *
+     * @param orgId the unique identifier of the organization.
+     * @param userId the ID of the user performing the query (used for membership validation).
+     * @return a list of all {@link Certificate} entities within the organization scope.
+     */
     public List<Certificate> getCertificatesForOrg(Long orgId, Long userId) {
         logger.info("Fetching certificates for organization {} by user {}", orgId, userId);
 
@@ -117,6 +153,15 @@ public class CertificateService {
         return certs;
     }
 
+    /**
+     * Fetches a single certificate by its ID, ensuring it belongs to the specified organization.
+     *
+     * @param certId the unique identifier of the certificate.
+     * @param orgId the organization ID for scope validation.
+     * @param userId the ID of the user performing the request.
+     * @return the {@link Certificate} entity.
+     * @throws EntityNotFoundException if the certificate is missing or belongs to a different organization.
+     */
     public Certificate getCertificateById(Long certId, Long orgId, Long userId) {
         logger.info("Fetching certificate {} in organization {} by user {}", certId, orgId, userId);
 
@@ -136,6 +181,14 @@ public class CertificateService {
         return cert;
     }
 
+    /**
+     * Removes a certificate record after validating organizational ownership.
+     *
+     * @param certId the unique identifier of the certificate.
+     * @param orgId the organization ID for scope validation.
+     * @param userId the ID of the user performing the deletion.
+     * @throws EntityNotFoundException if the certificate is missing or ownership validation fails.
+     */
     public void deleteCertificate(Long certId, Long orgId, Long userId) {
         logger.info("Deleting certificate {} in organization {} by user {}", certId, orgId, userId);
 
@@ -156,6 +209,14 @@ public class CertificateService {
         logger.info("Certificate {} deleted from organization {}", certId, orgId);
     }
 
+    /**
+     * Retrieves all certificates assigned to a target user within a specific organization.
+     *
+     * @param targetUserId the ID of the user whose certificates are being retrieved.
+     * @param orgId the organization ID.
+     * @param userId the ID of the requesting user (used for validation).
+     * @return a list of filtered {@link Certificate} entities.
+     */
     public List<Certificate> getCertificatesForUserInOrg(Long targetUserId, Long orgId, Long userId) {
         logger.info("Fetching certificates for user {} in organization {} by user {}", targetUserId, orgId, userId);
 
@@ -167,6 +228,16 @@ public class CertificateService {
         return certs;
     }
 
+    /**
+     * Updates an existing certificate's attributes, including metadata and file associations.
+     *
+     * @param certId the unique identifier of the certificate to update.
+     * @param request DTO containing updated fields (null fields are ignored).
+     * @param orgId the organization ID for scope validation.
+     * @param userId the ID of the user performing the update.
+     * @return the updated {@link Certificate} entity.
+     * @throws EntityNotFoundException if the certificate, file, or course reference is not found.
+     */
     public Certificate updateCertificate(Long certId, UpdateCertificateRequest request, Long orgId, Long userId) {
         logger.info("Updating certificate {} in organization {} by user {}", certId, orgId, userId);
 

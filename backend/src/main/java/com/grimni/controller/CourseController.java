@@ -1,5 +1,6 @@
 package com.grimni.controller;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -33,6 +35,7 @@ import com.grimni.dto.CourseResponsibleUserResponse;
 import com.grimni.dto.CourseUserProgressResponse;
 import com.grimni.dto.CreateCourseLinkRequest;
 import com.grimni.dto.CreateCourseRequest;
+import com.grimni.dto.UpdateCourseProgressRequest;
 import com.grimni.dto.UpdateCourseRequest;
 import com.grimni.repository.OrganizationRepository;
 import com.grimni.repository.UserRepository;
@@ -40,8 +43,24 @@ import com.grimni.security.JwtUserPrinciple;
 import com.grimni.service.CourseService;
 import com.grimni.service.SimpleStorageService;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
+/**
+ * REST controller for managing organizational training courses and educational materials.
+ * <p>
+ * This controller serves as the primary interface for:
+ * <ul>
+ * <li><b>Course Lifecycle:</b> Creation, retrieval, partial updates, and deletion.</li>
+ * <li><b>Progress Monitoring:</b> Tracking user completion status and assignment management.</li>
+ * <li><b>Responsibility Mapping:</b> Assigning and viewing personnel responsible for course oversight.</li>
+ * <li><b>Content Management:</b> Secure upload, download, and deletion of course-related files.</li>
+ * </ul>
+ * <p>
+ * All endpoints enforce strict multi-tenant isolation based on the authenticated user's organization.
+ */
+@Tag(name = "Courses", description = "Course CRUD, progress tracking, responsible users, and file management")
 @RestController
 @RequestMapping("/courses")
 public class CourseController {
@@ -61,6 +80,14 @@ public class CourseController {
         this.organizationRepository = organizationRepository;
     }
 
+    /**
+     * Initializes a new course within the caller's organization.
+     *
+     * @param request        Validated request containing course details.
+     * @param authentication Security context containing the {@link JwtUserPrinciple}.
+     * @return {@link ResponseEntity} containing the created {@link CourseResponse}.
+     */
+    @Operation(summary = "Create course")
     @PostMapping
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
     public ResponseEntity<?> createCourse(
@@ -71,6 +98,89 @@ public class CourseController {
         return ResponseEntity.status(HttpStatus.CREATED).body(CourseResponse.fromEntity(course));
     }
 
+    /**
+     * Creates a new course from a multipart form payload, persisting reference links
+     * and uploading any attached file resources.
+     *
+     * @param title          the course title.
+     * @param description    the course description.
+     * @param links          optional list of reference URLs (form field repeated as "links").
+     * @param resources      optional list of uploaded files (form field repeated as "resources").
+     * @param authentication the security context containing the {@link JwtUserPrinciple}.
+     * @return {@link ResponseEntity} containing the created {@link CourseResponse}.
+     */
+    @Operation(summary = "Create course (multipart)")
+    @PostMapping(value = "/create-course", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
+    public ResponseEntity<?> createCourseMultipart(
+            @RequestParam("title") String title,
+            @RequestParam("description") String description,
+            @RequestParam(value = "links", required = false) List<String> links,
+            @RequestParam(value = "resources", required = false) List<MultipartFile> resources,
+            Authentication authentication) {
+        JwtUserPrinciple principal = (JwtUserPrinciple) authentication.getPrincipal();
+        Long orgId = principal.orgId();
+        Long userId = principal.userId();
+
+        if (title == null || title.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Title cannot be blank");
+        }
+        if (description == null || description.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Description cannot be blank");
+        }
+
+        Course course = courseService.createCourseWithLinks(
+                title,
+                description,
+                links == null ? Collections.emptyList() : links,
+                orgId,
+                userId
+        );
+
+        if (resources != null && !resources.isEmpty()) {
+            User uploadedBy = userRepository.findById(userId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
+            Organization organization = organizationRepository.findById(orgId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Organization not found"));
+
+            for (MultipartFile file : resources) {
+                if (file == null || file.isEmpty()) {
+                    continue;
+                }
+
+                String originalFilename = file.getOriginalFilename() == null
+                        ? "unnamed" : StringUtils.cleanPath(file.getOriginalFilename());
+                String key = "courses/" + course.getId() + "/" + UUID.randomUUID() + "-" + originalFilename;
+
+                try {
+                    FileObject savedFile = simpleStorageService.upload(
+                            key,
+                            file.getInputStream(),
+                            file.getSize(),
+                            file.getContentType(),
+                            AccessLevel.ANYONE_IN_ORG,
+                            AccessLevel.MANAGER,
+                            uploadedBy,
+                            originalFilename,
+                            organization
+                    );
+                    simpleStorageService.linkFileToCourse(savedFile.getId(), course.getId());
+                } catch (java.io.IOException exception) {
+                    throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Upload failed", exception);
+                }
+            }
+        }
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(CourseResponse.fromEntity(course));
+    }
+
+    /**
+     * Retrieves all courses associated with the authenticated user's organization.
+     *
+     * @param authentication Security context containing the {@link JwtUserPrinciple}.
+     * @return {@link ResponseEntity} with a list of {@link CourseResponse} objects.
+     */
+    @Operation(summary = "List courses")
     @GetMapping
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> getCourses(Authentication authentication) {
@@ -82,6 +192,14 @@ public class CourseController {
         return ResponseEntity.ok(courses);
     }
 
+    /**
+     * Fetches details for a specific course by ID, ensuring organizational access rights.
+     *
+     * @param courseId       The unique identifier of the course.
+     * @param authentication Security context containing the {@link JwtUserPrinciple}.
+     * @return {@link ResponseEntity} containing the {@link CourseResponse}.
+     */
+    @Operation(summary = "Get course by ID")
     @GetMapping("/{courseId}")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> getCourse(@PathVariable Long courseId, Authentication authentication) {
@@ -90,6 +208,15 @@ public class CourseController {
         return ResponseEntity.ok(CourseResponse.fromEntity(course));
     }
 
+    /**
+     * Partially updates an existing course definition.
+     *
+     * @param courseId       The unique identifier of the course.
+     * @param request        Validated DTO containing fields to update.
+     * @param authentication Security context containing the {@link JwtUserPrinciple}.
+     * @return {@link ResponseEntity} containing the updated {@link CourseResponse}.
+     */
+    @Operation(summary = "Update course")
     @PatchMapping("/{courseId}")
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
     public ResponseEntity<?> updateCourse(
@@ -101,6 +228,14 @@ public class CourseController {
         return ResponseEntity.ok(CourseResponse.fromEntity(course));
     }
 
+    /**
+     * Permanently deletes a course and its associated metadata.
+     *
+     * @param courseId       The unique identifier of the course.
+     * @param authentication Security context containing the {@link JwtUserPrinciple}.
+     * @return {@link ResponseEntity} with HTTP 204 No Content status.
+     */
+    @Operation(summary = "Delete course")
     @DeleteMapping("/{courseId}")
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
     public ResponseEntity<Void> deleteCourse(@PathVariable Long courseId, Authentication authentication) {
@@ -109,6 +244,13 @@ public class CourseController {
         return ResponseEntity.noContent().build();
     }
 
+    /**
+     * Provides a high-level summary of all courses, including completion metrics for the organization.
+     *
+     * @param authentication Security context containing the {@link JwtUserPrinciple}.
+     * @return {@link ResponseEntity} containing the course overview statistics.
+     */
+    @Operation(summary = "Get course overview")
     @GetMapping("/overview")
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
     public ResponseEntity<?> getCourseOverview(Authentication authentication) {
@@ -141,6 +283,14 @@ public class CourseController {
     // Course User Progress
     // -------------------------------------------------------------------------
 
+    /**
+     * Retrieves progress reports for all users currently assigned to a specific course.
+     *
+     * @param courseId       The unique identifier of the course.
+     * @param authentication Security context containing the {@link JwtUserPrinciple}.
+     * @return {@link ResponseEntity} with a list of {@link CourseUserProgressResponse}.
+     */
+    @Operation(summary = "List progress by course")
     @GetMapping("/{courseId}/progress")
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
     public ResponseEntity<?> getProgressByCourse(@PathVariable Long courseId, Authentication authentication) {
@@ -152,6 +302,15 @@ public class CourseController {
         return ResponseEntity.ok(progress);
     }
 
+    /**
+     * Retrieves the progress details of a specific user for a specific course.
+     *
+     * @param courseId       The unique identifier of the course.
+     * @param targetUserId   The unique identifier of the user.
+     * @param authentication Security context containing the {@link JwtUserPrinciple}.
+     * @return {@link ResponseEntity} with the {@link CourseUserProgressResponse}.
+     */
+    @Operation(summary = "Get user progress for course")
     @GetMapping("/{courseId}/progress/{targetUserId}")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> getProgressForUser(
@@ -163,6 +322,15 @@ public class CourseController {
                 courseService.getProgressForUser(courseId, targetUserId, principal.orgId(), principal.userId())));
     }
 
+    /**
+     * Enrolls a user in a course and initializes their progress tracking.
+     *
+     * @param courseId       The unique identifier of the course.
+     * @param targetUserId   The unique identifier of the user to assign.
+     * @param authentication Security context containing the {@link JwtUserPrinciple}.
+     * @return {@link ResponseEntity} with the initialized {@link CourseUserProgressResponse}.
+     */
+    @Operation(summary = "Assign user to course")
     @PostMapping("/{courseId}/progress/{targetUserId}")
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
     public ResponseEntity<?> assignUserToCourse(
@@ -174,18 +342,33 @@ public class CourseController {
                 courseService.assignUserToCourse(courseId, targetUserId, principal.orgId(), principal.userId())));
     }
 
-    @PatchMapping("/{courseId}/progress/{targetUserId}")
+    /**
+     * Updates the completion status and progress metrics for a user's course enrollment.
+     *
+     * @param request        Validated DTO containing progress updates.
+     * @param authentication Security context containing the {@link JwtUserPrinciple}.
+     * @return {@link ResponseEntity} with the updated {@link CourseUserProgressResponse}.
+     */
+    @Operation(summary = "Update course progress", description = "Sets a user's completion status for a course")
+    @PutMapping("/course-progress")
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
     public ResponseEntity<?> updateProgress(
-            @PathVariable Long courseId,
-            @PathVariable Long targetUserId,
-            @RequestBody Boolean isCompleted,
+            @Valid @RequestBody UpdateCourseProgressRequest request,
             Authentication authentication) {
         JwtUserPrinciple principal = (JwtUserPrinciple) authentication.getPrincipal();
         return ResponseEntity.ok(CourseUserProgressResponse.fromEntity(
-                courseService.updateProgress(courseId, targetUserId, isCompleted, principal.orgId(), principal.userId())));
+                courseService.updateProgress(request.courseId(), request.userId(), request.completed(), principal.orgId(), principal.userId())));
     }
 
+    /**
+     * Unenrolls a user from a course, removing their progress record.
+     *
+     * @param courseId       The unique identifier of the course.
+     * @param targetUserId   The unique identifier of the user to remove.
+     * @param authentication Security context containing the {@link JwtUserPrinciple}.
+     * @return {@link ResponseEntity} with HTTP 204 No Content status.
+     */
+    @Operation(summary = "Remove user from course")
     @DeleteMapping("/{courseId}/progress/{targetUserId}")
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
     public ResponseEntity<Void> removeUserFromCourse(
@@ -200,6 +383,14 @@ public class CourseController {
     // Course Responsible Users
     // -------------------------------------------------------------------------
 
+    /**
+     * Retrieves the list of users designated as responsible for a specific course.
+     *
+     * @param courseId       The unique identifier of the course.
+     * @param authentication Security context containing the {@link JwtUserPrinciple}.
+     * @return {@link ResponseEntity} with a list of {@link CourseResponsibleUserResponse}.
+     */
+    @Operation(summary = "List responsible users")
     @GetMapping("/{courseId}/responsible")
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
     public ResponseEntity<?> getResponsibleUsers(@PathVariable Long courseId, Authentication authentication) {
@@ -211,6 +402,15 @@ public class CourseController {
         return ResponseEntity.ok(responsible);
     }
 
+    /**
+     * Designates a user as a responsible party for a specific course.
+     *
+     * @param courseId       The unique identifier of the course.
+     * @param targetUserId   The unique identifier of the user to designate.
+     * @param authentication Security context containing the {@link JwtUserPrinciple}.
+     * @return {@link ResponseEntity} with the created {@link CourseResponsibleUserResponse}.
+     */
+    @Operation(summary = "Assign responsible user")
     @PostMapping("/{courseId}/responsible/{targetUserId}")
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
     public ResponseEntity<?> assignResponsibleUser(
@@ -222,6 +422,15 @@ public class CourseController {
                 courseService.assignResponsibleUser(courseId, targetUserId, principal.orgId(), principal.userId())));
     }
 
+    /**
+     * Removes a user's responsibility status for a specific course.
+     *
+     * @param courseId       The unique identifier of the course.
+     * @param targetUserId   The unique identifier of the user to remove responsibility from.
+     * @param authentication Security context containing the {@link JwtUserPrinciple}.
+     * @return {@link ResponseEntity} with HTTP 204 No Content status.
+     */
+    @Operation(summary = "Remove responsible user")
     @DeleteMapping("/{courseId}/responsible/{targetUserId}")
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
     public ResponseEntity<Void> removeResponsibleUser(
@@ -237,6 +446,18 @@ public class CourseController {
     // Course Files
     // -------------------------------------------------------------------------
 
+    /**
+     * Processes a file upload and associates it with a specific course.
+     * <p>
+     * Generates a unique storage key and applies organizational access controls.
+     *
+     * @param courseId       The unique identifier of the course.
+     * @param file           The multipart file to upload.
+     * @param authentication Security context containing the {@link JwtUserPrinciple}.
+     * @return {@link ResponseEntity} containing the ID of the saved {@link FileObject}.
+     * @throws ResponseStatusException if the file is empty or if storage/database lookups fail.
+     */
+    @Operation(summary = "Upload course file")
     @PostMapping("/{courseId}/files")
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
     public ResponseEntity<?> uploadCourseFile(
@@ -281,6 +502,16 @@ public class CourseController {
         }
     }
 
+    /**
+     * Streams the content of a course-related file for download.
+     *
+     * @param courseId       The unique identifier of the course.
+     * @param fileId         The unique identifier of the file.
+     * @param authentication Security context containing the {@link JwtUserPrinciple}.
+     * @return {@link ResponseEntity} containing the file byte stream and appropriate headers.
+     * @throws ResponseStatusException if the file is missing or the user lacks sufficient permissions.
+     */
+    @Operation(summary = "Download course file")
     @GetMapping("/{courseId}/files/{fileId}")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<byte[]> downloadCourseFile(
@@ -309,6 +540,16 @@ public class CourseController {
         }
     }
 
+    /**
+     * Deletes a specific file associated with a course.
+     *
+     * @param courseId       The unique identifier of the course.
+     * @param fileId         The unique identifier of the file.
+     * @param authentication Security context containing the {@link JwtUserPrinciple}.
+     * @return {@link ResponseEntity} with HTTP 204 No Content status.
+     * @throws ResponseStatusException if the file is missing or the user lacks sufficient permissions.
+     */
+    @Operation(summary = "Delete course file")
     @DeleteMapping("/{courseId}/files/{fileId}")
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
     public ResponseEntity<Void> deleteCourseFile(

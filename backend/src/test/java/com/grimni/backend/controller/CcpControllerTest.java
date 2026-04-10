@@ -45,6 +45,7 @@ import com.grimni.dto.CreateCcpCorrectiveMeasureRequest;
 import com.grimni.dto.CreateCcpRequest;
 import com.grimni.dto.ReplaceCcpAssignmentsRequest;
 import com.grimni.dto.UpdateCcpCorrectiveMeasureRequest;
+import com.grimni.dto.UpdateCcpFullRequest;
 import com.grimni.security.JwtUserPrinciple;
 import com.grimni.security.SecurityConfig;
 import com.grimni.service.CcpService;
@@ -188,6 +189,107 @@ public class CcpControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(33))
                 .andExpect(jsonPath("$.name").value("Varmholding ved servering"));
+        }
+    }
+
+    @Nested
+    @DisplayName("PUT /haccp/critical-control-points")
+    class UpdateCcpFullTests {
+
+        @Test
+        @DisplayName("MANAGER can fully update a CCP — returns 200 with refreshed resource")
+        void updateCcpFull_success() throws Exception {
+            UpdateCcpFullRequest request = new UpdateCcpFullRequest(
+                33L,
+                "Updated name",
+                "Updated how",
+                "Updated equipment",
+                "Updated instructions",
+                "Updated immediate action",
+                new BigDecimal("65.0"),
+                new BigDecimal("85.0"),
+                "C",
+                "Updated description",
+                List.of(1L),
+                List.of(),
+                List.of(2L),
+                List.of(),
+                List.of(new CreateCcpCorrectiveMeasureRequest(90L, "Re-heat to 75C"))
+            );
+
+            when(ccpService.updateCcpFull(any(UpdateCcpFullRequest.class), eq(1L), eq(10L))).thenReturn(
+                new CcpResponse(
+                    33L,
+                    "Updated name",
+                    "Updated how",
+                    "Updated equipment",
+                    "Updated instructions",
+                    "Updated immediate action",
+                    new BigDecimal("65.0"),
+                    new BigDecimal("85.0"),
+                    "C",
+                    "Updated description",
+                    new CcpIntervalResponse(99L, 1764950400L, 1800L),
+                    "Starts 2025-12-05 17:00, repeats every 30 minutes",
+                    List.of(new CcpUserResponse(1L, "Kari Næss Northun")),
+                    List.of(),
+                    List.of(new CcpUserResponse(2L, "Jens Stoltenberg")),
+                    List.of(),
+                    List.of(new CcpCorrectiveMeasureResponse(777L, 90L, "Burger", "Re-heat to 75C"))
+                )
+            );
+
+            mockMvc.perform(put("/haccp/critical-control-points")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request))
+                    .with(authentication(authWithRole("MANAGER")))
+                    .with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(33))
+                .andExpect(jsonPath("$.name").value("Updated name"))
+                .andExpect(jsonPath("$.verifiers[0].userId").value(1))
+                .andExpect(jsonPath("$.performers[0].legalName").value("Jens Stoltenberg"))
+                .andExpect(jsonPath("$.ccpCorrectiveMeasures[0].measureDescription").value("Re-heat to 75C"));
+        }
+
+        @Test
+        @DisplayName("returns HTTP 400 when service rejects threshold ordering")
+        void updateCcpFull_invalidThresholds_returnsBadRequest() throws Exception {
+            UpdateCcpFullRequest request = new UpdateCcpFullRequest(
+                33L, null, null, null, null, null,
+                new BigDecimal("100.0"), new BigDecimal("50.0"),
+                null, null, List.of(), List.of(), List.of(), List.of(), List.of()
+            );
+
+            when(ccpService.updateCcpFull(any(UpdateCcpFullRequest.class), eq(1L), eq(10L)))
+                .thenThrow(new IllegalArgumentException("Critical minimum cannot be greater than critical maximum"));
+
+            mockMvc.perform(put("/haccp/critical-control-points")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request))
+                    .with(authentication(authWithRole("MANAGER")))
+                    .with(csrf()))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string("Critical minimum cannot be greater than critical maximum"));
+        }
+
+        @Test
+        @DisplayName("WORKER cannot fully update a CCP — returns 403")
+        void updateCcpFull_workerForbidden() throws Exception {
+            UpdateCcpFullRequest request = new UpdateCcpFullRequest(
+                33L, "name", "how", "eq", "inst", "imm",
+                new BigDecimal("60.0"), new BigDecimal("90.0"),
+                "C", "desc", List.of(), List.of(), List.of(), List.of(), List.of()
+            );
+
+            mockMvc.perform(put("/haccp/critical-control-points")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request))
+                    .with(authentication(authWithRole("WORKER")))
+                    .with(csrf()))
+                .andExpect(status().isForbidden());
+
+            verify(ccpService, never()).updateCcpFull(any(), any(), any());
         }
     }
 
