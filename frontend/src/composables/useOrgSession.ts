@@ -78,12 +78,18 @@ export function getInitials(name: string): string {
   return parts.map((part) => part[0]?.toUpperCase() ?? '').join('') || '?'
 }
 
-function syncClaimsFromStorage() {
+export function syncOrgSessionFromStorage() {
   claims.value = decodeJwtClaims(getAuthToken())
+
+  if (!claims.value) {
+    organizations.value = []
+    orgErrorMessage.value = ''
+    loadPromise = null
+  }
 }
 
 async function loadOrganizations() {
-  syncClaimsFromStorage()
+  syncOrgSessionFromStorage()
 
   if (!claims.value) {
     organizations.value = []
@@ -135,7 +141,7 @@ export async function switchOrganization(organizationId: number) {
     }
 
     setAuthToken(nextToken)
-    claims.value = decodeJwtClaims(nextToken)
+    syncOrgSessionFromStorage()
     await ensureOrgSessionLoaded(true)
   } catch (error) {
     orgErrorMessage.value = error instanceof Error ? error.message : 'Kunne ikke bytte organisasjon.'
@@ -154,7 +160,7 @@ export function clearOrgSession() {
 }
 
 export function useOrgSession() {
-  syncClaimsFromStorage()
+  syncOrgSessionFromStorage()
 
   const isAuthenticated = computed(() => claims.value !== null)
   const currentOrganization = computed(
@@ -180,6 +186,7 @@ export function useOrgSession() {
     orgErrorMessage,
     ensureOrgSessionLoaded,
     switchOrganization,
+    syncOrgSessionFromStorage,
     clearOrgSession,
   }
 }

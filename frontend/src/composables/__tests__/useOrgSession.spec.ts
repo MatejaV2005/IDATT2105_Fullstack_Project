@@ -14,7 +14,13 @@ vi.mock('@/api/api', () => ({
   },
 }))
 
-import { ensureOrgSessionLoaded, resetOrgSessionForTests, switchOrganization, useOrgSession } from '../useOrgSession'
+import {
+  ensureOrgSessionLoaded,
+  resetOrgSessionForTests,
+  switchOrganization,
+  syncOrgSessionFromStorage,
+  useOrgSession,
+} from '../useOrgSession'
 
 function toBase64Url(payload: object) {
   return btoa(JSON.stringify(payload)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '')
@@ -32,7 +38,7 @@ function createToken(payload: {
 
 describe('useOrgSession', () => {
   beforeEach(() => {
-    window.localStorage.clear()
+    window.sessionStorage.clear()
     getMock.mockReset()
     postMock.mockReset()
     resetOrgSessionForTests()
@@ -47,7 +53,7 @@ describe('useOrgSession', () => {
       email: 'alice@example.com',
     })
 
-    window.localStorage.setItem('auth_token', token)
+    window.sessionStorage.setItem('auth_token', token)
     getMock.mockResolvedValue({
       data: [
         {
@@ -88,7 +94,7 @@ describe('useOrgSession', () => {
       email: 'alice@example.com',
     })
 
-    window.localStorage.setItem('auth_token', startingToken)
+    window.sessionStorage.setItem('auth_token', startingToken)
     postMock.mockResolvedValue({ data: switchedToken })
     getMock.mockResolvedValue({
       data: [
@@ -119,7 +125,7 @@ describe('useOrgSession', () => {
     await switchOrganization(20)
 
     expect(postMock).toHaveBeenCalledWith('/auth/switch-organization', { organizationId: 20 })
-    expect(window.localStorage.getItem('auth_token')).toBe(switchedToken)
+    expect(window.sessionStorage.getItem('auth_token')).toBe(switchedToken)
     expect(session.claims.value?.orgId).toBe(20)
     expect(session.currentOrganization.value?.orgName).toBe('Org B')
     expect(session.currentUserRole.value).toBe('WORKER')
@@ -134,14 +140,33 @@ describe('useOrgSession', () => {
       email: 'alice@example.com',
     })
 
-    window.localStorage.setItem('auth_token', token)
+    window.sessionStorage.setItem('auth_token', token)
     postMock.mockRejectedValue(new Error('Kunne ikke bytte organisasjon.'))
 
     const session = useOrgSession()
 
     await expect(switchOrganization(99)).rejects.toThrow('Kunne ikke bytte organisasjon.')
-    expect(window.localStorage.getItem('auth_token')).toBe(token)
+    expect(window.sessionStorage.getItem('auth_token')).toBe(token)
     expect(session.claims.value?.orgId).toBe(10)
     expect(session.orgErrorMessage.value).toBe('Kunne ikke bytte organisasjon.')
+  })
+
+  it('syncs claims immediately after a token is stored', () => {
+    const token = createToken({
+      sub: '11',
+      orgId: 42,
+      role: 'MANAGER',
+      legalName: 'Bob Builder',
+      email: 'bob@example.com',
+    })
+
+    const session = useOrgSession()
+
+    window.sessionStorage.setItem('auth_token', token)
+    syncOrgSessionFromStorage()
+
+    expect(session.isAuthenticated.value).toBe(true)
+    expect(session.currentUserName.value).toBe('Bob Builder')
+    expect(session.claims.value?.orgId).toBe(42)
   })
 })

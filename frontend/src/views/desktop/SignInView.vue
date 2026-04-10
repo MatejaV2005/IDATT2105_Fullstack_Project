@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import Loading from '@/components/desktop/shared/Loading.vue'
+import { ensureOrgSessionLoaded, syncOrgSessionFromStorage } from '@/composables/useOrgSession'
 import { setAuthToken } from '@/utils/auth'
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
@@ -49,6 +50,8 @@ async function handleSubmit() {
     }
 
     setAuthToken(token)
+    syncOrgSessionFromStorage()
+    await ensureOrgSessionLoaded(true)
 
     email.value = ''
     password.value = ''

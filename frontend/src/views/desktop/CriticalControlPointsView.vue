@@ -245,13 +245,7 @@ async function fetchCcps() {
     const [ccpResult, usersResult, categoriesResult] = await Promise.allSettled([
       api.get<CcpApiResponse[]>('/haccp/critical-control-points/get-all-info'),
       api.get<UserOrgApiResponse[]>('/organizations/users'),
-      (async () => {
-        try {
-          return await api.get<ProductCategoryApiResponse[]>('/product-categories')
-        } catch {
-          return api.get<ProductCategoryApiResponse[]>('/api/product-categories')
-        }
-      })(),
+      api.get<ProductCategoryApiResponse[]>('/product-categories'),
     ])
 
     if (fetchId !== activeFetchId) {

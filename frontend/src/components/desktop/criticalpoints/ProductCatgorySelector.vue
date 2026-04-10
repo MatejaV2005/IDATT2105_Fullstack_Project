@@ -82,14 +82,7 @@ onMounted(async () => {
   }
 
   try {
-    let response
-
-    try {
-      response = await api.get<ProductCategoryApiResponse[]>('/product-categories')
-    } catch {
-      response = await api.get<ProductCategoryApiResponse[]>('/api/product-categories')
-    }
-
+    const response = await api.get<ProductCategoryApiResponse[]>('/product-categories')
     const data = Array.isArray(response.data) ? response.data : []
 
     categories.value = data.map((category) => ({
