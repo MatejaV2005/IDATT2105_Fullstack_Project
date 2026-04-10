@@ -19,11 +19,18 @@ import com.grimni.domain.MappingPoint;
 import com.grimni.domain.OrgUserBridge;
 import com.grimni.domain.Organization;
 import com.grimni.domain.User;
+import com.grimni.domain.enums.DeviationCategory;
 import com.grimni.domain.enums.OrgUserRole;
+import com.grimni.domain.enums.ResultStatus;
+import com.grimni.domain.enums.ReviewStatus;
+import com.grimni.domain.enums.VerificationStatus;
 import com.grimni.dto.CreateOrganizationRequest;
+import com.grimni.dto.OrgAnalysisResponse;
 import com.grimni.dto.UserDirectoryResponse;
 import com.grimni.dto.UpdateOrganizationRequest;
 import com.grimni.dto.UserOrgResponse;
+import com.grimni.repository.CcpRecordRepository;
+import com.grimni.repository.CcpRepository;
 import com.grimni.repository.CcpUserBridgeRepository;
 import com.grimni.repository.CourseRepository;
 import com.grimni.repository.CourseUserProgressRepository;
@@ -31,6 +38,9 @@ import com.grimni.repository.DeviationRepository;
 import com.grimni.repository.MappingPointRepository;
 import com.grimni.repository.OrgUserBridgeRepository;
 import com.grimni.repository.OrganizationRepository;
+import com.grimni.repository.PrerequisiteRoutineRecordRepository;
+import com.grimni.repository.PrerequisiteRoutineRepository;
+import com.grimni.repository.ProductCategoryRepository;
 import com.grimni.repository.RoutineUserBridgeRepository;
 import com.grimni.repository.UserRepository;
 import com.grimni.service.OrganizationService;
@@ -70,6 +80,21 @@ public class OrganizationServiceTest {
 
     @Mock
     private MappingPointRepository mappingPointRepository;
+
+    @Mock
+    private PrerequisiteRoutineRecordRepository prerequisiteRoutineRecordRepository;
+
+    @Mock
+    private CcpRecordRepository ccpRecordRepository;
+
+    @Mock
+    private PrerequisiteRoutineRepository prerequisiteRoutineRepository;
+
+    @Mock
+    private CcpRepository ccpRepository;
+
+    @Mock
+    private ProductCategoryRepository productCategoryRepository;
 
     @InjectMocks
     private OrganizationService organizationService;
@@ -493,6 +518,81 @@ public class OrganizationServiceTest {
 
             assertThrows(IllegalArgumentException.class,
                     () -> organizationService.updateUserRoleInOrg(5L, OrgUserRole.WORKER, 10L, 1L));
+        }
+    }
+
+    @Nested
+    @DisplayName("getOrgAnalysis")
+    class GetOrgAnalysisTests {
+
+        @Test
+        @DisplayName("aggregates counts from repositories into a response")
+        void getOrgAnalysis_success() {
+            long orgId = 10L;
+
+            when(prerequisiteRoutineRecordRepository.countByOrganization_IdAndResultStatus(orgId, ResultStatus.COMPLETED)).thenReturn(184L);
+            when(prerequisiteRoutineRecordRepository.countByOrganization_IdAndResultStatus(orgId, ResultStatus.FAILED)).thenReturn(13L);
+
+            when(ccpRecordRepository.countByOrganization_IdAndVerificationStatus(orgId, VerificationStatus.SKIPPED)).thenReturn(7L);
+            when(ccpRecordRepository.countByOrganization_IdAndVerificationStatus(orgId, VerificationStatus.VERIFIED)).thenReturn(239L);
+            when(ccpRecordRepository.countByOrganization_IdAndVerificationStatus(orgId, VerificationStatus.REJECTED)).thenReturn(19L);
+            when(ccpRecordRepository.countByOrganization_IdAndVerificationStatus(orgId, VerificationStatus.WAITING)).thenReturn(22L);
+
+            when(deviationRepository.countByOrganization_IdAndCategoryAndReviewStatus(orgId, DeviationCategory.IK_MAT, ReviewStatus.OPEN)).thenReturn(6L);
+            when(deviationRepository.countByOrganization_IdAndCategoryAndReviewStatus(orgId, DeviationCategory.IK_MAT, ReviewStatus.CLOSED)).thenReturn(31L);
+            when(deviationRepository.countByOrganization_IdAndCategoryAndReviewStatus(orgId, DeviationCategory.IK_ALKOHOL, ReviewStatus.OPEN)).thenReturn(2L);
+            when(deviationRepository.countByOrganization_IdAndCategoryAndReviewStatus(orgId, DeviationCategory.IK_ALKOHOL, ReviewStatus.CLOSED)).thenReturn(9L);
+            when(deviationRepository.countByOrganization_IdAndCategoryAndReviewStatus(orgId, DeviationCategory.OTHER, ReviewStatus.OPEN)).thenReturn(3L);
+            when(deviationRepository.countByOrganization_IdAndCategoryAndReviewStatus(orgId, DeviationCategory.OTHER, ReviewStatus.CLOSED)).thenReturn(14L);
+
+            OrgUserBridge owner = new OrgUserBridge();
+            owner.setUserRole(OrgUserRole.OWNER);
+            OrgUserBridge manager1 = new OrgUserBridge();
+            manager1.setUserRole(OrgUserRole.MANAGER);
+            OrgUserBridge manager2 = new OrgUserBridge();
+            manager2.setUserRole(OrgUserRole.MANAGER);
+            OrgUserBridge manager3 = new OrgUserBridge();
+            manager3.setUserRole(OrgUserRole.MANAGER);
+            List<OrgUserBridge> members = new java.util.ArrayList<>();
+            members.add(owner);
+            members.add(manager1);
+            members.add(manager2);
+            members.add(manager3);
+            for (int i = 0; i < 14; i++) {
+                OrgUserBridge worker = new OrgUserBridge();
+                worker.setUserRole(OrgUserRole.WORKER);
+                members.add(worker);
+            }
+            when(orgUserBridgeRepository.findByOrganizationId(orgId)).thenReturn(members);
+
+            when(prerequisiteRoutineRepository.countByOrganization_Id(orgId)).thenReturn(22L);
+            when(ccpRepository.countByOrganization_Id(orgId)).thenReturn(11L);
+            when(productCategoryRepository.countByOrganization_Id(orgId)).thenReturn(9L);
+
+            OrgAnalysisResponse result = organizationService.getOrgAnalysis(orgId);
+
+            assertEquals(184L, result.prerequisiteRoutineRecord().completed());
+            assertEquals(13L, result.prerequisiteRoutineRecord().failed());
+
+            assertEquals(7L, result.ccpRecords().skipped());
+            assertEquals(239L, result.ccpRecords().verified());
+            assertEquals(19L, result.ccpRecords().rejected());
+            assertEquals(22L, result.ccpRecords().waiting());
+
+            assertEquals(6L, result.deviations().ikMat().open());
+            assertEquals(31L, result.deviations().ikMat().closed());
+            assertEquals(2L, result.deviations().ikAlkohol().open());
+            assertEquals(9L, result.deviations().ikAlkohol().closed());
+            assertEquals(3L, result.deviations().other().open());
+            assertEquals(14L, result.deviations().other().closed());
+
+            assertEquals(1L, result.users().owners());
+            assertEquals(3L, result.users().managers());
+            assertEquals(14L, result.users().workers());
+
+            assertEquals(22L, result.resources().routines());
+            assertEquals(11L, result.resources().ccps());
+            assertEquals(9L, result.resources().productCategories());
         }
     }
 

@@ -118,6 +118,14 @@ public class OrganizationController {
         return ResponseEntity.ok(organizationService.getAllUsersInOrg(principal.orgId()));
     }
 
+    @Operation(summary = "Get organization analysis data")
+    @GetMapping("/analysis")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> getOrgAnalysis(Authentication authentication) {
+        JwtUserPrinciple principal = (JwtUserPrinciple) authentication.getPrincipal();
+        return ResponseEntity.ok(organizationService.getOrgAnalysis(principal.orgId()));
+    }
+
     @Operation(summary = "Get team overview")
     @GetMapping("/team-overview")
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
