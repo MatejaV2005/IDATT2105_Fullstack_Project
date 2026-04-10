@@ -108,7 +108,7 @@ html {
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   column-gap: 16px;
-  padding: 16px 24px;
+  padding: 12px 24px;
   background: var(--white-greek);
   border-bottom: 1px solid var(--blue-navy-20);
   position: sticky;
@@ -133,6 +133,7 @@ html {
 .top-app-bar__center {
   display: flex;
   justify-content: center;
+  align-items: center;
   min-width: 0;
 }
 
@@ -169,8 +170,9 @@ html {
   background-color: var(--red-cherry-20);
   border: 1px solid var(--red-cherry-40);
   border-radius: 1rem;
-  padding: 0.5rem 1rem;
+  padding: 0.45rem 0.9rem;
   min-width: 0;
+  max-width: min(260px, 100%);
 }
 
 .profile-button:hover {
@@ -178,8 +180,8 @@ html {
 }
 
 .profile-button__avatar {
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   border-radius: 999px;
   display: grid;
   place-items: center;
@@ -194,7 +196,7 @@ html {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font: 600 14px/20px var(--font-body);
+  font: 600 13px/18px var(--font-body);
 }
 
 .top-tabs {
@@ -204,6 +206,7 @@ html {
   gap: 0;
   padding: 0 24px;
   border-bottom: 1px solid var(--blue-navy-20);
+  min-height: 48px;
 }
 
 .top-tabs__link {
@@ -237,7 +240,7 @@ html {
 }
 
 .app-content {
-  padding: 32px 24px 0;
+  padding: 24px 24px 0;
 }
 
 .top-app-bar,
@@ -247,7 +250,7 @@ html {
 }
 
 .app-content--auth {
-  min-height: calc(100vh - 72px);
+  min-height: calc(100vh - 64px);
   display: grid;
   align-items: center;
 }
@@ -1093,11 +1096,7 @@ html {
 
 @media (min-width: 768px) {
   .top-app-bar {
-    padding-inline: 32px;
-  }
-
-  .org-switcher {
-    max-width: min(48vw, 360px);
+    padding: 12px 32px;
   }
 
   .top-tabs {
@@ -1105,7 +1104,7 @@ html {
   }
 
   .app-content {
-    padding: 32px 32px 0;
+    padding: 24px 32px 0;
   }
 
   .page-grid {
@@ -1135,16 +1134,12 @@ html {
 
 @media (max-width: 767px) {
   .top-app-bar {
-    padding: 14px 16px;
+    padding: 12px 16px;
     column-gap: 12px;
   }
 
-  .org-switcher {
-    max-width: min(44vw, 220px);
-  }
-
   .profile-button {
-    padding: 0.5rem 0.75rem;
+    padding: 0.4rem 0.7rem;
   }
 }
 
@@ -1155,11 +1150,6 @@ html {
 
   .logo-button img {
     height: 1.9rem;
-  }
-
-  .org-switcher {
-    max-width: min(38vw, 150px);
-    padding: 8px 10px;
   }
 
   .profile-button {
@@ -1188,7 +1178,7 @@ html {
 
 @media (min-width: 1100px) {
   .top-app-bar {
-    padding-inline: 40px;
+    padding: 12px 40px;
   }
 
   .top-tabs {
@@ -1196,7 +1186,7 @@ html {
   }
 
   .app-content {
-    padding: 40px 40px 0;
+    padding: 24px 40px 0;
   }
 
   .page-layout--logging .metric-grid {

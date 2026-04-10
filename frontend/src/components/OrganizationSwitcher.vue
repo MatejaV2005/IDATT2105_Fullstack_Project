@@ -195,36 +195,38 @@ onBeforeUnmount(() => {
 }
 
 .org-switcher-button--desktop {
-  padding: 1rem 1.25rem;
-  border-radius: 1rem;
-  min-width: 240px;
+  padding: 0.55rem 0.9rem;
+  border-radius: 999px;
+  min-width: 0;
+  max-width: min(34vw, 320px);
   justify-content: center;
 }
 
 .org-switcher-button--mobile {
-  padding: 8px 12px;
+  padding: 0.55rem 0.9rem;
   border-radius: 999px;
-  max-width: min(52vw, 360px);
+  max-width: min(34vw, 320px);
 }
 
 .org-switcher-button__text {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   font-weight: 600;
-  font-size: 14px;
-  line-height: 20px;
+  font-size: 13px;
+  line-height: 18px;
 }
 
 .org-switcher-button__role {
   flex: 0 0 auto;
-  padding: 3px 8px;
+  padding: 2px 7px;
   border-radius: 999px;
   background: var(--blue-light-20);
   color: var(--blue-navy);
   font-weight: 700;
-  font-size: 11px;
-  line-height: 16px;
+  font-size: 10px;
+  line-height: 14px;
   letter-spacing: 0.04em;
 }
 
@@ -334,15 +336,17 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 767px) {
+  .org-switcher-button--desktop,
   .org-switcher-button--mobile {
-    max-width: min(44vw, 220px);
+    max-width: min(42vw, 220px);
   }
 }
 
 @media (max-width: 430px) {
+  .org-switcher-button--desktop,
   .org-switcher-button--mobile {
     max-width: min(38vw, 150px);
-    padding: 8px 10px;
+    padding: 0.5rem 0.7rem;
   }
 
   .org-switcher-button__role {
