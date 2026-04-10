@@ -77,7 +77,7 @@ public class ProductCategoryControllerTest {
                 new ProductCategoryResponse(2L, "Kjott og farseprodukter")
         ));
 
-        mockMvc.perform(get("/api/product-categories")
+        mockMvc.perform(get("/product-categories")
                 .with(authentication(authWithRole("WORKER"))))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$[0].id").value(1))
@@ -91,7 +91,7 @@ public class ProductCategoryControllerTest {
     void getAll_empty() throws Exception {
         when(productCategoryService.getAllByOrg(10L)).thenReturn(List.of());
 
-        mockMvc.perform(get("/api/product-categories")
+        mockMvc.perform(get("/product-categories")
                 .with(authentication(authWithRole("WORKER"))))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$").isArray())
@@ -101,7 +101,7 @@ public class ProductCategoryControllerTest {
     @Test
     @DisplayName("unauthenticated request returns 403")
     void getAll_unauthenticated() throws Exception {
-        mockMvc.perform(get("/api/product-categories"))
+        mockMvc.perform(get("/product-categories"))
             .andExpect(status().isForbidden());
     }
 }

@@ -192,7 +192,7 @@ public class JwtAuthFilterTest {
         }
 
         @Test
-        void validTokenButNullOrgId_returns401() throws Exception {
+        void validTokenButNullOrgId_isAllowed() throws Exception {
             when(jwtUtil.isTokenValid(any())).thenReturn(true);
             when(jwtUtil.extractUserId(any())).thenReturn(1L);
             when(jwtUtil.extractUserRole(any())).thenReturn("MANAGER");
@@ -206,8 +206,8 @@ public class JwtAuthFilterTest {
 
             jwtAuthFilter.doFilter(request, response, chain);
 
-            assertEquals(401, response.getStatus());
-            verify(chain, never()).doFilter(any(), any());
+            assertEquals(200, response.getStatus());
+            verify(chain).doFilter(request, response);
         }
     }
 
