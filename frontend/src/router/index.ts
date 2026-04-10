@@ -1,5 +1,6 @@
 import DesktopLayout from '@/layouts/DesktopLayout.vue'
 import MobileLayout from '@/layouts/MobileLayout.vue'
+import AuthView from '@/views/AuthView.vue'
 import CcpLogsView from '@/views/desktop/CcpLogsView.vue'
 import CreateOrgView from '@/views/desktop/CreateOrgView.vue'
 import CriticalControlPointsView from '@/views/desktop/CriticalControlPointsView.vue'
@@ -11,14 +12,12 @@ import HaccpView from '@/views/desktop/HaccpView.vue'
 import LearningView from '@/views/desktop/LearningView.vue'
 import MappingAndMeasuresView from '@/views/desktop/MappingAndMeasuresView.vue'
 import MeView from '@/views/desktop/MeView.vue'
+import NoOrganizationView from '@/views/desktop/NoOrganizationView.vue'
 import PrerequisitesView from '@/views/desktop/PrerequisitesView.vue'
-import SignInView from '@/views/desktop/SignInView.vue'
-import SignUpView from '@/views/desktop/SignUpView.vue'
 import TasksView from '@/views/desktop/TasksView.vue'
 import TeamView from '@/views/desktop/TeamView.vue'
 import DeviationsView from '@/views/mobile/DeviationsView.vue'
 import LoggingView from '@/views/mobile/LoggingView.vue'
-import LoginView from '@/views/mobile/LoginView.vue'
 import MappingPointsView from '@/views/mobile/MappingPointsView.vue'
 import RoutinesView from '@/views/mobile/RoutinesView.vue'
 import { createRouter, createWebHistory } from 'vue-router'
@@ -26,6 +25,10 @@ import { createRouter, createWebHistory } from 'vue-router'
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
+    {
+      path: '/auth',
+      component: AuthView,
+    },
     {
       path: '/desktop',
       component: DesktopLayout,
@@ -39,6 +42,10 @@ const router = createRouter({
           component: CreateOrgView,
         },
         {
+          path: 'no-org',
+          component: NoOrganizationView,
+        },
+        {
           path: 'bedrift-teamsammensetning',
           component: TeamView,
         },
@@ -48,11 +55,11 @@ const router = createRouter({
         },
         {
           path: 'sign-in',
-          component: SignInView,
+          redirect: '/auth',
         },
         {
           path: 'sign-up',
-          component: SignUpView,
+          redirect: '/auth',
         },
         {
           path: 'users',
@@ -147,13 +154,13 @@ const router = createRouter({
         {
           path: 'login',
           name: 'login',
-          component: LoginView,
+          redirect: '/auth',
         },
       ],
     },
     {
       path: '/',
-      redirect: '/mobile',
+      redirect: '/auth',
     },
   ],
 })

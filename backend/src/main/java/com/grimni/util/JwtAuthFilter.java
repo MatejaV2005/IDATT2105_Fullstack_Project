@@ -17,6 +17,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -72,7 +73,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             String legalName = jwtUtil.extractLegalName(jwtToken);
             Long orgId = jwtUtil.extractUserOrgId(jwtToken);
 
-            if (userId == null || role == null || legalName == null || orgId == null) {
+            if (userId == null || legalName == null) {
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                 logger.error("Missing required claims in JWT token");
                 return;
@@ -86,7 +87,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             );
 
             // Class in spring security that represents an authentication object (in this case user)
-            UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(principle, null, List.of(new SimpleGrantedAuthority(role))/* SimpleGrantedAuth wraps the role string so that it can be subsequently used in SecurityConfig as .hasAuthority() */);
+            List<SimpleGrantedAuthority> authorities =
+                role != null && !role.isBlank()
+                    ? List.of(new SimpleGrantedAuthority(role))
+                    : Collections.emptyList();
+
+            UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(principle, null, authorities/* SimpleGrantedAuth wraps the role string so that it can be subsequently used in SecurityConfig as .hasAuthority() */);
             
             // SecurityContextHolder is a global context storage, storing the authenticated entity for use in the filterchain
             SecurityContextHolder.getContext().setAuthentication(authentication);

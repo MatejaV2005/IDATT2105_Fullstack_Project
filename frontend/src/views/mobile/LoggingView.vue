@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router'
 import PrimaryActionButton from '@/components/PrimaryActionButton.vue'
 import SectionHeading from '@/components/SectionHeading.vue'
 import { useOrgSession } from '@/composables/useOrgSession'
+import { getDefaultDeviationCategory } from '@/data/deviations'
 import type { AssignedCcp, SubmittedCcpRecordResponse } from '@/types/ccps'
 import { clearAuthToken, createAuthHeaders, getAuthToken } from '@/utils/auth'
 
@@ -18,7 +19,7 @@ interface CcpCard extends AssignedCcp {
 }
 
 const router = useRouter()
-const { claims } = useOrgSession()
+const { claims, currentOrganization } = useOrgSession()
 let activeFetchId = 0
 
 const ccps = ref<CcpCard[]>([])
@@ -191,11 +192,11 @@ function openDeviation(card: CcpCard) {
     return
   }
 
-  void router.push({
+      void router.push({
     name: 'avvik',
     query: {
       ccpRecordId: String(card.recordId),
-      category: 'IK_MAT',
+      category: getDefaultDeviationCategory(currentOrganization.value),
       ccpName: card.name,
       measuredValue: card.lastMeasuredValue !== null ? String(card.lastMeasuredValue) : '',
       unit: card.unit ?? '',
@@ -205,7 +206,7 @@ function openDeviation(card: CcpCard) {
 
 async function handlePrimaryAction() {
   if (!hasAuthenticatedSession.value) {
-    await router.push('/mobile/login')
+    await router.push('/auth')
     return
   }
 

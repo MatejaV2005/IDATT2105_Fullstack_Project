@@ -1,6 +1,7 @@
 <script setup lang="ts">
+import api from '@/api/api'
 import Loading from '@/components/desktop/shared/Loading.vue'
-import { delay } from '@/utils'
+import { clearOrgSession } from '@/composables/useOrgSession'
 import { LogOut } from '@lucide/vue'
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
@@ -19,14 +20,9 @@ async function signOut() {
   isSigningOut.value = true
 
   try {
-    // const response = await fetch('/api/users/me/signout', {
-    //   method: 'POST',
-    // })
-    // if (!response.ok) {
-    //   throw new Error(`Failed to sign out (${response.status})`)
-    // }
-    await delay(2000)
-    await router.push('/desktop/sign-in')
+    await api.post('/auth/logout')
+    clearOrgSession()
+    await router.push('/auth')
   } catch (err) {
     if (err instanceof Error) {
       console.error(err.message)

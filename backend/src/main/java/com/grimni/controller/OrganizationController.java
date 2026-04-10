@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.grimni.dto.AddUserToOrgRequest;
 import com.grimni.dto.RemoveUserFromOrgRequest;
+import com.grimni.dto.UpdateUserOrgRoleRequest;
 import com.grimni.dto.CollaboratorResponse;
 import com.grimni.dto.CreateOrganizationRequest;
 import com.grimni.dto.OrganizationResponse;
@@ -150,6 +151,17 @@ public class OrganizationController {
         JwtUserPrinciple principal = (JwtUserPrinciple) authentication.getPrincipal();
         return ResponseEntity.status(HttpStatus.CREATED).body(
                 organizationService.addUserToOrg(request.userId(), request.role(), principal.orgId(), principal.userId()));
+    }
+
+    @Operation(summary = "Update user role in organization")
+    @PatchMapping("/users")
+    @PreAuthorize("hasAuthority('OWNER')")
+    public ResponseEntity<?> updateUserRoleInOrg(
+            @Valid @RequestBody UpdateUserOrgRoleRequest request,
+            Authentication authentication) {
+        JwtUserPrinciple principal = (JwtUserPrinciple) authentication.getPrincipal();
+        return ResponseEntity.ok(
+                organizationService.updateUserRoleInOrg(request.userId(), request.role(), principal.orgId(), principal.userId()));
     }
 
     /**

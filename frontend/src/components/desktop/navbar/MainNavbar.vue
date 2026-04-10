@@ -4,13 +4,16 @@ import { computed, onMounted } from 'vue'
 
 import OrganizationSwitcher from '@/components/OrganizationSwitcher.vue'
 import { useOrgSession } from '@/composables/useOrgSession'
+import { getPostAuthRoute } from '@/utils/auth-routing'
 
 import ProfileNavbarButton from './ProfileNavbarButton.vue'
 
-const { currentUserInitials, currentUserName, ensureOrgSessionLoaded, isAuthenticated } = useOrgSession()
+const { claims, currentUserInitials, currentUserName, ensureOrgSessionLoaded, isAuthenticated, organizations } =
+  useOrgSession()
 
-const profileRoute = computed(() => (isAuthenticated.value ? '/desktop/users/me' : '/desktop/sign-in'))
-const logoRoute = computed(() => (isAuthenticated.value ? '/desktop/users/me' : '/desktop/sign-in'))
+const authenticatedRoute = computed(() => getPostAuthRoute(claims.value, organizations.value))
+const profileRoute = computed(() => (isAuthenticated.value ? authenticatedRoute.value : '/auth'))
+const logoRoute = computed(() => (isAuthenticated.value ? authenticatedRoute.value : '/auth'))
 const profileLabel = computed(() => currentUserName.value || 'Logg inn')
 
 onMounted(() => {

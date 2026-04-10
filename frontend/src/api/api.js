@@ -7,11 +7,7 @@ const api = axios.create({
 });
 
 function getLoginRoute() {
-    if (typeof window === 'undefined') {
-        return '/mobile/login';
-    }
-
-    return window.location.pathname.startsWith('/desktop') ? '/desktop/sign-in' : '/mobile/login';
+    return '/auth';
 }
 
 api.interceptors.request.use((config) => {
@@ -28,7 +24,14 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
     response => response,
     async error => {
-        if (error.response?.status === 401 && !error.config._retry) {
+        const requestUrl = typeof error.config?.url === 'string' ? error.config.url : '';
+        const isAuthRequest =
+            requestUrl.includes('/auth/login') ||
+            requestUrl.includes('/auth/register') ||
+            requestUrl.includes('/auth/logout') ||
+            requestUrl.includes('/auth/refresh');
+
+        if (error.response?.status === 401 && !error.config?._retry && !isAuthRequest) {
             error.config._retry = true;
             try {
                 const refreshResponse = await api.post('/auth/refresh');

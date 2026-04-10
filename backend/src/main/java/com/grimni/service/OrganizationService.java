@@ -337,6 +337,21 @@ public class OrganizationService {
         return addUserToOrg(userId, role, orgId);
     }
 
+    public UserOrgResponse updateUserRoleInOrg(Long userId, OrgUserRole role, Long orgId, Long requesterId) {
+        assertRequesterIsOwner(orgId, requesterId);
+
+        OrgUserBridge bridge = orgUserBridgeRepository.findByOrganizationIdAndUserId(orgId, userId)
+                .orElseThrow(() -> new EntityNotFoundException("User is not a member of this organization"));
+
+        if (bridge.getUserRole() == OrgUserRole.OWNER && role != OrgUserRole.OWNER) {
+            throw new IllegalArgumentException("Cannot change role for an owner");
+        }
+
+        bridge.setUserRole(role);
+        orgUserBridgeRepository.save(bridge);
+        return UserOrgResponse.fromEntity(bridge);
+    }
+
     /**
      * Revokes a user's membership from an organization.
      *
