@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { mockUsers } from '@/data/mockUsers'
+import api from '@/api/api'
 import type { BasicUserWithAccessLevel } from '@/interfaces/util-interfaces'
-import { delay } from '@/utils'
 import { Plus, X } from '@lucide/vue'
 import { computed, onMounted, ref, watch } from 'vue'
 import DesktopButton from './DesktopButton.vue'
@@ -13,6 +12,7 @@ const props = defineProps<{
   setUsers: (users: BasicUserWithAccessLevel[]) => void
   initialUserIds?: number[]
   initialUsers?: BasicUserWithAccessLevel[]
+  users?: BasicUserWithAccessLevel[]
 }>()
 
 const allUsers = ref<BasicUserWithAccessLevel[]>([])
@@ -37,6 +37,21 @@ const canAddSelectedUser = computed(() => {
 
   return availableUsers.value.some((user) => user.id === selectedUserId.value)
 })
+
+watch(
+  () => props.users,
+  (users) => {
+    if (users === undefined) {
+      return
+    }
+
+    allUsers.value = users.map((user) => ({ ...user }))
+    isLoading.value = false
+    errorMessage.value = ''
+    syncInitialUsers()
+  },
+  { immediate: true, deep: true },
+)
 
 watch(
   selectedUsers,
@@ -97,16 +112,16 @@ watch(
 )
 
 onMounted(async () => {
+  if (props.users !== undefined) {
+    return
+  }
+
   try {
-    // const response = await fetch('/api/organizations/users')
-    // if (!response.ok) {
-    //   throw new Error(`Failed to fetch users (${response.status})`)
-    // }
-    // const data = await response.json()
-    await delay(400)
-    allUsers.value = mockUsers
+    const response = await api.get<BasicUserWithAccessLevel[]>('/organizations/users')
+    allUsers.value = Array.isArray(response.data)
+      ? response.data.map((user) => ({ ...user }))
+      : []
     syncInitialUsers()
-    isLoading.value = false
     errorMessage.value = ''
   } catch (err) {
     if (err instanceof Error) {
@@ -115,6 +130,8 @@ onMounted(async () => {
       console.error('Unknown error occurred')
     }
     errorMessage.value = 'Klarte ikke å hente brukere.'
+  } finally {
+    isLoading.value = false
   }
 })
 
