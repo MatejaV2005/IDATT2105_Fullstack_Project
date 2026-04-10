@@ -12,6 +12,7 @@ import UserBadge from './UserBadge.vue'
 const props = defineProps<{
   setUsers: (users: BasicUserWithAccessLevel[]) => void
   initialUserIds?: number[]
+  initialUsers?: BasicUserWithAccessLevel[]
 }>()
 
 const allUsers = ref<BasicUserWithAccessLevel[]>([])
@@ -47,6 +48,7 @@ watch(
 
 function syncInitialUsers() {
   const initialIds = props.initialUserIds || []
+  const initialUsersById = new Map((props.initialUsers || []).map((user) => [user.id, user]))
   const sortedInitialIds = [...initialIds].sort((a, b) => a - b)
   const sortedSelectedIds = selectedUsers.value.map((user) => user.id).sort((a, b) => a - b)
 
@@ -58,11 +60,36 @@ function syncInitialUsers() {
     return
   }
 
-  selectedUsers.value = allUsers.value.filter((user) => initialIds.includes(user.id))
+  selectedUsers.value = initialIds.map((id) => {
+    const explicitInitialUser = initialUsersById.get(id)
+    if (explicitInitialUser) {
+      return explicitInitialUser
+    }
+
+    const existingUser = allUsers.value.find((user) => user.id === id)
+    if (existingUser) {
+      return existingUser
+    }
+
+    return {
+      id,
+      legalName: `Bruker ${id}`,
+      email: '',
+      accessLevel: 'WORKER',
+    }
+  })
 }
 
 watch(
   () => props.initialUserIds,
+  () => {
+    syncInitialUsers()
+  },
+  { deep: true },
+)
+
+watch(
+  () => props.initialUsers,
   () => {
     syncInitialUsers()
   },
