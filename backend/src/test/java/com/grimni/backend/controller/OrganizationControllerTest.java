@@ -81,12 +81,7 @@ public class OrganizationControllerTest {
                 principal, null, List.of(new SimpleGrantedAuthority(role)));
     }
 
-    private static UsernamePasswordAuthenticationToken authWithRole(String role, Long userId, Long orgId) {
-        JwtUserPrinciple principal = new JwtUserPrinciple(userId, orgId, "alice", role);
-        return new UsernamePasswordAuthenticationToken(
-                principal, null, List.of(new SimpleGrantedAuthority(role)));
-    }
-
+    
     private Organization createOrg(Long id, String name) {
         Organization org = new Organization();
         ReflectionTestUtils.setField(org, "id", id);
@@ -499,6 +494,40 @@ public class OrganizationControllerTest {
                     .andExpect(status().isForbidden());
 
             verify(organizationService, never()).addUserToOrg(any(), any(), anyLong());
+        }
+
+        @Test
+        @DisplayName("returns HTTP 404 when target user does not exist")
+        void addUserToOrg_userNotFound_returns404() throws Exception {
+            AddUserToOrgRequest request = new AddUserToOrgRequest(5L, OrgUserRole.WORKER);
+
+            when(organizationService.addUserToOrg(eq(5L), eq(OrgUserRole.WORKER), eq(10L)))
+                    .thenThrow(new EntityNotFoundException("User not found"));
+
+            mockMvc.perform(post("/organizations/users")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request))
+                            .with(authentication(authWithRole("OWNER")))
+                            .with(csrf()))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.error").value("User not found"));
+        }
+
+        @Test
+        @DisplayName("returns HTTP 400 when user already belongs to the organization")
+        void addUserToOrg_duplicate_returns400() throws Exception {
+            AddUserToOrgRequest request = new AddUserToOrgRequest(5L, OrgUserRole.WORKER);
+
+            when(organizationService.addUserToOrg(eq(5L), eq(OrgUserRole.WORKER), eq(10L)))
+                    .thenThrow(new IllegalArgumentException("User is already in the organization"));
+
+            mockMvc.perform(post("/organizations/users")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request))
+                            .with(authentication(authWithRole("OWNER")))
+                            .with(csrf()))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.error").value("User is already in the organization"));
         }
     }
 }

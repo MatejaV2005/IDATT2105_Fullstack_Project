@@ -18,6 +18,8 @@ import com.grimni.domain.Course;
 import com.grimni.domain.CourseLink;
 import com.grimni.domain.CourseResponsibleUser;
 import com.grimni.domain.CourseUserProgress;
+import com.grimni.domain.FileCourseBridge;
+import com.grimni.domain.FileObject;
 import com.grimni.domain.OrgUserBridge;
 import com.grimni.domain.Organization;
 import com.grimni.domain.User;
@@ -28,6 +30,7 @@ import com.grimni.repository.CourseLinkRepository;
 import com.grimni.repository.CourseRepository;
 import com.grimni.repository.CourseResponsibleUserRepository;
 import com.grimni.repository.CourseUserProgressRepository;
+import com.grimni.repository.FileCourseBridgeRepository;
 import com.grimni.repository.OrgUserBridgeRepository;
 import com.grimni.repository.OrganizationRepository;
 import com.grimni.repository.UserRepository;
@@ -47,8 +50,9 @@ public class CourseServiceTest {
     @Mock private OrgUserBridgeRepository orgUserBridgeRepository;
     @Mock private CourseUserProgressRepository courseUserProgressRepository;
     @Mock private CourseResponsibleUserRepository courseResponsibleUserRepository;
-    @Mock private UserRepository userRepository;
     @Mock private CourseLinkRepository courseLinkRepository;
+    @Mock private FileCourseBridgeRepository fileCourseBridgeRepository;
+    @Mock private UserRepository userRepository;
 
     @InjectMocks
     private CourseService courseService;
@@ -743,6 +747,22 @@ public class CourseServiceTest {
             when(courseUserProgressRepository.findByCourseIdIn(List.of(100L, 200L)))
                     .thenReturn(List.of(p1, p2));
 
+            CourseLink link = new CourseLink();
+            ReflectionTestUtils.setField(link, "id", 501L);
+            link.setCourse(testCourse);
+            link.setLink("https://example.com/safety");
+            when(courseLinkRepository.findByCourseId(100L)).thenReturn(List.of(link));
+            when(courseLinkRepository.findByCourseId(200L)).thenReturn(List.of());
+
+            FileObject fileObject = new FileObject();
+            fileObject.setId(601L);
+            fileObject.setFileName("safety.pdf");
+            FileCourseBridge fileBridge = new FileCourseBridge();
+            fileBridge.setCourse(testCourse);
+            fileBridge.setFile(fileObject);
+            when(fileCourseBridgeRepository.findByCourseId(100L)).thenReturn(List.of(fileBridge));
+            when(fileCourseBridgeRepository.findByCourseId(200L)).thenReturn(List.of());
+
             CourseOverviewResponse result = courseService.getCourseOverview(10L, 1L);
 
             // allCourses
@@ -752,12 +772,18 @@ public class CourseServiceTest {
             assertEquals(100L, first.id());
             assertEquals("Safety Course", first.title());
             assertEquals("Learn safety", first.courseDescription());
-            assertEquals(List.of("alice"), first.responsible());
+            assertEquals(1, first.responsibleUsers().size());
+            assertEquals("alice", first.responsibleUsers().get(0).legalName());
+            assertEquals(2, first.resources().size());
+            assertEquals("link", first.resources().get(0).type());
+            assertEquals("https://example.com/safety", first.resources().get(0).name());
+            assertEquals("file", first.resources().get(1).type());
+            assertEquals("safety.pdf", first.resources().get(1).name());
 
             CourseOverviewResponse.CourseDetailResponse second = result.allCourses().get(1);
             assertEquals(200L, second.id());
             assertEquals("Drink Course", second.title());
-            assertEquals(List.of("bob"), second.responsible());
+            assertEquals("bob", second.responsibleUsers().get(0).legalName());
 
             // userProgress
             assertEquals(1, result.userProgress().size());
@@ -800,6 +826,65 @@ public class CourseServiceTest {
                     () -> courseService.getCourseOverview(10L, 99L));
 
             verify(courseRepository, never()).findByOrganizationId(any());
+        }
+    }
+
+    @Nested
+    @DisplayName("addCourseLink")
+    class AddCourseLinkTests {
+
+        @Test
+        @DisplayName("creates and returns course link")
+        void addCourseLink_success() {
+            stubOrgMembership(10L, 1L);
+            when(courseRepository.findById(100L)).thenReturn(Optional.of(testCourse));
+            when(courseLinkRepository.save(any(CourseLink.class))).thenAnswer(inv -> {
+                CourseLink saved = inv.getArgument(0);
+                ReflectionTestUtils.setField(saved, "id", 700L);
+                return saved;
+            });
+
+            CourseLink result = courseService.addCourseLink(100L, "https://example.com/course", 10L, 1L);
+
+            assertEquals(700L, result.getId());
+            assertEquals("https://example.com/course", result.getLink());
+            assertEquals(testCourse, result.getCourse());
+        }
+    }
+
+    @Nested
+    @DisplayName("removeCourseLink")
+    class RemoveCourseLinkTests {
+
+        @Test
+        @DisplayName("removes existing course link")
+        void removeCourseLink_success() {
+            stubOrgMembership(10L, 1L);
+            when(courseRepository.findById(100L)).thenReturn(Optional.of(testCourse));
+
+            CourseLink link = new CourseLink();
+            ReflectionTestUtils.setField(link, "id", 700L);
+            link.setCourse(testCourse);
+            link.setLink("https://example.com/course");
+            when(courseLinkRepository.findByIdAndCourseId(700L, 100L)).thenReturn(Optional.of(link));
+
+            courseService.removeCourseLink(100L, 700L, 10L, 1L);
+
+            verify(courseLinkRepository).delete(link);
+        }
+
+        @Test
+        @DisplayName("throws when course link is missing")
+        void removeCourseLink_notFound_throws() {
+            stubOrgMembership(10L, 1L);
+            when(courseRepository.findById(100L)).thenReturn(Optional.of(testCourse));
+            when(courseLinkRepository.findByIdAndCourseId(700L, 100L)).thenReturn(Optional.empty());
+
+            EntityNotFoundException ex = assertThrows(EntityNotFoundException.class,
+                    () -> courseService.removeCourseLink(100L, 700L, 10L, 1L));
+
+            assertEquals("Course link not found", ex.getMessage());
+            verify(courseLinkRepository, never()).delete(any(CourseLink.class));
         }
     }
 }

@@ -20,6 +20,7 @@ import com.grimni.repository.CourseLinkRepository;
 import com.grimni.repository.CourseRepository;
 import com.grimni.repository.CourseResponsibleUserRepository;
 import com.grimni.repository.CourseUserProgressRepository;
+import com.grimni.repository.FileCourseBridgeRepository;
 import com.grimni.repository.OrgUserBridgeRepository;
 import com.grimni.repository.OrganizationRepository;
 import com.grimni.repository.UserRepository;
@@ -36,6 +37,7 @@ import jakarta.persistence.EntityNotFoundException;
  * <li>Course administration (CRUD operations).</li>
  * <li>User enrollment and completion tracking.</li>
  * <li>Responsibility mapping for verifiers and administrative oversight.</li>
+ * <li>Resource management (Linking external URLs and internal files to courses).</li>
  * <li>Comprehensive reporting through organizational course overviews.</li>
  * </ul>
  * All operations are governed by organizational multi-tenancy rules to ensure data isolation.
@@ -50,6 +52,7 @@ public class CourseService {
     private final OrgUserBridgeRepository orgUserBridgeRepository;
     private final CourseUserProgressRepository courseUserProgressRepository;
     private final CourseResponsibleUserRepository courseResponsibleUserRepository;
+    private final FileCourseBridgeRepository fileCourseBridgeRepository;
     private final UserRepository userRepository;
     private final CourseLinkRepository courseLinkRepository;
 
@@ -58,15 +61,17 @@ public class CourseService {
                          OrgUserBridgeRepository orgUserBridgeRepository,
                          CourseUserProgressRepository courseUserProgressRepository,
                          CourseResponsibleUserRepository courseResponsibleUserRepository,
-                         UserRepository userRepository,
-                         CourseLinkRepository courseLinkRepository) {
+                         CourseLinkRepository courseLinkRepository,
+                         FileCourseBridgeRepository fileCourseBridgeRepository,
+                         UserRepository userRepository) {
         this.courseRepository = courseRepository;
         this.organizationRepository = organizationRepository;
         this.orgUserBridgeRepository = orgUserBridgeRepository;
         this.courseUserProgressRepository = courseUserProgressRepository;
         this.courseResponsibleUserRepository = courseResponsibleUserRepository;
-        this.userRepository = userRepository;
         this.courseLinkRepository = courseLinkRepository;
+        this.fileCourseBridgeRepository = fileCourseBridgeRepository;
+        this.userRepository = userRepository;
     }
 
     /**
@@ -469,7 +474,58 @@ public class CourseService {
     }
 
     /**
+     * Adds an external URL reference to a course.
+     *
+     * @param courseId the ID of the course.
+     * @param link     the URL string to add.
+     * @param orgId    the organization ID scope.
+     * @param userId   the ID of the user performing the action.
+     * @return the persisted {@link CourseLink} entity.
+     */
+    public CourseLink addCourseLink(Long courseId, String link, Long orgId, Long userId) {
+        logger.info("Adding link to course {} in organization {} by user {}", courseId, orgId, userId);
+
+        validateUserBelongsToOrg(orgId, userId);
+        Course course = findCourseAndValidateOrg(courseId, orgId);
+
+        CourseLink courseLink = new CourseLink();
+        courseLink.setCourse(course);
+        courseLink.setLink(link);
+        courseLink = courseLinkRepository.save(courseLink);
+
+        logger.info("Added link {} to course {} in organization {}", courseLink.getId(), courseId, orgId);
+        return courseLink;
+    }
+
+    /**
+     * Removes an external URL reference from a course.
+     *
+     * @param courseId the ID of the course.
+     * @param linkId   the unique ID of the link to remove.
+     * @param orgId    the organization ID scope.
+     * @param userId   the ID of the user performing the action.
+     */
+    public void removeCourseLink(Long courseId, Long linkId, Long orgId, Long userId) {
+        logger.info("Removing link {} from course {} in organization {}", linkId, courseId, orgId);
+
+        validateUserBelongsToOrg(orgId, userId);
+        findCourseAndValidateOrg(courseId, orgId);
+
+        CourseLink courseLink = courseLinkRepository.findByIdAndCourseId(linkId, courseId)
+                .orElseThrow(() -> {
+                    logger.warn("Course link {} not found for course {}", linkId, courseId);
+                    return new EntityNotFoundException("Course link not found");
+                });
+
+        courseLinkRepository.delete(courseLink);
+        logger.info("Removed link {} from course {} in organization {}", linkId, courseId, orgId);
+    }
+
+    /**
      * Compiles a comprehensive overview of all courses and user progress for an entire organization.
+     * <p>
+     * Aggregates course metadata, responsible users, associated resources (links and files), 
+     * and completion statuses for all members.
      *
      * @param orgId  the organization ID.
      * @param userId the ID of the user requesting the overview.
@@ -482,19 +538,41 @@ public class CourseService {
 
         List<Course> courses = courseRepository.findByOrganizationId(orgId);
 
-        List<CourseOverviewResponse.CourseDetailResponse> allCourses = courses.stream()
-                .map(course -> {
-                    List<String> responsible = courseResponsibleUserRepository.findByCourseId(course.getId())
-                            .stream()
-                            .map(r -> r.getUser().getLegalName())
-                            .toList();
-                    return new CourseOverviewResponse.CourseDetailResponse(
-                            course.getId(),
-                            course.getTitle(),
-                            course.getCourseDescription(),
-                            responsible
-                    );
-                }).toList();
+    List<CourseOverviewResponse.CourseDetailResponse> allCourses = courses.stream()
+            .map(course -> {
+                List<CourseOverviewResponse.ResponsibleUserResponse> responsibleUsers = courseResponsibleUserRepository.findByCourseId(course.getId())
+                        .stream()
+                        .map(r -> new CourseOverviewResponse.ResponsibleUserResponse(
+                                r.getUser().getId(),
+                                r.getUser().getLegalName()
+                        ))
+                        .toList();
+                List<CourseOverviewResponse.CourseResourceResponse> resources = courseLinkRepository.findByCourseId(course.getId())
+                        .stream()
+                        .map(link -> new CourseOverviewResponse.CourseResourceResponse(
+                                link.getId(),
+                                "link",
+                                link.getLink()
+                        ))
+                        .collect(java.util.stream.Collectors.toCollection(java.util.ArrayList::new));
+
+                resources.addAll(fileCourseBridgeRepository.findByCourseId(course.getId())
+                        .stream()
+                        .map(fileBridge -> new CourseOverviewResponse.CourseResourceResponse(
+                                fileBridge.getFile().getId(),
+                                "file",
+                                fileBridge.getFile().getFileName()
+                        ))
+                        .toList());
+
+                return new CourseOverviewResponse.CourseDetailResponse(
+                        course.getId(),
+                        course.getTitle(),
+                        course.getCourseDescription(),
+                        responsibleUsers,
+                        resources
+                );
+            }).toList();
 
         List<CourseUserProgress> allProgress = courseUserProgressRepository.findByCourseIdIn(
                 courses.stream().map(Course::getId).toList()
@@ -521,5 +599,4 @@ public class CourseService {
         logger.info("Course overview assembled: {} courses, {} users", allCourses.size(), userProgress.size());
         return new CourseOverviewResponse(allCourses, userProgress);
     }
-
 }

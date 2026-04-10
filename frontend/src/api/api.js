@@ -6,6 +6,14 @@ const api = axios.create({
     withCredentials: true
 });
 
+function getLoginRoute() {
+    if (typeof window === 'undefined') {
+        return '/mobile/login';
+    }
+
+    return window.location.pathname.startsWith('/desktop') ? '/desktop/sign-in' : '/mobile/login';
+}
+
 api.interceptors.request.use((config) => {
     const token = getAuthToken();
 
@@ -35,7 +43,7 @@ api.interceptors.response.use(
                 return api(error.config);
             } catch (refreshError) {
                 clearAuthToken();
-                window.location.href = '/mobile/login';
+                window.location.href = getLoginRoute();
                 return Promise.reject(refreshError);
             }
         }

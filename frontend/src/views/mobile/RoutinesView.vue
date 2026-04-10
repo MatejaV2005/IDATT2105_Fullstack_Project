@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 import AppIcon from '@/components/AppIcon.vue'
 import PrimaryActionButton from '@/components/PrimaryActionButton.vue'
 import SectionHeading from '@/components/SectionHeading.vue'
+import { useOrgSession } from '@/composables/useOrgSession'
 import { routineItems } from '@/data/mockHaccp'
 import type { AssignedRoutine } from '@/types/routines'
 import { clearAuthToken, createAuthHeaders, getAuthToken } from '@/utils/auth'
@@ -25,6 +26,8 @@ interface RoutineCard {
 }
 
 const router = useRouter()
+const { claims } = useOrgSession()
+let activeFetchId = 0
 
 const DEFAULT_CORRECTIVE_ACTION =
   'Kontakt ansvarlig leder og noter hvorfor oppgaven ikke kunne fullføres.'
@@ -167,11 +170,14 @@ async function readErrorMessage(response: Response, fallback: string) {
 }
 
 async function fetchRoutines() {
+  const fetchId = ++activeFetchId
   hasAuthenticatedSession.value = Boolean(getAuthToken())
 
   if (!hasAuthenticatedSession.value) {
-    showMockRoutines('Viser eksempelrutiner. Logg inn for å se og sende inn tildelte rutiner.')
-    loading.value = false
+    if (fetchId === activeFetchId) {
+      showMockRoutines('Viser eksempelrutiner. Logg inn for å se og sende inn tildelte rutiner.')
+      loading.value = false
+    }
     return
   }
 
@@ -188,7 +194,9 @@ async function fetchRoutines() {
     if (response.status === 401 || response.status === 403) {
       clearAuthToken()
       hasAuthenticatedSession.value = false
-      showMockRoutines('Innloggingen er utløpt. Logg inn igjen for å hente tildelte rutiner.')
+      if (fetchId === activeFetchId) {
+        showMockRoutines('Innloggingen er utløpt. Logg inn igjen for å hente tildelte rutiner.')
+      }
       return
     }
 
@@ -196,16 +204,25 @@ async function fetchRoutines() {
       throw new Error(await readErrorMessage(response, 'Kunne ikke hente tildelte rutiner.'))
     }
 
+    if (fetchId !== activeFetchId) {
+      return
+    }
+
     routines.value = ((await response.json()) as AssignedRoutine[]).map(mapAssignedRoutine)
     showingAssignedRoutines.value = true
+    openInfoId.value = null
     infoMessage.value =
       routines.value.length === 0 ? 'Du har ingen rutiner tildelt akkurat nå.' : null
   } catch (error) {
-    showMockRoutines('Kunne ikke laste tildelte rutiner nå. Viser eksempelrutiner foreløpig.')
-    errorMessage.value =
-      error instanceof Error ? error.message : 'Kunne ikke laste tildelte rutiner.'
+    if (fetchId === activeFetchId) {
+      showMockRoutines('Kunne ikke laste tildelte rutiner nå. Viser eksempelrutiner foreløpig.')
+      errorMessage.value =
+        error instanceof Error ? error.message : 'Kunne ikke laste tildelte rutiner.'
+    }
   } finally {
-    loading.value = false
+    if (fetchId === activeFetchId) {
+      loading.value = false
+    }
   }
 }
 
@@ -286,9 +303,9 @@ async function handlePrimaryAction() {
   }
 }
 
-onMounted(() => {
+watch(() => claims.value?.orgId ?? null, () => {
   void fetchRoutines()
-})
+}, { immediate: true })
 </script>
 
 <template>
@@ -424,15 +441,15 @@ onMounted(() => {
     </div>
 
     <div v-if="!loading">
+      <p class="caption-note caption-note--before-action">
+        {{ helperText }}
+      </p>
       <PrimaryActionButton
         :disabled="primaryActionDisabled"
         :label="primaryActionLabel"
         type="button"
         @click="handlePrimaryAction"
       />
-      <p class="caption-note">
-        {{ helperText }}
-      </p>
     </div>
   </section>
 </template>

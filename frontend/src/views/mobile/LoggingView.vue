@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 import PrimaryActionButton from '@/components/PrimaryActionButton.vue'
 import SectionHeading from '@/components/SectionHeading.vue'
+import { useOrgSession } from '@/composables/useOrgSession'
 import type { AssignedCcp, SubmittedCcpRecordResponse } from '@/types/ccps'
 import { clearAuthToken, createAuthHeaders, getAuthToken } from '@/utils/auth'
 
@@ -17,6 +18,8 @@ interface CcpCard extends AssignedCcp {
 }
 
 const router = useRouter()
+const { claims } = useOrgSession()
+let activeFetchId = 0
 
 const ccps = ref<CcpCard[]>([])
 const loading = ref(true)
@@ -112,14 +115,19 @@ async function readErrorMessage(response: Response, fallback: string) {
 }
 
 async function fetchCcps() {
+  const fetchId = ++activeFetchId
   hasAuthenticatedSession.value = Boolean(getAuthToken())
-  errorMessage.value = null
-  infoMessage.value = null
+  if (fetchId === activeFetchId) {
+    errorMessage.value = null
+    infoMessage.value = null
+  }
 
   if (!hasAuthenticatedSession.value) {
-    ccps.value = []
-    loading.value = false
-    infoMessage.value = 'Logg inn for å se tildelte CCP-målinger.'
+    if (fetchId === activeFetchId) {
+      ccps.value = []
+      loading.value = false
+      infoMessage.value = 'Logg inn for å se tildelte CCP-målinger.'
+    }
     return
   }
 
@@ -134,8 +142,10 @@ async function fetchCcps() {
     if (response.status === 401 || response.status === 403) {
       clearAuthToken()
       hasAuthenticatedSession.value = false
-      ccps.value = []
-      infoMessage.value = 'Innloggingen er utløpt. Logg inn igjen for å hente tildelte CCP-er.'
+      if (fetchId === activeFetchId) {
+        ccps.value = []
+        infoMessage.value = 'Innloggingen er utløpt. Logg inn igjen for å hente tildelte CCP-er.'
+      }
       return
     }
 
@@ -143,13 +153,21 @@ async function fetchCcps() {
       throw new Error(await readErrorMessage(response, 'Kunne ikke hente tildelte CCP-er.'))
     }
 
+    if (fetchId !== activeFetchId) {
+      return
+    }
+
     ccps.value = ((await response.json()) as AssignedCcp[]).map((ccp) => mapAssignedCcp(ccp))
     infoMessage.value = ccps.value.length === 0 ? 'Du har ingen CCP-kontroller tildelt akkurat nå.' : null
   } catch (error) {
-    errorMessage.value = error instanceof Error ? error.message : 'Kunne ikke hente tildelte CCP-er.'
-    ccps.value = []
+    if (fetchId === activeFetchId) {
+      errorMessage.value = error instanceof Error ? error.message : 'Kunne ikke hente tildelte CCP-er.'
+      ccps.value = []
+    }
   } finally {
-    loading.value = false
+    if (fetchId === activeFetchId) {
+      loading.value = false
+    }
   }
 }
 
@@ -254,9 +272,9 @@ async function handlePrimaryAction() {
   }
 }
 
-onMounted(() => {
+watch(() => claims.value?.orgId ?? null, () => {
   void fetchCcps()
-})
+}, { immediate: true })
 </script>
 
 <template>
@@ -438,15 +456,15 @@ onMounted(() => {
     </div>
 
     <div v-if="!loading">
+      <p class="caption-note caption-note--before-action">
+        {{ helperText }}
+      </p>
       <PrimaryActionButton
         :disabled="submitting || (hasAuthenticatedSession && filledCcpCount === 0)"
         :label="primaryActionLabel"
         type="button"
         @click="handlePrimaryAction"
       />
-      <p class="caption-note">
-        {{ helperText }}
-      </p>
     </div>
   </section>
 </template>

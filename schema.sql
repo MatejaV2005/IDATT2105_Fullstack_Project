@@ -40,6 +40,7 @@ CREATE TABLE refresh_token (
     id INT AUTO_INCREMENT PRIMARY KEY,
     refresh_token TEXT,
     user_id INT,
+    org_id INT,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_refresh_token_user
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -54,6 +55,10 @@ CREATE TABLE organization ( -- A organization is typically a resturaunt
     org_number INT NOT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+ALTER TABLE refresh_token
+    ADD CONSTRAINT fk_refresh_token_org
+        FOREIGN KEY (org_id) REFERENCES organization(id) ON DELETE SET NULL;
 
 CREATE TABLE todo ( -- Basic todo for any task which doesn't neatly fit our schema
     id INT AUTO_INCREMENT PRIMARY KEY,

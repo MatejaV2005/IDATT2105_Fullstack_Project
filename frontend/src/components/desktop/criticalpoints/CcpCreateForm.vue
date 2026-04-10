@@ -5,15 +5,34 @@ import DesktopButton from '@/components/desktop/shared/DesktopButton.vue'
 import type { NewCriticalControlPoint } from '@/interfaces/api-interfaces'
 import type { BasicUserWithAccessLevel } from '@/interfaces/util-interfaces'
 import { Save, X } from '@lucide/vue'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 
-const props = defineProps<{
-  isCreatingCcp: boolean
-  createError: boolean
-}>()
+type FormMode = 'create' | 'edit'
+
+type InitialRoleUsers = {
+  verifiers: BasicUserWithAccessLevel[]
+  deviationRecievers: BasicUserWithAccessLevel[]
+  performers: BasicUserWithAccessLevel[]
+  deputy: BasicUserWithAccessLevel[]
+}
+
+const props = withDefaults(
+  defineProps<{
+    mode?: FormMode
+    isSubmitting: boolean
+    submitError: boolean
+    initialPayload?: NewCriticalControlPoint | null
+    initialRoleUsers?: InitialRoleUsers | null
+  }>(),
+  {
+    mode: 'create',
+    initialPayload: null,
+    initialRoleUsers: null,
+  },
+)
 
 const emit = defineEmits<{
-  create: [payload: NewCriticalControlPoint]
+  submit: [payload: NewCriticalControlPoint]
   cancel: []
 }>()
 
@@ -52,6 +71,92 @@ const canSaveNewCcp = computed(() => {
   )
 })
 
+const isEditMode = computed(() => props.mode === 'edit')
+const headerTitle = computed(() =>
+  isEditMode.value ? 'Rediger kritisk kontrollpunkt' : 'Nytt kritisk kontrollpunkt',
+)
+const submitButtonText = computed(() => (isEditMode.value ? 'Oppdater' : 'Lagre'))
+const submitLoadingText = computed(() => (isEditMode.value ? 'Oppdaterer' : 'Lagrer'))
+const submitErrorText = computed(() =>
+  isEditMode.value
+    ? 'Klarte ikke å oppdatere kritisk kontrollpunkt.'
+    : 'Klarte ikke å opprette kritisk kontrollpunkt.',
+)
+
+function applyInitialPayload(payload: NewCriticalControlPoint | null) {
+  if (!payload) {
+    name.value = ''
+    how.value = ''
+    equipment.value = ''
+    instructionsAndCalibration.value = ''
+    immediateCorrectiveAction.value = ''
+    criticalMin.value = 0
+    criticalMax.value = 0
+    unit.value = 'C'
+    monitoredDescription.value = ''
+    correctiveMeasures.value = []
+    verifiers.value = []
+    deviationRecievers.value = []
+    performers.value = []
+    deputy.value = []
+    return
+  }
+
+  name.value = payload.name
+  how.value = payload.how
+  equipment.value = payload.equipment
+  instructionsAndCalibration.value = payload.instructionsAndCalibration
+  immediateCorrectiveAction.value = payload.immediateCorrectiveAction
+  criticalMin.value = payload.criticalMin
+  criticalMax.value = payload.criticalMax
+  unit.value = payload.unit
+  monitoredDescription.value = payload.monitoredDescription
+  correctiveMeasures.value = payload.ccpCorrectiveMeasure.map((measure) => ({ ...measure }))
+
+  if (props.initialRoleUsers) {
+    verifiers.value = props.initialRoleUsers.verifiers.map((user) => ({ ...user }))
+    deviationRecievers.value = props.initialRoleUsers.deviationRecievers.map((user) => ({
+      ...user,
+    }))
+    performers.value = props.initialRoleUsers.performers.map((user) => ({ ...user }))
+    deputy.value = props.initialRoleUsers.deputy.map((user) => ({ ...user }))
+    return
+  }
+
+  verifiers.value = payload.verifiers.map((id) => ({
+    id,
+    email: '',
+    legalName: '',
+    accessLevel: 'WORKER',
+  }))
+  deviationRecievers.value = payload.deviationRecievers.map((id) => ({
+    id,
+    email: '',
+    legalName: '',
+    accessLevel: 'WORKER',
+  }))
+  performers.value = payload.performers.map((id) => ({
+    id,
+    email: '',
+    legalName: '',
+    accessLevel: 'WORKER',
+  }))
+  deputy.value = payload.deputy.map((id) => ({
+    id,
+    email: '',
+    legalName: '',
+    accessLevel: 'WORKER',
+  }))
+}
+
+watch(
+  () => [props.initialPayload, props.initialRoleUsers, props.mode],
+  () => {
+    applyInitialPayload(props.mode === 'edit' ? props.initialPayload : null)
+  },
+  { immediate: true, deep: true },
+)
+
 function setCorrectiveMeasures(measures: NewCriticalControlPoint['ccpCorrectiveMeasure']) {
   correctiveMeasures.value = measures
 }
@@ -72,12 +177,12 @@ function setDeputy(users: BasicUserWithAccessLevel[]) {
   deputy.value = users
 }
 
-function createCcp() {
-  if (props.isCreatingCcp || !canSaveNewCcp.value) {
+function submitCcp() {
+  if (props.isSubmitting || !canSaveNewCcp.value) {
     return
   }
 
-  emit('create', {
+  emit('submit', {
     name: name.value.trim(),
     how: how.value.trim(),
     equipment: equipment.value.trim(),
@@ -96,7 +201,7 @@ function createCcp() {
 }
 
 function cancel() {
-  if (props.isCreatingCcp) {
+  if (props.isSubmitting) {
     return
   }
 
@@ -107,24 +212,22 @@ function cancel() {
 <template>
   <div class="create-ccp">
     <div class="ccp-header">
-      <h2 class="no-margin">
-        Nytt kritisk kontrollpunkt
-      </h2>
+      <h2 class="no-margin">{{ headerTitle }}</h2>
       <div class="create-actions">
         <DesktopButton
           :icon="Save"
-          :is-loading="isCreatingCcp"
-          loading-text="Lagrer"
-          content="Lagre"
-          :on-click="createCcp"
-          :disabled="!canSaveNewCcp || isCreatingCcp"
+          :is-loading="isSubmitting"
+          :loading-text="submitLoadingText"
+          :content="submitButtonText"
+          :on-click="submitCcp"
+          :disabled="!canSaveNewCcp || isSubmitting"
         />
         <DesktopButton
           :icon="X"
           content="Avbryt"
           button-color="cherry"
           :on-click="cancel"
-          :disabled="isCreatingCcp"
+          :disabled="isSubmitting"
         />
       </div>
     </div>
@@ -136,9 +239,9 @@ function cancel() {
           v-model="name"
           class="simple-text-input"
           type="text"
-          :disabled="isCreatingCcp"
+          :disabled="isSubmitting"
           placeholder="F.eks. kjøledisk fisk"
-        >
+        />
       </label>
       <label class="form-field">
         <span class="navy-subtitle">Enhet</span>
@@ -146,9 +249,9 @@ function cancel() {
           v-model="unit"
           class="simple-text-input"
           type="text"
-          :disabled="isCreatingCcp"
+          :disabled="isSubmitting"
           placeholder="F.eks. C"
-        >
+        />
       </label>
       <label class="form-field">
         <span class="navy-subtitle">Kritisk min</span>
@@ -156,9 +259,9 @@ function cancel() {
           v-model.number="criticalMin"
           class="simple-text-input"
           type="number"
-          :disabled="isCreatingCcp"
+          :disabled="isSubmitting"
           placeholder="F.eks. 0"
-        >
+        />
       </label>
       <label class="form-field">
         <span class="navy-subtitle">Kritisk max</span>
@@ -166,9 +269,9 @@ function cancel() {
           v-model.number="criticalMax"
           class="simple-text-input"
           type="number"
-          :disabled="isCreatingCcp"
+          :disabled="isSubmitting"
           placeholder="F.eks. 4"
-        >
+        />
       </label>
     </div>
 
@@ -178,7 +281,7 @@ function cancel() {
         v-model="how"
         class="simple-text-input"
         rows="3"
-        :disabled="isCreatingCcp"
+        :disabled="isSubmitting"
         placeholder="Beskriv hvordan dette punktet overvåkes i praksis"
       />
     </label>
@@ -189,7 +292,7 @@ function cancel() {
         v-model="equipment"
         class="simple-text-input"
         rows="3"
-        :disabled="isCreatingCcp"
+        :disabled="isSubmitting"
         placeholder="F.eks. kalibrert termometer og loggskjema"
       />
     </label>
@@ -200,7 +303,7 @@ function cancel() {
         v-model="instructionsAndCalibration"
         class="simple-text-input"
         rows="3"
-        :disabled="isCreatingCcp"
+        :disabled="isSubmitting"
         placeholder="Beskriv instruks for bruk og kalibrering"
       />
     </label>
@@ -211,7 +314,7 @@ function cancel() {
         v-model="immediateCorrectiveAction"
         class="simple-text-input"
         rows="3"
-        :disabled="isCreatingCcp"
+        :disabled="isSubmitting"
         placeholder="Hva skal gjøres med en gang ved avvik"
       />
     </label>
@@ -222,7 +325,7 @@ function cancel() {
         v-model="monitoredDescription"
         class="simple-text-input"
         rows="2"
-        :disabled="isCreatingCcp"
+        :disabled="isSubmitting"
         placeholder="F.eks. kjølerom for fisk, kjøtt og meieri"
       />
     </label>
@@ -230,39 +333,49 @@ function cancel() {
     <div class="people-grid">
       <label class="form-field">
         <span class="navy-subtitle">Godkjennere</span>
-        <AddUsers :set-users="setVerifiers" />
+        <AddUsers
+          :set-users="setVerifiers"
+          :initial-user-ids="verifiers.map((user) => user.id)"
+          :initial-users="verifiers"
+        />
       </label>
       <label class="form-field">
         <span class="navy-subtitle">Avviksmottakere</span>
-        <AddUsers :set-users="setDeviationRecievers" />
+        <AddUsers
+          :set-users="setDeviationRecievers"
+          :initial-user-ids="deviationRecievers.map((user) => user.id)"
+          :initial-users="deviationRecievers"
+        />
       </label>
       <label class="form-field">
         <span class="navy-subtitle">Utførere</span>
-        <AddUsers :set-users="setPerformers" />
+        <AddUsers
+          :set-users="setPerformers"
+          :initial-user-ids="performers.map((user) => user.id)"
+          :initial-users="performers"
+        />
       </label>
       <label class="form-field">
         <span class="navy-subtitle">Vikarleder</span>
-        <AddUsers :set-users="setDeputy" />
+        <AddUsers
+          :set-users="setDeputy"
+          :initial-user-ids="deputy.map((user) => user.id)"
+          :initial-users="deputy"
+        />
       </label>
     </div>
 
     <CorrectiveMeasures
       :measures="correctiveMeasures"
       :set-measures="setCorrectiveMeasures"
-      :disabled="isCreatingCcp"
+      :disabled="isSubmitting"
     />
 
-    <p
-      v-if="criticalMin > criticalMax"
-      class="error-message"
-    >
+    <p v-if="criticalMin > criticalMax" class="error-message">
       Kritisk min må være mindre enn eller lik kritisk max.
     </p>
-    <p
-      v-if="createError"
-      class="error-message"
-    >
-      Klarte ikke å opprette kritisk kontrollpunkt.
+    <p v-if="submitError" class="error-message">
+      {{ submitErrorText }}
     </p>
   </div>
 </template>

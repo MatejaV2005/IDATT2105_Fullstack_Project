@@ -24,13 +24,16 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.grimni.domain.Course;
+import com.grimni.domain.CourseLink;
 import com.grimni.domain.FileObject;
 import com.grimni.domain.Organization;
 import com.grimni.domain.User;
 import com.grimni.domain.enums.AccessLevel;
+import com.grimni.dto.CourseLinkResponse;
 import com.grimni.dto.CourseResponse;
 import com.grimni.dto.CourseResponsibleUserResponse;
 import com.grimni.dto.CourseUserProgressResponse;
+import com.grimni.dto.CreateCourseLinkRequest;
 import com.grimni.dto.CreateCourseRequest;
 import com.grimni.dto.UpdateCourseProgressRequest;
 import com.grimni.dto.UpdateCourseRequest;
@@ -253,6 +256,28 @@ public class CourseController {
     public ResponseEntity<?> getCourseOverview(Authentication authentication) {
         JwtUserPrinciple principal = (JwtUserPrinciple) authentication.getPrincipal();
         return ResponseEntity.ok(courseService.getCourseOverview(principal.orgId(), principal.userId()));
+    }
+
+    @PostMapping("/{courseId}/links")
+    @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
+    public ResponseEntity<?> addCourseLink(
+            @PathVariable Long courseId,
+            @Valid @RequestBody CreateCourseLinkRequest request,
+            Authentication authentication) {
+        JwtUserPrinciple principal = (JwtUserPrinciple) authentication.getPrincipal();
+        CourseLink courseLink = courseService.addCourseLink(courseId, request.link(), principal.orgId(), principal.userId());
+        return ResponseEntity.status(HttpStatus.CREATED).body(CourseLinkResponse.fromEntity(courseLink));
+    }
+
+    @DeleteMapping("/{courseId}/links/{linkId}")
+    @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
+    public ResponseEntity<Void> removeCourseLink(
+            @PathVariable Long courseId,
+            @PathVariable Long linkId,
+            Authentication authentication) {
+        JwtUserPrinciple principal = (JwtUserPrinciple) authentication.getPrincipal();
+        courseService.removeCourseLink(courseId, linkId, principal.orgId(), principal.userId());
+        return ResponseEntity.noContent().build();
     }
 
     // Course User Progress

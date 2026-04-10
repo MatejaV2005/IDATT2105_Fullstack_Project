@@ -70,6 +70,18 @@ async function submitDeviation() {
     isSubmitting.value = false
   }
 }
+
+function resetDeviationForm() {
+  formState.category = deviationCategories.some((item) => item.value === prefilledCategory)
+    ? prefilledCategory
+    : 'OTHER'
+  formState.whatWentWrong = ''
+  formState.immediateActionTaken = ''
+  formState.potentialCause = ''
+  formState.potentialPreventativeMeasure = ''
+  submitError.value = null
+  submitSuccess.value = false
+}
 </script>
 
 <template>
@@ -116,10 +128,20 @@ async function submitDeviation() {
 
     <div
       v-if="submitSuccess"
-      class="success-message"
+      class="success-message surface-card"
     >
       <AppIcon name="upload" />
       <p>Avviket er sendt inn!</p>
+      <p class="card-copy">
+        Du kan registrere et nytt avvik dersom det er flere hendelser som skal dokumenteres.
+      </p>
+      <div class="success-message__actions">
+        <PrimaryActionButton
+          label="Registrer nytt avvik"
+          type="button"
+          @click="resetDeviationForm"
+        />
+      </div>
     </div>
 
     <form
@@ -205,6 +227,9 @@ async function submitDeviation() {
       </article>
 
       <div class="form-card--full">
+        <p class="caption-note caption-note--before-action">
+          Alle felt med * må fylles ut før innsending.
+        </p>
         <PrimaryActionButton
           label="Send inn avvik"
           type="submit"
@@ -216,10 +241,21 @@ async function submitDeviation() {
         >
           {{ submitError }}
         </p>
-        <p class="caption-note">
-          Alle felt med * må fylles ut før innsending.
-        </p>
       </div>
     </form>
   </section>
 </template>
+
+<style scoped>
+.success-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.success-message__actions {
+  width: 100%;
+}
+</style>

@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import MainNavbar from '@/components/desktop/navbar/MainNavbar.vue'
 import Loading from '@/components/desktop/shared/Loading.vue'
-import { delay } from '@/utils'
+import { setAuthToken } from '@/utils/auth'
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 
@@ -26,25 +25,35 @@ async function handleSubmit() {
   }
 
   try {
-    // const response = await fetch('/api/auth/login', {
-    //   method: 'POST',
-    //   headers: {
-    //     'Content-Type': 'application/json',
-    //   },
-    //   body: JSON.stringify(payload),
-    // })
-    await delay(2000)
-    const response = { ok: true }
+    const response = await fetch('/api/auth/login', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    })
 
     if (!response.ok) {
-      errorMessage.value = 'Klarte ikke å logge inn. Prøv igjen.'
+      const responseText = (await response.text()).trim()
+      errorMessage.value = responseText
+        ? `Klarte ikke å logge inn (${response.status}). ${responseText}`
+        : `Klarte ikke å logge inn (${response.status}). Prøv igjen.`
       return
     }
+
+    const token = (await response.text()).trim()
+    if (!token) {
+      errorMessage.value = 'Innlogging lyktes ikke: tomt token-svar fra server.'
+      return
+    }
+
+    setAuthToken(token)
 
     email.value = ''
     password.value = ''
 
-    await router.push('/desktop')
+    await router.push('/desktop/users/me')
   } catch {
     errorMessage.value = 'Det oppstod en feil. Prøv igjen.'
   } finally {

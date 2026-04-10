@@ -12,17 +12,25 @@ interface RoutinePrerequisitePoint {
   deviationRecievers: PrerequisiteUser[]
   performers: PrerequisiteUser[]
   deputy: PrerequisiteUser[]
+  routineId: number
 }
 
 interface StandardPrerequisitePoint {
   title: string
   type: 'standard'
   description: string
+  resources: {
+    id: number
+    name: string
+    type: 'link' | 'file'
+  }[]
+  standardId: number
 }
 
 export interface PrerequisiteCategory {
   categoryName: string
   points: (RoutinePrerequisitePoint | StandardPrerequisitePoint)[]
+  id: number
 }
 
 export type PrerequisiteCategoryAllInfo = PrerequisiteCategory[]
@@ -125,33 +133,66 @@ export type MappingPointAllInfo = MappingPoint[]
 // #endregion
 
 // #region LearningView
-interface LearningResource {
+export interface LearningResource {
   name: string
   type: 'link' | 'file'
+  id: number
+}
+
+export interface LearningResponsibleUser {
+  userId: number
+  legalName: string
 }
 
 export interface LearningCourse {
-  name: string
-  description: string
+  id: number
+  title: string
+  courseDescription: string
   resources: LearningResource[]
-  responsible: string[]
-  uniqueId: number
+  responsibleUsers: LearningResponsibleUser[]
 }
 
-interface LearningUserCourseProgress {
-  name: string
+export interface LearningUserCourseProgress {
+  title: string
   completed: boolean
-  uniqueId: number
+  courseId: number
+  hasProgressRecord?: boolean
 }
 
 export interface LearningUserProgress {
-  name: string
+  id: number
+  legalName: string
+  email: string
   courses: LearningUserCourseProgress[]
 }
 
-export interface LearningAllInfo {
+export interface LearningOverviewResponse {
   allCourses: LearningCourse[]
-  userProgress: LearningUserProgress[]
+  userProgress: {
+    userId: number
+    legalName: string
+    courses: {
+      courseId: number
+      title: string
+      completed: boolean
+    }[]
+  }[]
+}
+
+export type LearningAllInfo = LearningOverviewResponse
+
+export interface LearningOrganizationUser {
+  id: number
+  legalName: string
+  email: string
+  accessLevel: string
+}
+
+export interface CreateLearningCoursePayload {
+  title: string
+  description: string
+  links: string[]
+  resources: File[]
 }
 // #endregion
 

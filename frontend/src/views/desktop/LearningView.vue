@@ -1,289 +1,477 @@
 <script setup lang="ts">
-import Badge from '@/components/desktop/shared/Badge.vue'
-import DesktopButton from '@/components/desktop/shared/DesktopButton.vue'
+import api from '@/api/api'
+import LearningCompletionTable from '@/components/desktop/learning/LearningCompletionTable.vue'
+import LearningCourseRequirements from '@/components/desktop/learning/LearningCourseRequirements.vue'
+import LearningCreateCourseCard from '@/components/desktop/learning/LearningCreateCourseCard.vue'
 import Loading from '@/components/desktop/shared/Loading.vue'
 import SidebarPageContainer from '@/components/desktop/sidebar/SidebarPageContainer.vue'
-import type { LearningAllInfo } from '@/interfaces/api-interfaces'
-import { delay } from '@/utils'
-import { Edit2, File, Link, Plus } from '@lucide/vue'
-import { onMounted, ref } from 'vue'
+import { useOrgSession } from '@/composables/useOrgSession'
+import type {
+  CreateLearningCoursePayload,
+  LearningCourse,
+  LearningOrganizationUser,
+  LearningOverviewResponse,
+  LearningUserCourseProgress,
+  LearningUserProgress,
+} from '@/interfaces/api-interfaces'
+import { computed, ref, watch } from 'vue'
 
-const mockData: LearningAllInfo = {
-  allCourses: [
-    {
-      name: 'Serveringskurs',
-      description:
-        "Dere må lese here pdf'en & skrive en oppsummering. Dere må også gjøre alle oppgaver i NDLA sitt kurs og levere det inn til oss.",
-      resources: [
-        {
-          name: 'www.ndla.no/random_stuff',
-          type: 'link',
-        },
-        {
-          name: 'erna_sin_spise_guide.pdf',
-          type: 'file',
-        },
-      ],
-      responsible: ['Simen Velle', 'Vedum'],
-      uniqueId: 1234,
-    },
-    {
-      name: 'Drikkekurs',
-      description:
-        "Dere må lese here pdf'en & skrive en oppsummering. Dere må også gjøre alle oppgaver i NDLA sitt kurs og levere det inn til oss.",
-      resources: [
-        {
-          name: 'www.ndla.no/random_stuff',
-          type: 'link',
-        },
-        {
-          name: 'erna_sin_spise_guide.pdf',
-          type: 'file',
-        },
-      ],
-      responsible: ['Simen Velle', 'Ola svenneby'],
-      uniqueId: 9876,
-    },
-    {
-      name: 'Drikkekurs',
-      description:
-        "Dere må lese here pdf'en & skrive en oppsummering. Dere må også gjøre alle oppgaver i NDLA sitt kurs og levere det inn til oss.",
-      resources: [
-        {
-          name: 'www.ndla.no/random_stuff',
-          type: 'link',
-        },
-        {
-          name: 'erna_sin_spise_guide.pdf',
-          type: 'file',
-        },
-      ],
-      responsible: ['Simen Velle', 'Ola svenneby'],
-      uniqueId: 9816,
-    },
-  ],
-  userProgress: [
-    {
-      name: 'Mona Jul',
-      courses: [
-        {
-          name: 'Serveringskurs',
-          completed: true,
-          uniqueId: 1234,
-        },
-        {
-          name: 'Drikkekurs',
-          completed: false,
-          uniqueId: 9876,
-        },
-      ],
-    },
-    {
-      name: 'Jagland',
-      courses: [
-        {
-          name: 'Serveringskurs',
-          completed: true,
-          uniqueId: 1234,
-        },
-        {
-          name: 'Drikkekurs',
-          completed: true,
-          uniqueId: 9876,
-        },
-      ],
-    },
-    {
-      name: 'Bent Høie',
-      courses: [
-        {
-          name: 'Serveringskurs',
-          completed: false,
-          uniqueId: 1234,
-        },
-        {
-          name: 'Drikkekurs',
-          completed: true,
-          uniqueId: 9876,
-        },
-      ],
-    },
-    {
-      name: 'Bondevik',
-      courses: [
-        {
-          name: 'Serveringskurs',
-          completed: false,
-          uniqueId: 1234,
-        },
-        {
-          name: 'Drikkekurs',
-          completed: false,
-          uniqueId: 9876,
-        },
-      ],
-    },
-  ],
+interface LearningPageData {
+  allCourses: LearningCourse[]
+  userProgress: LearningUserProgress[]
 }
 
-const resource = ref<LearningAllInfo>({ allCourses: [], userProgress: [] })
+interface UpdateCourseCompletionPayload {
+  userId: number
+  courseId: number
+  completed: boolean
+}
+
+const { claims } = useOrgSession()
+
+const resource = ref<LearningPageData>({ allCourses: [], userProgress: [] })
+const organizationUsers = ref<LearningOrganizationUser[]>([])
 const loading = ref(true)
-const error = ref<boolean | null>(null)
+const error = ref<string | null>(null)
 
-onMounted(async () => {
-  try {
-    // const response = await fetch('/api/learning/get-all-info')
-    // if (!response.ok) {
-    //     throw new Error(`Failed to get user (${response.status})`)
-    // }
-    // const data = await response.json()
-    await delay(2000)
-    const data = mockData
-    resource.value = data
-    loading.value = false
-    error.value = false
-  } catch (err) {
-    if (err instanceof Error) {
-      console.error(err.message)
-    } else {
-      console.error('Unknown error occurred')
-    }
-    error.value = true
+const isEditingCompletion = ref(false)
+const isSavingCompletion = ref(false)
+const saveCompletionError = ref(false)
+const draftUserProgress = ref<LearningUserProgress[]>([])
+
+const isCreatingCourseRequest = ref(false)
+const createCourseError = ref(false)
+
+let activeFetchId = 0
+
+function sortUsers(users: LearningOrganizationUser[]) {
+  return [...users].sort((left, right) => left.legalName.localeCompare(right.legalName, 'nb-NO'))
+}
+
+function buildLearningPageData(
+  overview: LearningOverviewResponse,
+  users: LearningOrganizationUser[],
+): LearningPageData {
+  const progressByUser = new Map(
+    overview.userProgress.map((userProgress) => [
+      userProgress.userId,
+      new Map(
+        userProgress.courses.map((courseStatus) => [courseStatus.courseId, courseStatus.completed]),
+      ),
+    ]),
+  )
+
+  const normalizedUsers = sortUsers(users).map((user) => ({
+    id: user.id,
+    legalName: user.legalName,
+    email: user.email,
+    courses: overview.allCourses.map<LearningUserCourseProgress>((course) => ({
+      courseId: course.id,
+      title: course.title,
+      completed: progressByUser.get(user.id)?.get(course.id) ?? false,
+      hasProgressRecord: progressByUser.get(user.id)?.has(course.id) ?? false,
+    })),
+  }))
+
+  return {
+    allCourses: overview.allCourses,
+    userProgress: normalizedUsers,
   }
-})
+}
 
-function hasCompletedCourse(
-  user: { courses: { name: string; completed: boolean; uniqueId: number }[] },
-  courseId: number,
+function cloneUserProgress(users: LearningUserProgress[]) {
+  return users.map((user) => ({
+    ...user,
+    courses: user.courses.map((course) => ({ ...course })),
+  }))
+}
+
+function getErrorMessage(err: unknown, fallback: string) {
+  const status = (err as { response?: { status?: number } }).response?.status
+
+  if (status === 403) {
+    return 'Du har ikke tilgang til opplæringssiden. Kun owner og manager kan åpne denne siden.'
+  }
+
+  return fallback
+}
+
+async function fetchLearning() {
+  const fetchId = ++activeFetchId
+
+  if (fetchId === activeFetchId) {
+    loading.value = true
+    error.value = null
+  }
+
+  try {
+    const [overviewResponse, organizationUsersResponse] = await Promise.all([
+      api.get<LearningOverviewResponse>('/courses/overview'),
+      api.get<LearningOrganizationUser[]>('/organizations/users'),
+    ])
+
+    if (fetchId !== activeFetchId) {
+      return
+    }
+
+    organizationUsers.value = sortUsers(organizationUsersResponse.data)
+    resource.value = buildLearningPageData(overviewResponse.data, organizationUsers.value)
+    isEditingCompletion.value = false
+    draftUserProgress.value = []
+    saveCompletionError.value = false
+    createCourseError.value = false
+  } catch (err) {
+    if (fetchId !== activeFetchId) {
+      return
+    }
+
+    resource.value = { allCourses: [], userProgress: [] }
+    organizationUsers.value = []
+    error.value = getErrorMessage(
+      err,
+      'Kunne ikke hente opplæringsdata fra serveren. Prøv igjen.',
+    )
+  } finally {
+    if (fetchId === activeFetchId) {
+      loading.value = false
+    }
+  }
+}
+
+function startEditingCompletion() {
+  draftUserProgress.value = cloneUserProgress(resource.value.userProgress)
+  saveCompletionError.value = false
+  isEditingCompletion.value = true
+}
+
+function cancelCompletionEditing() {
+  if (isSavingCompletion.value) {
+    return
+  }
+
+  isEditingCompletion.value = false
+  draftUserProgress.value = []
+  saveCompletionError.value = false
+}
+
+function toggleDraftCourseCompletion(payload: { userId: number; courseId: number }) {
+  const user = draftUserProgress.value.find((entry) => entry.id === payload.userId)
+  if (!user) {
+    return
+  }
+
+  const course = user.courses.find((entry) => entry.courseId === payload.courseId)
+  if (!course) {
+    return
+  }
+
+  course.completed = !course.completed
+}
+
+async function persistCompletionChange(
+  originalCourse: LearningUserCourseProgress,
+  nextCourse: LearningUserCourseProgress,
+  userId: number,
 ) {
-  return user.courses.some((course) => course.uniqueId === courseId && course.completed)
+  if (originalCourse.hasProgressRecord) {
+    await api.patch(`/courses/${nextCourse.courseId}/progress/${userId}`, nextCourse.completed, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+    return
+  }
+
+  if (!nextCourse.completed) {
+    return
+  }
+
+  await api.post(`/courses/${nextCourse.courseId}/progress/${userId}`)
+  await api.patch(`/courses/${nextCourse.courseId}/progress/${userId}`, true, {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  })
 }
-function sayHello() {
-  alert('HELLO THERE!')
+
+async function saveCompletionChanges() {
+  if (isSavingCompletion.value) {
+    return
+  }
+
+  const updates: UpdateCourseCompletionPayload[] = []
+
+  for (const user of draftUserProgress.value) {
+    const originalUser = resource.value.userProgress.find((entry) => entry.id === user.id)
+    if (!originalUser) {
+      continue
+    }
+
+    for (const course of user.courses) {
+      const originalCourse = originalUser.courses.find((entry) => entry.courseId === course.courseId)
+      if (!originalCourse || originalCourse.completed === course.completed) {
+        continue
+      }
+
+      updates.push({
+        userId: user.id,
+        courseId: course.courseId,
+        completed: course.completed,
+      })
+    }
+  }
+
+  if (updates.length === 0) {
+    isEditingCompletion.value = false
+    draftUserProgress.value = []
+    return
+  }
+
+  isSavingCompletion.value = true
+  saveCompletionError.value = false
+
+  try {
+    for (const payload of updates) {
+      const originalUser = resource.value.userProgress.find((entry) => entry.id === payload.userId)
+      const originalCourse = originalUser?.courses.find((entry) => entry.courseId === payload.courseId)
+      const nextUser = draftUserProgress.value.find((entry) => entry.id === payload.userId)
+      const nextCourse = nextUser?.courses.find((entry) => entry.courseId === payload.courseId)
+
+      if (!originalCourse || !nextCourse) {
+        continue
+      }
+
+      await persistCompletionChange(originalCourse, nextCourse, payload.userId)
+    }
+
+    await fetchLearning()
+  } catch (err) {
+    console.error(err)
+    saveCompletionError.value = true
+  } finally {
+    isSavingCompletion.value = false
+  }
 }
+
+async function uploadCourseFile(courseId: number, file: File) {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  await api.post(`/courses/${courseId}/files`, formData)
+}
+
+async function handleCreateCourse(payload: CreateLearningCoursePayload): Promise<boolean> {
+  if (isCreatingCourseRequest.value) {
+    return false
+  }
+
+  isCreatingCourseRequest.value = true
+  createCourseError.value = false
+
+  try {
+    const createResponse = await api.post<{ id: number }>('/courses', {
+      title: payload.title,
+      courseDescription: payload.description,
+    })
+
+    const courseId = createResponse.data.id
+
+    await Promise.all(
+      organizationUsers.value.map((user) => api.post(`/courses/${courseId}/progress/${user.id}`)),
+    )
+
+    await Promise.all(
+      payload.links.map((link) => api.post(`/courses/${courseId}/links`, { link })),
+    )
+
+    for (const file of payload.resources) {
+      await uploadCourseFile(courseId, file)
+    }
+
+    await fetchLearning()
+    return true
+  } catch (err) {
+    console.error(err)
+    createCourseError.value = true
+    return false
+  } finally {
+    isCreatingCourseRequest.value = false
+  }
+}
+
+async function saveCourseDetails(
+  courseId: number,
+  payload: { title: string; courseDescription: string },
+): Promise<boolean> {
+  try {
+    await api.patch(`/courses/${courseId}`, payload)
+    await fetchLearning()
+    return true
+  } catch (err) {
+    console.error(err)
+    return false
+  }
+}
+
+async function deleteCourse(courseId: number): Promise<boolean> {
+  try {
+    await api.delete(`/courses/${courseId}`)
+    await fetchLearning()
+    return true
+  } catch (err) {
+    console.error(err)
+    return false
+  }
+}
+
+async function addResponsibleUser(courseId: number, userId: number): Promise<boolean> {
+  try {
+    await api.post(`/courses/${courseId}/responsible/${userId}`)
+    await fetchLearning()
+    return true
+  } catch (err) {
+    console.error(err)
+    return false
+  }
+}
+
+async function removeResponsibleUser(courseId: number, userId: number): Promise<boolean> {
+  try {
+    await api.delete(`/courses/${courseId}/responsible/${userId}`)
+    await fetchLearning()
+    return true
+  } catch (err) {
+    console.error(err)
+    return false
+  }
+}
+
+async function addCourseLink(courseId: number, link: string): Promise<boolean> {
+  try {
+    await api.post(`/courses/${courseId}/links`, { link })
+    await fetchLearning()
+    return true
+  } catch (err) {
+    console.error(err)
+    return false
+  }
+}
+
+async function removeCourseLink(courseId: number, linkId: number): Promise<boolean> {
+  try {
+    await api.delete(`/courses/${courseId}/links/${linkId}`)
+    await fetchLearning()
+    return true
+  } catch (err) {
+    console.error(err)
+    return false
+  }
+}
+
+async function uploadCourseFiles(courseId: number, files: File[]): Promise<boolean> {
+  try {
+    for (const file of files) {
+      await uploadCourseFile(courseId, file)
+    }
+
+    await fetchLearning()
+    return true
+  } catch (err) {
+    console.error(err)
+    return false
+  }
+}
+
+async function removeCourseFile(courseId: number, fileId: number): Promise<boolean> {
+  try {
+    await api.delete(`/courses/${courseId}/files/${fileId}`)
+    await fetchLearning()
+    return true
+  } catch (err) {
+    console.error(err)
+    return false
+  }
+}
+
+async function downloadCourseFile(courseId: number, fileId: number, fileName: string) {
+  const response = await api.get(`/courses/${courseId}/files/${fileId}`, {
+    responseType: 'blob',
+  })
+
+  const blobUrl = URL.createObjectURL(response.data)
+  const link = document.createElement('a')
+  link.href = blobUrl
+  link.download = fileName
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(blobUrl)
+}
+
+const hasCourses = computed(() => resource.value.allCourses.length > 0)
+
+watch(
+  () => claims.value?.orgId ?? null,
+  () => {
+    void fetchLearning()
+  },
+  { immediate: true },
+)
 </script>
 
 <template>
   <SidebarPageContainer active-page="/desktop/bedrift-opplaering">
     <div class="learning-area-container">
-      <h1 class="instrument-serif-regular no-margin">
-        Opplæring
-      </h1>
-      <span class="navy-subtitle">Godkjenning</span>
+      <h1 class="instrument-serif-regular no-margin">Opplæring</h1>
+
       <Loading v-if="loading" />
-      <div
-        v-if="!loading"
-        class="course-completion"
-      >
-        <table>
-          <thead>
-            <tr>
-              <th>Bruker</th>
-              <th
-                v-for="course in resource.allCourses"
-                :key="course.uniqueId"
-              >
-                {{ course.name }}
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="user in resource.userProgress"
-              :key="user.name"
-            >
-              <td>{{ user.name }}</td>
-              <td
-                v-for="course in resource.allCourses"
-                :key="`${user.name}-${course.uniqueId}`"
-              >
-                <span
-                  class="completion-chip"
-                  :class="
-                    hasCompletedCourse(user, course.uniqueId) ? 'is-complete' : 'is-incomplete'
-                  "
-                >
-                  {{ hasCompletedCourse(user, course.uniqueId) ? 'Fullført' : 'Ikke fullført' }}
-                </span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-        <DesktopButton
-          content="Rediger"
-          :icon="Edit2"
-          class="navy-button-flat-top"
+
+      <div v-else-if="error" class="learning-error-banner">
+        <p>{{ error }}</p>
+      </div>
+
+      <template v-else>
+        <span class="navy-subtitle">Godkjenning</span>
+        <LearningCompletionTable
+          :all-courses="resource.allCourses"
+          :users="isEditingCompletion ? draftUserProgress : resource.userProgress"
+          :is-editing-completion="isEditingCompletion"
+          :is-saving-completion="isSavingCompletion"
+          :save-completion-error="saveCompletionError"
+          @start-editing="startEditingCompletion"
+          @save-changes="saveCompletionChanges"
+          @cancel-editing="cancelCompletionEditing"
+          @toggle-completion="toggleDraftCourseCompletion"
         />
-      </div>
-      <span class="navy-subtitle">Opplæringskrav</span>
-      <Loading v-if="loading" />
-      <div
-        v-for="course in resource.allCourses"
-        :key="course.uniqueId"
-        class="course"
-      >
-        <div class="course-header">
-          <h2 class="no-margin">
-            {{ course.name }}
-          </h2>
-          <DesktopButton
-            content="Edit"
-            :icon="Edit2"
-          />
-        </div>
-        <div>
-          <span class="navy-subtitle"> Beskrivelse: </span>
-          <span>
-            {{ course.description }}
-          </span>
-        </div>
-        <div>
-          <span class="navy-subtitle"> Ressurser: </span>
-          <div class="resource-container">
-            <Badge
-              v-for="resource in course.resources"
-              :key="`${course.uniqueId}-${resource.name}`"
-              badge-color="navy"
-              :icon="resource.type === 'link' ? Link : File"
-            >
-              {{ resource.name }}
-            </Badge>
-          </div>
-        </div>
-      </div>
-      <DesktopButton
-        :icon="Plus"
-        content="Legg til kurs"
-        :on-click="sayHello"
-      />
+
+        <span class="navy-subtitle">Opplæringskrav</span>
+        <p v-if="!hasCourses" class="learning-empty-state">Ingen kurs funnet for denne organisasjonen.</p>
+        <LearningCourseRequirements
+          v-else
+          :all-courses="resource.allCourses"
+          :organization-users="organizationUsers"
+          :on-save-course-details="saveCourseDetails"
+          :on-delete-course="deleteCourse"
+          :on-add-responsible-user="addResponsibleUser"
+          :on-remove-responsible-user="removeResponsibleUser"
+          :on-add-course-link="addCourseLink"
+          :on-remove-course-link="removeCourseLink"
+          :on-upload-course-files="uploadCourseFiles"
+          :on-remove-course-file="removeCourseFile"
+          :on-download-course-file="downloadCourseFile"
+        />
+
+        <LearningCreateCourseCard
+          :is-submitting="isCreatingCourseRequest"
+          :create-error="createCourseError"
+          :on-create="handleCreateCourse"
+        />
+      </template>
     </div>
   </SidebarPageContainer>
 </template>
 
 <style scoped>
-.course {
-  width: 100%;
-  background-color: var(--white-greek);
-  border-radius: 1rem;
-  padding: 1rem;
-  border: 1px solid var(--blue-navy-40);
-  display: flex;
-  gap: 1rem;
-  flex-direction: column;
-  .course-header {
-    display: flex;
-    justify-content: space-between;
-    /* background-color: red; */
-    /* height: 2rem; */
-    padding-bottom: 1rem;
-    border-bottom: 1px solid var(--blue-navy-40);
-  }
-}
-.resource-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
 .learning-area-container {
   display: flex;
   flex-direction: column;
@@ -292,59 +480,15 @@ function sayHello() {
   padding: 1rem;
   margin-top: 2rem;
 }
-.navy-button-flat-top {
-  width: 100%;
-  border-radius: 0.7rem;
-  border-top-right-radius: 0;
-  border-top-left-radius: 0;
-}
 
-.course-completion {
-  max-height: 26rem;
-  overflow: auto;
-  border: 1px solid var(--blue-navy-40);
+.learning-error-banner,
+.learning-empty-state {
+  margin: 0;
+  background-color: var(--red-cherry-20);
+  border: 1px solid var(--red-cherry-40);
+  color: var(--red-cherry);
   border-radius: 0.75rem;
-  background-color: var(--white-greek);
-  border: 1px solid var(--blue-navy-40);
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  min-width: 40rem;
-}
-
-th,
-td {
-  text-align: left;
-  padding: 0.75rem;
-  border-bottom: 1px solid var(--blue-navy-20);
-}
-
-thead th {
-  position: sticky;
-  top: 0;
-  background-color: var(--white-greek);
-  z-index: 1;
-}
-
-.completion-chip {
-  display: inline-flex;
-  flex-wrap: wrap;
-  border-radius: 999px;
-  padding: 0.15rem 0.6rem;
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-
-.is-complete {
-  color: #0f5132;
-  background-color: #d1e7dd;
-}
-
-.is-incomplete {
-  color: #842029;
-  background-color: #f8d7da;
+  padding: 0.85rem 1rem;
 }
 
 @media (max-width: 1200px) {
@@ -352,43 +496,11 @@ thead th {
     margin-top: 1rem;
     padding: 0.75rem;
   }
-
-  table {
-    min-width: 34rem;
-  }
 }
 
 @media (max-width: 768px) {
   .learning-area-container {
     padding: 0.5rem;
-  }
-
-  .course {
-    padding: 0.75rem;
-
-    .course-header {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 0.5rem;
-    }
-  }
-
-  .course-completion {
-    max-height: 22rem;
-  }
-
-  table {
-    min-width: 28rem;
-  }
-
-  th,
-  td {
-    padding: 0.6rem;
-    font-size: 0.9rem;
-  }
-
-  .completion-chip {
-    font-size: 0.8rem;
   }
 }
 </style>

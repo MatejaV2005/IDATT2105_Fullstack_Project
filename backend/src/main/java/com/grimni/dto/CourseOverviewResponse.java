@@ -11,7 +11,19 @@ public record CourseOverviewResponse(
         Long id,
         String title,
         String courseDescription,
-        List<String> responsible
+        List<ResponsibleUserResponse> responsibleUsers,
+        List<CourseResourceResponse> resources
+    ) {}
+
+    public record ResponsibleUserResponse(
+        Long userId,
+        String legalName
+    ) {}
+
+    public record CourseResourceResponse(
+        Long id,
+        String type,
+        String name
     ) {}
 
     public record UserProgressOverview(

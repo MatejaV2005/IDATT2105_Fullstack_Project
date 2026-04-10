@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { appMeta } from '@/data/mockHaccp'
-import { computed } from 'vue'
+import OrganizationSwitcher from '@/components/OrganizationSwitcher.vue'
+import { useOrgSession } from '@/composables/useOrgSession'
+import { computed, onMounted } from 'vue'
 import { RouterLink, RouterView, useRoute } from 'vue-router'
 
 const route = useRoute()
+const { currentUserInitials, currentUserName, ensureOrgSessionLoaded, isAuthenticated } = useOrgSession()
 
 const tabs = [
   { name: 'rutiner', label: 'Rutiner', to: '/mobile/rutiner' },
@@ -14,6 +16,13 @@ const tabs = [
 
 const showTabs = computed(() => route.name !== 'login')
 const isLoginPage = computed(() => route.name === 'login')
+const profileLink = computed(() => (isAuthenticated.value ? '/mobile/rutiner' : '/mobile/login'))
+const profileName = computed(() => currentUserName.value || 'Logg inn')
+const profileInitials = computed(() => currentUserInitials.value)
+
+onMounted(() => {
+  void ensureOrgSessionLoaded()
+})
 </script>
 
 <template>
@@ -21,18 +30,38 @@ const isLoginPage = computed(() => route.name === 'login')
     <div class="app-shell">
       <div class="app-shell__frame">
         <header class="top-app-bar">
-          <div class="top-app-bar__identity">
-            <p class="top-app-bar__brand">
-              {{ appMeta.companyName }}
-            </p>
+          <RouterLink
+            class="logo-button"
+            to="/mobile/rutiner"
+            aria-label="Gå til startsiden"
+          >
+            <img
+              src="@/assets/logo/logo-medium.png"
+              alt="Grimni"
+            >
+          </RouterLink>
+
+          <div
+            v-if="showTabs"
+            class="top-app-bar__center"
+          >
+            <OrganizationSwitcher
+              variant="mobile"
+              redirect-to="/mobile/rutiner"
+            />
           </div>
+          <div
+            v-else
+            class="top-app-bar__center"
+          />
 
           <RouterLink
-            class="avatar-button"
-            to="/mobile/login"
+            class="profile-button transition"
+            :to="profileLink"
             aria-label="Gå til logg inn"
           >
-            <span class="avatar-button__initials">{{ appMeta.userInitials }}</span>
+            <span class="profile-button__avatar">{{ profileInitials }}</span>
+            <span class="profile-button__name">{{ profileName }}</span>
           </RouterLink>
         </header>
 

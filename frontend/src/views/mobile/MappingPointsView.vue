@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { CircleAlert, EyeOff, Eye } from '@lucide/vue'
 import SectionHeading from '@/components/SectionHeading.vue'
+import { useOrgSession } from '@/composables/useOrgSession'
 import api from '@/api/api.js'
 
 interface MappingPoint {
@@ -43,6 +44,8 @@ const mappingPoints = ref<MappingPoint[]>([])
 const hiddenPoints = ref<number[]>([])
 const isLoading = ref(true)
 const error = ref<string | null>(null)
+const { claims } = useOrgSession()
+let activeFetchId = 0
 
 const visiblePoints = computed(() =>
   mappingPoints.value.filter(p => !hiddenPoints.value.includes(p.id))
@@ -63,19 +66,35 @@ function showPoint(id: number) {
 }
 
 async function fetchMappingPoints() {
+  const fetchId = ++activeFetchId
+  isLoading.value = true
+  error.value = null
+
   try {
     const response = await api.get<MappingPoint[]>('/mapping-points')
+    if (fetchId !== activeFetchId) {
+      return
+    }
+
     mappingPoints.value = response.data
+    hiddenPoints.value = []
   } catch (err) {
-    mappingPoints.value = mockData
-    error.value = 'Kunne ikke hente data fra server. Viser eksempeldata.'
-    console.error(err)
+    if (fetchId === activeFetchId) {
+      mappingPoints.value = mockData
+      hiddenPoints.value = []
+      error.value = 'Kunne ikke hente data fra server. Viser eksempeldata.'
+      console.error(err)
+    }
   } finally {
-    isLoading.value = false
+    if (fetchId === activeFetchId) {
+      isLoading.value = false
+    }
   }
 }
 
-onMounted(fetchMappingPoints)
+watch(() => claims.value?.orgId ?? null, () => {
+  void fetchMappingPoints()
+}, { immediate: true })
 </script>
 
 <template>

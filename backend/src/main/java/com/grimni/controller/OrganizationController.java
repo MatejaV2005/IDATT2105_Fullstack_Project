@@ -138,6 +138,7 @@ public class OrganizationController {
 
     /**
      * Retrieves a specialized list of members qualified to participate in danger-analysis workflows.
+     * <p>Requires OWNER or MANAGER authority.</p>
      *
      * @param authentication The security context containing the {@link JwtUserPrinciple}.
      * @return {@link ResponseEntity} containing a list of {@link CollaboratorResponse} objects.
@@ -147,14 +148,14 @@ public class OrganizationController {
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
     public ResponseEntity<?> getDangerAnalysisCollaborators(Authentication authentication) {
         JwtUserPrinciple principal = (JwtUserPrinciple) authentication.getPrincipal();
-
         List<CollaboratorResponse> response = organizationService.getDangerAnalysisCollaboratorsForOrg(principal.orgId());
         return ResponseEntity.ok(response);
     }
 
     /**
      * Revokes a user's membership from the organization.
-     * <p>Note: Protection is in place to prevent the removal of the primary OWNER.</p>
+     * <p>Strictly restricted to users with OWNER authority. 
+     * Note: Protection is in place to prevent the removal of the primary OWNER.</p>
      *
      * @param request        The request specifying the user ID to be removed.
      * @param authentication The security context containing the {@link JwtUserPrinciple}.

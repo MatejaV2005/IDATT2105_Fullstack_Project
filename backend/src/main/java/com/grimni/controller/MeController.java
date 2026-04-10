@@ -17,7 +17,7 @@ import com.grimni.domain.User;
 import com.grimni.dto.CreateCcpRecordRequest;
 import com.grimni.dto.CreateMyDeviationRequest;
 import com.grimni.dto.CertificateResponse;
-import com.grimni.dto.OrganizationResponse;
+import com.grimni.dto.MyOrganizationMembershipResponse;
 import com.grimni.dto.UpdateUserRequest;
 import com.grimni.dto.UserResponse;
 import com.grimni.security.JwtUserPrinciple;
@@ -82,10 +82,10 @@ public class MeController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> getMyOrganizations(Authentication authentication) {
         JwtUserPrinciple principal = (JwtUserPrinciple) authentication.getPrincipal();
-        List<OrganizationResponse> orgs = organizationService.findOrganizationsByUserId(principal.userId())
-                .stream()
-                .map(OrganizationResponse::fromEntity)
-                .toList();
+        List<MyOrganizationMembershipResponse> orgs = organizationService.getMyOrganizationMemberships(
+            principal.userId(),
+            principal.orgId()
+        );
         return ResponseEntity.ok(orgs);
     }
 

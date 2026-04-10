@@ -7,9 +7,11 @@ import DesktopButton from '@/components/desktop/shared/DesktopButton.vue'
 import Loading from '@/components/desktop/shared/Loading.vue'
 import Paginator from '@/components/desktop/shared/Paginator.vue'
 import type {
+  CriticalControlPoint,
   CriticalControlPointAllInfo,
   NewCriticalControlPoint,
 } from '@/interfaces/api-interfaces'
+import type { BasicUserWithAccessLevel } from '@/interfaces/util-interfaces'
 import { delay } from '@/utils'
 import { Plus } from '@lucide/vue'
 import { onMounted, ref } from 'vue'
@@ -201,9 +203,21 @@ const error = ref<boolean | null>(null)
 const isCreating = ref(false)
 const isCreatingCcp = ref(false)
 const createError = ref(false)
+const editingCcpId = ref<number | null>(null)
+const editingPayload = ref<NewCriticalControlPoint | null>(null)
+const editingRoleUsers = ref<{
+  verifiers: BasicUserWithAccessLevel[]
+  deviationRecievers: BasicUserWithAccessLevel[]
+  performers: BasicUserWithAccessLevel[]
+  deputy: BasicUserWithAccessLevel[]
+} | null>(null)
+const isUpdatingCcp = ref(false)
+const updateError = ref(false)
+
+type UpdateCriticalControlPointPayload = NewCriticalControlPoint & { id: number }
 
 function startCreating() {
-  if (isCreatingCcp.value) {
+  if (isCreatingCcp.value || isUpdatingCcp.value || editingCcpId.value !== null) {
     return
   }
 
@@ -231,6 +245,35 @@ async function fetchCcps() {
   resource.value = cloneCcps(mockServerState.value)
 }
 
+function mapUsersByIds(ids: number[]) {
+  return ids.map((id) => ({
+    userId: id,
+    userName: getMockUserNameById(id),
+  }))
+}
+
+function toCreatePayload(ccp: CriticalControlPoint): NewCriticalControlPoint {
+  return {
+    name: ccp.name,
+    how: ccp.how,
+    equipment: ccp.equipment,
+    instructionsAndCalibration: ccp.instructionsAndCalibration,
+    immediateCorrectiveAction: ccp.immediateCorrectiveAction,
+    criticalMin: ccp.criticalMin,
+    criticalMax: ccp.criticalMax,
+    unit: ccp.unit,
+    monitoredDescription: ccp.monitoredDescription,
+    verifiers: ccp.verifiers.map((user) => user.userId),
+    deviationRecievers: ccp.deviationRecievers.map((user) => user.userId),
+    performers: ccp.performers.map((user) => user.userId),
+    deputy: ccp.deputy.map((user) => user.userId),
+    ccpCorrectiveMeasure: ccp.ccpCorrectiveMeasure.map((measure) => ({
+      productCategoryId: measure.productCategoryId,
+      measureDescription: measure.measureDescription,
+    })),
+  }
+}
+
 async function createCcp(payload: NewCriticalControlPoint) {
   // const response = await fetch('/api/haccp/critical-control-points', {
   //   method: 'POST',
@@ -242,15 +285,6 @@ async function createCcp(payload: NewCriticalControlPoint) {
   // }
 
   await delay(700)
-
-  function mapUsersByIds(ids: number[]) {
-    return ids.map((id) => {
-      return {
-        userId: id,
-        userName: getMockUserNameById(id),
-      }
-    })
-  }
 
   const newCcp = {
     id: Math.floor(Math.random() * 1000000),
@@ -276,6 +310,139 @@ async function createCcp(payload: NewCriticalControlPoint) {
   }
 
   mockServerState.value = [...mockServerState.value, newCcp]
+}
+
+async function updateCcp(payload: UpdateCriticalControlPointPayload) {
+  // const response = await fetch('/api/haccp/critical-control-points', {
+  //   method: 'PUT',
+  //   headers: { 'Content-Type': 'application/json' },
+  //   body: JSON.stringify(payload),
+  // })
+  // if (!response.ok) {
+  //   throw new Error(`Failed to update critical control point (${response.status})`)
+  // }
+
+  await delay(700)
+
+  const ccpIndex = mockServerState.value.findIndex((ccp) => ccp.id === payload.id)
+  if (ccpIndex === -1) {
+    throw new Error('Critical control point not found')
+  }
+
+  const currentCcp = mockServerState.value[ccpIndex]
+  if (!currentCcp) {
+    throw new Error('Critical control point not found')
+  }
+
+  mockServerState.value[ccpIndex] = {
+    ...currentCcp,
+    name: payload.name,
+    how: payload.how,
+    equipment: payload.equipment,
+    instructionsAndCalibration: payload.instructionsAndCalibration,
+    immediateCorrectiveAction: payload.immediateCorrectiveAction,
+    criticalMin: payload.criticalMin,
+    criticalMax: payload.criticalMax,
+    unit: payload.unit,
+    monitoredDescription: payload.monitoredDescription,
+    verifiers: mapUsersByIds(payload.verifiers),
+    deviationRecievers: mapUsersByIds(payload.deviationRecievers),
+    performers: mapUsersByIds(payload.performers),
+    deputy: mapUsersByIds(payload.deputy),
+    ccpCorrectiveMeasure: payload.ccpCorrectiveMeasure.map((measure, index) => {
+      const existing = currentCcp.ccpCorrectiveMeasure.find(
+        (entry) => entry.productCategoryId === measure.productCategoryId,
+      )
+
+      return {
+        id: existing?.id ?? Date.now() + index,
+        productCategoryId: measure.productCategoryId,
+        productName: getMockProductCategoryName(measure.productCategoryId),
+        measureDescription: measure.measureDescription,
+      }
+    }),
+  }
+}
+
+function startEditingCcp(ccpId: number) {
+  if (isCreating.value || isCreatingCcp.value || isUpdatingCcp.value) {
+    return
+  }
+
+  const ccp = resource.value.find((entry) => entry.id === ccpId)
+  if (!ccp) {
+    return
+  }
+
+  editingCcpId.value = ccpId
+  editingPayload.value = toCreatePayload(ccp)
+  editingRoleUsers.value = {
+    verifiers: ccp.verifiers.map((user) => ({
+      id: user.userId,
+      legalName: user.userName,
+      email: '',
+      accessLevel: 'WORKER',
+    })),
+    deviationRecievers: ccp.deviationRecievers.map((user) => ({
+      id: user.userId,
+      legalName: user.userName,
+      email: '',
+      accessLevel: 'WORKER',
+    })),
+    performers: ccp.performers.map((user) => ({
+      id: user.userId,
+      legalName: user.userName,
+      email: '',
+      accessLevel: 'WORKER',
+    })),
+    deputy: ccp.deputy.map((user) => ({
+      id: user.userId,
+      legalName: user.userName,
+      email: '',
+      accessLevel: 'WORKER',
+    })),
+  }
+  updateError.value = false
+}
+
+function cancelEditingCcp() {
+  if (isUpdatingCcp.value) {
+    return
+  }
+
+  editingCcpId.value = null
+  editingPayload.value = null
+  editingRoleUsers.value = null
+  updateError.value = false
+}
+
+async function submitEditCcp(payload: NewCriticalControlPoint) {
+  if (isUpdatingCcp.value || editingCcpId.value === null) {
+    return
+  }
+
+  isUpdatingCcp.value = true
+  updateError.value = false
+
+  try {
+    await updateCcp({
+      id: editingCcpId.value,
+      ...payload,
+    })
+    await fetchCcps()
+    editingCcpId.value = null
+    editingPayload.value = null
+    editingRoleUsers.value = null
+  } catch (err) {
+    if (err instanceof Error) {
+      console.error(err.message)
+    } else {
+      console.error('Unknown error occurred')
+    }
+    updateError.value = true
+  } finally {
+    isUpdatingCcp.value = false
+  }
 }
 
 onMounted(async () => {
@@ -324,38 +491,40 @@ async function addCcp(payload: NewCriticalControlPoint) {
     <main>
       <div class="main-no-sidebar-container">
         <Paginator />
-        <h1 class="instrument-serif-regular no-margin">
-          Kritiske punkter
-        </h1>
-        <hr class="navy-hr">
+        <h1 class="instrument-serif-regular no-margin">Kritiske punkter</h1>
+        <hr class="navy-hr" />
         <DesktopButton
-          v-if="!isCreating && !loading"
+          v-if="!isCreating && editingCcpId === null && !loading"
           :icon="Plus"
           content="Legg til CCP"
           :on-click="startCreating"
         />
         <Loading v-if="loading" />
-        <p
-          v-else-if="error"
-          class="error-message"
-        >
-          Klarte ikke å hente kritiske kontrollpunkter.
-        </p>
+        <p v-else-if="error" class="error-message">Klarte ikke å hente kritiske kontrollpunkter.</p>
 
         <template v-else>
           <CcpCreateForm
             v-if="isCreating"
-            :is-creating-ccp="isCreatingCcp"
-            :create-error="createError"
-            @create="addCcp"
+            mode="create"
+            :is-submitting="isCreatingCcp"
+            :submit-error="createError"
+            @submit="addCcp"
             @cancel="cancelCreating"
           />
 
-          <CcpCard
-            v-for="ccp in resource"
-            :key="ccp.id"
-            :ccp="ccp"
-          />
+          <template v-for="ccp in resource" :key="ccp.id">
+            <CcpCreateForm
+              v-if="editingCcpId === ccp.id"
+              mode="edit"
+              :initial-payload="editingPayload"
+              :initial-role-users="editingRoleUsers"
+              :is-submitting="isUpdatingCcp"
+              :submit-error="updateError"
+              @submit="submitEditCcp"
+              @cancel="cancelEditingCcp"
+            />
+            <CcpCard v-else :ccp="ccp" @edit="startEditingCcp" />
+          </template>
         </template>
       </div>
     </main>
