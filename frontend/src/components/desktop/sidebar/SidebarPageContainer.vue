@@ -9,6 +9,7 @@ import {
   Beer,
   CookingPot,
   CheckCheck,
+  AlertTriangle,
 } from '@lucide/vue'
 
 defineProps<{
