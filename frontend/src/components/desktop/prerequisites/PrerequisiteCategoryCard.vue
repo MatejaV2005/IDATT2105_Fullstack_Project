@@ -22,6 +22,7 @@ type UpdateRoutinePayload = {
   categoryId: number
   routineId: number
   title: string
+  description: string
   measures: string
   interval_start: number
   interval_repeat_time: number
@@ -39,6 +40,7 @@ type UpdateStandardPayload = {
 type CreateRoutinePayload = {
   categoryId: number
   title: string
+  description: string
   measures: string
   interval_start: number
   interval_repeat_time: number
@@ -61,6 +63,7 @@ const props = defineProps<{
   onUpdateStandard: (payload: UpdateStandardPayload) => Promise<void>
   onCreateRoutine: (payload: CreateRoutinePayload) => Promise<void>
   onCreateStandard: (payload: CreateStandardPayload) => Promise<void>
+  availableUsers?: BasicUserWithAccessLevel[]
 }>()
 
 const editingCategory = ref(false)
@@ -200,12 +203,12 @@ function startEditingPoint(point: PrerequisiteCategory['points'][number]) {
 
   if (point.type === 'routine') {
     const schedule = routineScheduleState.value[point.routineId] ?? {
-      intervalStart: Math.floor(Date.now() / 1000),
-      intervalRepeatTime: 604800,
+      intervalStart: point.intervalStart ?? Math.floor(Date.now() / 1000),
+      intervalRepeatTime: point.intervalRepeatTime ?? 604800,
     }
     routineScheduleState.value[point.routineId] = schedule
     editPointMeasures.value = point.measures
-    editPointDescription.value = ''
+    editPointDescription.value = point.description
     editPointIntervalStart.value = toDateTimeLocal(schedule.intervalStart)
     editPointIntervalRepeatTimeSeconds.value = schedule.intervalRepeatTime
     editPointPerformerIds.value = point.performers.map((user) => user.userId)
@@ -273,6 +276,7 @@ async function savePoint(point: PrerequisiteCategory['points'][number]) {
         categoryId: props.category.id,
         routineId: point.routineId,
         title: editPointTitle.value.trim(),
+        description: editPointDescription.value.trim(),
         measures: editPointMeasures.value.trim(),
         interval_start: intervalStart,
         interval_repeat_time: repeatSeconds,
@@ -350,6 +354,7 @@ async function createPoint() {
 
       if (
         createPointMeasures.value.trim().length === 0 ||
+        createPointDescription.value.trim().length === 0 ||
         intervalStart === null ||
         repeatSeconds <= 0 ||
         createPointPerformerIds.value.length === 0 ||
@@ -361,6 +366,7 @@ async function createPoint() {
       await props.onCreateRoutine({
         categoryId: props.category.id,
         title: createPointTitle.value.trim(),
+        description: createPointDescription.value.trim(),
         measures: createPointMeasures.value.trim(),
         interval_start: intervalStart,
         interval_repeat_time: repeatSeconds,
@@ -505,6 +511,14 @@ async function createPoint() {
         <template v-if="point.type === 'routine'">
           <span v-if="!isEditingPoint(point)">Avvikstiltak: {{ point.measures }}</span>
           <div v-else>
+            <h4 class="navy-subtitle no-margin">Beskrivelse</h4>
+            <textarea
+              v-model="editPointDescription"
+              class="simple-text-input point-textarea"
+              :disabled="savingPointKey === pointKey(point)"
+              rows="3"
+              placeholder="Beskriv rutinen"
+            />
             <h4 class="navy-subtitle no-margin">Avvikstiltak</h4>
             <textarea
               v-model="editPointMeasures"
@@ -529,6 +543,7 @@ async function createPoint() {
               v-else
               :set-users="setEditPointDeputy"
               :initial-user-ids="editPointDeputyIds"
+              :users="availableUsers"
             />
           </div>
 
@@ -546,6 +561,7 @@ async function createPoint() {
               v-else
               :set-users="setEditPointPerformers"
               :initial-user-ids="editPointPerformerIds"
+              :users="availableUsers"
             />
           </div>
         </template>
@@ -631,6 +647,17 @@ async function createPoint() {
         </div>
 
         <label class="create-field">
+          <span class="navy-subtitle">Beskrivelse</span>
+          <textarea
+            v-model="createPointDescription"
+            class="simple-text-input point-textarea"
+            :disabled="creatingPoint"
+            rows="3"
+            placeholder="Beskriv rutinen"
+          />
+        </label>
+
+        <label class="create-field">
           <span class="navy-subtitle">Avvikstiltak</span>
           <textarea
             v-model="createPointMeasures"
@@ -643,7 +670,11 @@ async function createPoint() {
 
         <div>
           <span class="navy-subtitle">Vikarleder</span>
-          <AddUsers :set-users="setCreatePointDeputy" :initial-user-ids="createPointDeputyIds" />
+          <AddUsers
+            :set-users="setCreatePointDeputy"
+            :initial-user-ids="createPointDeputyIds"
+            :users="availableUsers"
+          />
         </div>
 
         <div>
@@ -651,6 +682,7 @@ async function createPoint() {
           <AddUsers
             :set-users="setCreatePointPerformers"
             :initial-user-ids="createPointPerformerIds"
+            :users="availableUsers"
           />
         </div>
       </template>

@@ -7,11 +7,15 @@ interface PrerequisiteUser {
 interface RoutinePrerequisitePoint {
   title: string
   type: 'routine'
+  description: string
   measures: string
   repeatText: string
+  verifiers: PrerequisiteUser[]
   deviationRecievers: PrerequisiteUser[]
   performers: PrerequisiteUser[]
   deputy: PrerequisiteUser[]
+  intervalStart?: number | null
+  intervalRepeatTime?: number | null
   routineId: number
 }
 
