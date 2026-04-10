@@ -19,7 +19,19 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.List;
 
-// OncePerRequestFilter guarantees that this filter is executed exactly once per HTTP request
+/**
+ * Custom security filter responsible for intercepting HTTP requests and validating JWT authentication.
+ * <p>
+ * This filter extends {@link OncePerRequestFilter} to ensure execution exactly once per request. 
+ * It extracts the Bearer token from the {@code Authorization} header, validates its integrity 
+ * and expiration via {@link JwtUtil}, and populates the {@link SecurityContextHolder} with 
+ * a {@link JwtUserPrinciple} if the token is valid.
+ * </p>
+ * <p>
+ * If authentication fails or required claims are missing, it sends an {@code SC_UNAUTHORIZED} 
+ * response and halts the filter chain.
+ * </p>
+ */
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
     private static final Logger logger = LoggerFactory.getLogger(JwtAuthFilter.class);
@@ -29,6 +41,15 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         this.jwtUtil = jwtUtil;
     }
 
+    /**
+     * Intercepts the request to perform JWT validation and establish the security context.
+     *
+     * @param request     The incoming {@link HttpServletRequest}.
+     * @param response    The outgoing {@link HttpServletResponse}.
+     * @param filterChain The {@link FilterChain} to provide the request to the next security layer.
+     * @throws ServletException if a servlet-related error occurs.
+     * @throws IOException      if an I/O error occurs during processing.
+     */
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request, 
                                     @NonNull HttpServletResponse response, 
