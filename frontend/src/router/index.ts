@@ -208,7 +208,6 @@ router.beforeEach(async (to) => {
     null
   const effectiveRole = currentOrganization?.orgRole ?? claims.value?.role ?? null
   const workerDesktopAllowedRoutes = new Set([
-    '/desktop',
     '/desktop/users/me',
     '/desktop/oppgaver-oversikt',
     '/desktop/oppgaver-oversikt/kontrollpunkt-logger',
