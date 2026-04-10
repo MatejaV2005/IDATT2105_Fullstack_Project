@@ -10,5 +10,4 @@ import SidebarPageContainer from '@/components/desktop/sidebar/SidebarPageContai
     Fareanalyse HEI
   </p>
 </template>
-<style scoped>
-</style>
+<style scoped></style>

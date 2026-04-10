@@ -1,8 +1,20 @@
 import axios from 'axios';
+import { clearAuthToken, getAuthToken, setAuthToken } from '@/utils/auth';
 
 const api = axios.create({
     baseURL: '/api',
     withCredentials: true
+});
+
+api.interceptors.request.use((config) => {
+    const token = getAuthToken();
+
+    if (token?.trim()) {
+        config.headers = config.headers ?? {};
+        config.headers.Authorization = `Bearer ${token.trim()}`;
+    }
+
+    return config;
 });
 
 api.interceptors.response.use(
@@ -11,10 +23,19 @@ api.interceptors.response.use(
         if (error.response?.status === 401 && !error.config._retry) {
             error.config._retry = true;
             try {
-                await api.post('/auth/refresh');
+                const refreshResponse = await api.post('/auth/refresh');
+                const nextToken = typeof refreshResponse.data === 'string' ? refreshResponse.data.trim() : '';
+
+                if (nextToken) {
+                    setAuthToken(nextToken);
+                    error.config.headers = error.config.headers ?? {};
+                    error.config.headers.Authorization = `Bearer ${nextToken}`;
+                }
+
                 return api(error.config);
             } catch (refreshError) {
-                window.location.href = '/login';
+                clearAuthToken();
+                window.location.href = '/mobile/login';
                 return Promise.reject(refreshError);
             }
         }

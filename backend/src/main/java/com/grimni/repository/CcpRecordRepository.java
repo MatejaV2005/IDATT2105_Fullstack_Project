@@ -1,5 +1,7 @@
 package com.grimni.repository;
 
+import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -52,5 +54,17 @@ public interface CcpRecordRepository extends JpaRepository<CcpRecord, Long>  {
             @Param("orgId") Long orgId,
             @Param("userId") Long userId,
             @Param("isManagerOrOwner") boolean isManagerOrOwner);
+
+    boolean existsByOrganization_IdAndCcp_IdAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(
+        Long orgId,
+        Long ccpId,
+        LocalDateTime createdAtGreaterThanEqual,
+        LocalDateTime createdAtLessThan
+    );
+
+    List<CcpRecord> findByOrganization_IdAndCcp_IdInOrderByCreatedAtDesc(
+        Long orgId,
+        Collection<Long> ccpIds
+    );
 
 }

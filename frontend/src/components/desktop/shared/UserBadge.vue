@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import { User } from '@lucide/vue';
-import Badge from './Badge.vue';
-    defineProps<{
-        name: string,
-        userId?: number,
-    }>()
+import { User } from '@lucide/vue'
+import Badge from './Badge.vue'
+defineProps<{
+  name: string
+  userId?: number
+}>()
 </script>
 <template>
   <RouterLink
-    :to="userId ? ('/desktop/users/' + userId) : '#'"
+    :to="userId ? '/desktop/users/' + userId : '#'"
     class="user-badge-link"
   >
     <Badge
@@ -21,8 +21,8 @@ import Badge from './Badge.vue';
   </RouterLink>
 </template>
 <style scoped>
-    .user-badge-link {
-    }
-    .user-badge {
-    }
+.user-badge-link {
+}
+.user-badge {
+}
 </style>

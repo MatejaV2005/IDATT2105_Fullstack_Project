@@ -18,6 +18,9 @@ public class PrerequisiteRoutine extends CreatedAtEntity {
     @Column(name = "title", nullable = false, columnDefinition = "TEXT")
     private String title;
 
+    @Column(name = "prerequisite_description", nullable = false, columnDefinition = "TEXT")
+    private String description;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "prerequisite_category_id")
     private PrerequisiteCategory prerequisiteCategory;
@@ -61,6 +64,14 @@ public class PrerequisiteRoutine extends CreatedAtEntity {
 
     public void setTitle(String title) {
         this.title = title;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 
     public PrerequisiteCategory getPrerequisiteCategory() {

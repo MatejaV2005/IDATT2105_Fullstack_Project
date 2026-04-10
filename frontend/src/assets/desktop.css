@@ -1,41 +1,49 @@
 :root {
-  --blue-background: #DFF1FB;
-  --white-greek: #FCFBF9;
-  
-  --blue-light: #DFF1FB;
+  --blue-background: #dff1fb;
+  --white-greek: #fcfbf9;
+
+  --blue-light: #dff1fb;
   --blue-light-10: rgb(223 241 251 / 0.1);
   --blue-light-20: rgb(223 241 251 / 0.2);
   --blue-light-40: rgb(223 241 251 / 0.4);
   --blue-light-60: rgb(223 241 251 / 0.6);
   --blue-light-80: rgb(223 241 251 / 0.8);
 
-  --red-cherry: #DA1A5A;
+  --red-cherry: #da1a5a;
   --red-cherry-10: rgb(218 26 90 / 0.1);
   --red-cherry-20: rgb(218 26 90 / 0.2);
   --red-cherry-40: rgb(218 26 90 / 0.4);
   --red-cherry-60: rgb(218 26 90 / 0.6);
   --red-cherry-80: rgb(218 26 90 / 0.8);
 
-  --green-light: #1CBE3A;
+  --green-light: #1cbe3a;
   --green-light-10: rgb(28 190 58 / 0.1);
   --green-light-20: rgb(28 190 58 / 0.2);
   --green-light-40: rgb(28 190 58 / 0.4);
   --green-light-60: rgb(28 190 58 / 0.6);
   --green-light-80: rgb(28 190 58 / 0.8);
 
-  --blue-navy: #2D2D75;
+  --blue-navy: #2d2d75;
   --blue-navy-10: rgb(45 45 117 / 0.1);
   --blue-navy-20: rgb(45 45 117 / 0.2);
   --blue-navy-40: rgb(45 45 117 / 0.4);
   --blue-navy-60: rgb(45 45 117 / 0.6);
   --blue-navy-80: rgb(45 45 117 / 0.8);
 
-  --blue-decor: #0F6698;
+  --blue-decor: #0f6698;
   --blue-decor-10: rgb(15 102 152 / 0.1);
   --blue-decor-20: rgb(15 102 152 / 0.2);
   --blue-decor-40: rgb(15 102 152 / 0.4);
   --blue-decor-60: rgb(15 102 152 / 0.6);
   --blue-decor-80: rgb(15 102 152 / 0.8);
+
+  /* From Spirited Away */
+  --black-no-face: #0b0d1c;
+  --black-no-face-10: rgb(11 13 28 / 0.1);
+  --black-no-face-20: rgb(11 13 28 / 0.2);
+  --black-no-face-40: rgb(11 13 28 / 0.4);
+  --black-no-face-60: rgb(11 13 28 / 0.6);
+  --black-no-face-80: rgb(11 13 28 / 0.8);
 }
 
 .desktop-layout {
@@ -66,17 +74,17 @@
 }
 
 .transition {
-    transition: all .1s;
+  transition: all 0.1s;
 }
 
 .simple-text-input {
-    border-radius: .25rem;
-    border-color: var(--blue-navy-40);
-    text-indent: .5rem;
+  border-radius: 0.25rem;
+  border-color: var(--blue-navy-40);
+  text-indent: 0.5rem;
 }
 .simple-text-input:focus {
-    border-color: var(--blue-navy);
-    outline: none;
+  border-color: var(--blue-navy);
+  outline: none;
 }
 button {
   cursor: pointer;
@@ -93,4 +101,15 @@ input {
   margin: 0;
   border: 0;
   border-top: 1px solid var(--blue-navy-40);
+}
+.center-content {
+  /* How do you even center a div? */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.horizontal-space-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }

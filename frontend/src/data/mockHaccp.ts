@@ -3,6 +3,7 @@ export interface RoutineItem {
   title: string
   area: string
   description: string
+  immediateCorrectiveAction?: string
   dueAt: string
   lastCompletedAt: string
   checked: boolean
@@ -35,6 +36,7 @@ export const routineItems: RoutineItem[] = [
     title: 'Mottakskontroll ved levering',
     area: 'Innkjøp og mottakskontroll',
     description: 'Kontroller temperatur, emballasje og merking på alle varer før de settes på lager.',
+    immediateCorrectiveAction: 'Kontakt skiftleder hvis leveransen ikke kan godkjennes, og hold varene adskilt til videre avklaring.',
     dueAt: 'I dag kl. 09:00',
     lastCompletedAt: '29.03 kl. 09:06',
     checked: false,
@@ -44,6 +46,7 @@ export const routineItems: RoutineItem[] = [
     title: 'Hovedvask av tilberedningssone',
     area: 'Renhold av lokaler og utstyr',
     description: 'Vask og desinfiser benker, redskap og kontaktflater etter siste produksjonsrunde.',
+    immediateCorrectiveAction: 'Gi beskjed til ansvarlig leder og dokumenter hvorfor sonen ikke kunne rengjøres ferdig før lokalet stenges.',
     dueAt: 'Tirsdag kl. 18:30',
     lastCompletedAt: '26.03 kl. 18:41',
     checked: true,
@@ -53,6 +56,7 @@ export const routineItems: RoutineItem[] = [
     title: 'Kontroll av skadedyrfeller',
     area: 'Skadedyrsikring',
     description: 'Sjekk alle feller for aktivitet, skader eller behov for bytte og noter eventuelle funn.',
+    immediateCorrectiveAction: 'Kontakt ansvarlig for skadedyrkontroll og marker området dersom du finner aktivitet eller skader.',
     dueAt: 'Fredag kl. 08:30',
     lastCompletedAt: '22.03 kl. 08:27',
     checked: false,
@@ -62,6 +66,7 @@ export const routineItems: RoutineItem[] = [
     title: 'Kalibrering av frysertermometer',
     area: 'Vedlikehold av lokaler og utstyr',
     description: 'Sammenlign frysertermometeret mot referansemåler og bekreft at målingen er innenfor toleranse.',
+    immediateCorrectiveAction: 'Kontakt teknisk ansvarlig og unngå videre bruk av måleren dersom avviket er for stort.',
     dueAt: '01.04 kl. 10:00',
     lastCompletedAt: '01.03 kl. 09:40',
     checked: false,
@@ -71,6 +76,7 @@ export const routineItems: RoutineItem[] = [
     title: 'Kalibrering av frysertermometer',
     area: 'Vedlikehold av lokaler og utstyr',
     description: 'Sammenlign frysertermometeret mot referansemåler og bekreft at målingen er innenfor toleranse.',
+    immediateCorrectiveAction: 'Kontakt teknisk ansvarlig og unngå videre bruk av måleren dersom avviket er for stort.',
     dueAt: '01.04 kl. 10:00',
     lastCompletedAt: '01.03 kl. 09:40',
     checked: false,

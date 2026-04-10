@@ -248,6 +248,7 @@ public class PrerequisiteCategoryService {
 
         PrerequisiteRoutine routine = new PrerequisiteRoutine();
         routine.setTitle(request.title());
+        routine.setDescription(request.description());
         routine.setImmediateCorrectiveAction(request.measures());
         routine.setOrganization(category.getOrganization());
         routine.setPrerequisiteCategory(category);
@@ -276,6 +277,9 @@ public class PrerequisiteCategoryService {
 
         if (request.title() != null) {
             routine.setTitle(request.title());
+        }
+        if (request.description() != null) {
+            routine.setDescription(request.description());
         }
         if (request.measures() != null) {
             routine.setImmediateCorrectiveAction(request.measures());
@@ -492,6 +496,7 @@ public class PrerequisiteCategoryService {
             routine.getId(),
             routine.getTitle(),
             "routine",
+            routine.getDescription(),
             routine.getImmediateCorrectiveAction(),
             buildRepeatText(intervalRule),
             intervalResponse,

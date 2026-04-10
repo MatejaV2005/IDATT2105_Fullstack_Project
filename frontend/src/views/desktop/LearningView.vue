@@ -1,124 +1,156 @@
 <script setup lang="ts">
 import Badge from '@/components/desktop/shared/Badge.vue'
 import DesktopButton from '@/components/desktop/shared/DesktopButton.vue'
+import Loading from '@/components/desktop/shared/Loading.vue'
 import SidebarPageContainer from '@/components/desktop/sidebar/SidebarPageContainer.vue'
+import type { LearningAllInfo } from '@/interfaces/api-interfaces'
+import { delay } from '@/utils'
 import { Edit2, File, Link, Plus } from '@lucide/vue'
+import { onMounted, ref } from 'vue'
 
-const allCourses = [
-  {
-    name: 'Serveringskurs',
-    description:
-      'Dere må lese here pdf\'en & skrive en oppsummering. Dere må også gjøre alle oppgaver i NDLA sitt kurs og levere det inn til oss.',
-    resources: [
-      {
-        name: 'www.ndla.no/random_stuff',
-        type: 'link',
-      },
-      {
-        name: 'erna_sin_spise_guide.pdf',
-        type: 'file',
-      },
-    ],
-    responsible: ['Simen Velle', 'Vedum'],
-    uniqueId: 1234,
-  },
-  {
-    name: 'Drikkekurs',
-    description:
-      'Dere må lese here pdf\'en & skrive en oppsummering. Dere må også gjøre alle oppgaver i NDLA sitt kurs og levere det inn til oss.',
-    resources: [
-      {
-        name: 'www.ndla.no/random_stuff',
-        type: 'link',
-      },
-      {
-        name: 'erna_sin_spise_guide.pdf',
-        type: 'file',
-      },
-    ],
-    responsible: ['Simen Velle', 'Ola svenneby'],
-    uniqueId: 9876,
-  },
-  {
-    name: 'Drikkekurs',
-    description:
-      'Dere må lese here pdf\'en & skrive en oppsummering. Dere må også gjøre alle oppgaver i NDLA sitt kurs og levere det inn til oss.',
-    resources: [
-      {
-        name: 'www.ndla.no/random_stuff',
-        type: 'link',
-      },
-      {
-        name: 'erna_sin_spise_guide.pdf',
-        type: 'file',
-      },
-    ],
-    responsible: ['Simen Velle', 'Ola svenneby'],
-    uniqueId: 9816,
-  },
-]
-const userProgress = [
-  {
-    name: 'Mona Jul',
-    courses: [
-      {
-        name: 'Serveringskurs',
-        completed: true,
-        uniqueId: 1234,
-      },
-      {
-        name: 'Drikkekurs',
-        completed: false,
-        uniqueId: 9876,
-      },
-    ],
-  },
-  {
-    name: 'Jagland',
-    courses: [
-      {
-        name: 'Serveringskurs',
-        completed: true,
-        uniqueId: 1234,
-      },
-      {
-        name: 'Drikkekurs',
-        completed: true,
-        uniqueId: 9876,
-      },
-    ],
-  },
-  {
-    name: 'Bent Høie',
-    courses: [
-      {
-        name: 'Serveringskurs',
-        completed: false,
-        uniqueId: 1234,
-      },
-      {
-        name: 'Drikkekurs',
-        completed: true,
-        uniqueId: 9876,
-      },
-    ],
-  },
-  {
-    name: 'Bondevik',
-    courses: [
-      {
-        name: 'Serveringskurs',
-        completed: false,
-        uniqueId: 1234,
-      },
-      {
-        name: 'Drikkekurs',
-        completed: false,
-        uniqueId: 9876,
-      },
-    ],
-  },
-]
+const mockData: LearningAllInfo = {
+  allCourses: [
+    {
+      name: 'Serveringskurs',
+      description:
+        "Dere må lese here pdf'en & skrive en oppsummering. Dere må også gjøre alle oppgaver i NDLA sitt kurs og levere det inn til oss.",
+      resources: [
+        {
+          name: 'www.ndla.no/random_stuff',
+          type: 'link',
+        },
+        {
+          name: 'erna_sin_spise_guide.pdf',
+          type: 'file',
+        },
+      ],
+      responsible: ['Simen Velle', 'Vedum'],
+      uniqueId: 1234,
+    },
+    {
+      name: 'Drikkekurs',
+      description:
+        "Dere må lese here pdf'en & skrive en oppsummering. Dere må også gjøre alle oppgaver i NDLA sitt kurs og levere det inn til oss.",
+      resources: [
+        {
+          name: 'www.ndla.no/random_stuff',
+          type: 'link',
+        },
+        {
+          name: 'erna_sin_spise_guide.pdf',
+          type: 'file',
+        },
+      ],
+      responsible: ['Simen Velle', 'Ola svenneby'],
+      uniqueId: 9876,
+    },
+    {
+      name: 'Drikkekurs',
+      description:
+        "Dere må lese here pdf'en & skrive en oppsummering. Dere må også gjøre alle oppgaver i NDLA sitt kurs og levere det inn til oss.",
+      resources: [
+        {
+          name: 'www.ndla.no/random_stuff',
+          type: 'link',
+        },
+        {
+          name: 'erna_sin_spise_guide.pdf',
+          type: 'file',
+        },
+      ],
+      responsible: ['Simen Velle', 'Ola svenneby'],
+      uniqueId: 9816,
+    },
+  ],
+  userProgress: [
+    {
+      name: 'Mona Jul',
+      courses: [
+        {
+          name: 'Serveringskurs',
+          completed: true,
+          uniqueId: 1234,
+        },
+        {
+          name: 'Drikkekurs',
+          completed: false,
+          uniqueId: 9876,
+        },
+      ],
+    },
+    {
+      name: 'Jagland',
+      courses: [
+        {
+          name: 'Serveringskurs',
+          completed: true,
+          uniqueId: 1234,
+        },
+        {
+          name: 'Drikkekurs',
+          completed: true,
+          uniqueId: 9876,
+        },
+      ],
+    },
+    {
+      name: 'Bent Høie',
+      courses: [
+        {
+          name: 'Serveringskurs',
+          completed: false,
+          uniqueId: 1234,
+        },
+        {
+          name: 'Drikkekurs',
+          completed: true,
+          uniqueId: 9876,
+        },
+      ],
+    },
+    {
+      name: 'Bondevik',
+      courses: [
+        {
+          name: 'Serveringskurs',
+          completed: false,
+          uniqueId: 1234,
+        },
+        {
+          name: 'Drikkekurs',
+          completed: false,
+          uniqueId: 9876,
+        },
+      ],
+    },
+  ],
+}
+
+const resource = ref<LearningAllInfo>({ allCourses: [], userProgress: [] })
+const loading = ref(true)
+const error = ref<boolean | null>(null)
+
+onMounted(async () => {
+  try {
+    // const response = await fetch('/api/learning/get-all-info')
+    // if (!response.ok) {
+    //     throw new Error(`Failed to get user (${response.status})`)
+    // }
+    // const data = await response.json()
+    await delay(2000)
+    const data = mockData
+    resource.value = data
+    loading.value = false
+    error.value = false
+  } catch (err) {
+    if (err instanceof Error) {
+      console.error(err.message)
+    } else {
+      console.error('Unknown error occurred')
+    }
+    error.value = true
+  }
+})
 
 function hasCompletedCourse(
   user: { courses: { name: string; completed: boolean; uniqueId: number }[] },
@@ -127,7 +159,7 @@ function hasCompletedCourse(
   return user.courses.some((course) => course.uniqueId === courseId && course.completed)
 }
 function sayHello() {
-  alert("HELLO THERE!")
+  alert('HELLO THERE!')
 }
 </script>
 
@@ -138,13 +170,17 @@ function sayHello() {
         Opplæring
       </h1>
       <span class="navy-subtitle">Godkjenning</span>
-      <div class="course-completion">
+      <Loading v-if="loading" />
+      <div
+        v-if="!loading"
+        class="course-completion"
+      >
         <table>
           <thead>
             <tr>
               <th>Bruker</th>
               <th
-                v-for="course in allCourses"
+                v-for="course in resource.allCourses"
                 :key="course.uniqueId"
               >
                 {{ course.name }}
@@ -153,13 +189,13 @@ function sayHello() {
           </thead>
           <tbody>
             <tr
-              v-for="user in userProgress"
+              v-for="user in resource.userProgress"
               :key="user.name"
             >
               <td>{{ user.name }}</td>
               <td
-                v-for="course in allCourses"
-                :key="`${user.name}-${course}`"
+                v-for="course in resource.allCourses"
+                :key="`${user.name}-${course.uniqueId}`"
               >
                 <span
                   class="completion-chip"
@@ -180,8 +216,9 @@ function sayHello() {
         />
       </div>
       <span class="navy-subtitle">Opplæringskrav</span>
+      <Loading v-if="loading" />
       <div
-        v-for="course in allCourses"
+        v-for="course in resource.allCourses"
         :key="course.uniqueId"
         class="course"
       >
@@ -205,6 +242,7 @@ function sayHello() {
           <div class="resource-container">
             <Badge
               v-for="resource in course.resources"
+              :key="`${course.uniqueId}-${resource.name}`"
               badge-color="navy"
               :icon="resource.type === 'link' ? Link : File"
             >

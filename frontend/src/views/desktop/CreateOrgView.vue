@@ -179,14 +179,18 @@ main {
     input {
       accent-color: var(--blue-navy);
     }
-    input[type=number]::-webkit-inner-spin-button,
-    input[type=number]::-webkit-outer-spin-button {
-        -webkit-appearance: none;
-        margin: 0;
+
+    /* 
+      Noe greier jeg fant på nett. Skal bytte til standard component senere
+    */
+    input[type='number']::-webkit-inner-spin-button,
+    input[type='number']::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
     }
 
-    input[type=number] {
-        -moz-appearance: textfield;
+    input[type='number'] {
+      -moz-appearance: textfield;
     }
     .simple-text-input {
       width: 100%;

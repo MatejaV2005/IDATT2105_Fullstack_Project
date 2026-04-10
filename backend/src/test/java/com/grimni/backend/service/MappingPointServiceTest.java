@@ -57,7 +57,7 @@ public class MappingPointServiceTest {
         mappingPoint.setTitle("Salg eller utlevering til person som er under 18 år");
         mappingPoint.setChallenges("Mindreårige kunder bruker lånt/falskt ID-kort.");
         mappingPoint.setMeasures("Instruks om å sjekke legitimasjon.");
-        mappingPoint.setResponsibleForPoint("Hvem enn som er i kassen ved gitt tidspunkt");
+        mappingPoint.setResponsibleText("Hvem enn som er i kassen ved gitt tidspunkt");
         mappingPoint.setOrganization(organization);
     }
 
@@ -82,7 +82,7 @@ public class MappingPointServiceTest {
 
             assertEquals(1, result.size());
             assertEquals((short) 8, result.get(0).dots());
-            assertEquals("Hvem enn som er i kassen ved gitt tidspunkt", result.get(0).responsibleForPoint());
+            assertEquals("Hvem enn som er i kassen ved gitt tidspunkt", result.get(0).responsibleText());
         }
 
         @Test
@@ -122,7 +122,7 @@ public class MappingPointServiceTest {
             MappingPointResponse result = mappingPointService.createMappingPoint(request, 99L, 10L);
 
             assertEquals(17L, result.id());
-            assertEquals("Hvem enn som er i kassen ved gitt tidspunkt", result.responsibleForPoint());
+            assertEquals("Hvem enn som er i kassen ved gitt tidspunkt", result.responsibleText());
         }
     }
 
@@ -149,7 +149,7 @@ public class MappingPointServiceTest {
             MappingPointResponse result = mappingPointService.updateMappingPoint(17L, request, 99L, 10L);
 
             assertEquals("Oppdatert tiltak", result.measures());
-            assertEquals("Ny ansvarstekst", result.responsibleForPoint());
+            assertEquals("Ny ansvarstekst", result.responsibleText());
             assertEquals("AL § 1-5", result.law());
         }
     }

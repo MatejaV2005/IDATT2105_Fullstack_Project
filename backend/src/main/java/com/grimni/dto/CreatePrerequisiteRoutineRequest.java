@@ -11,6 +11,9 @@ public record CreatePrerequisiteRoutineRequest(
     @NotBlank(message = "Title cannot be blank")
     String title,
 
+    @NotBlank(message = "Description cannot be blank")
+    String description,
+
     @NotBlank(message = "Measures cannot be blank")
     String measures,
 

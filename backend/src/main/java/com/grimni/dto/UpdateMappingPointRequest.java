@@ -19,6 +19,6 @@ public record UpdateMappingPointRequest(
     @Size(min = 1, message = "Measures cannot be empty")
     String measures,
 
-    @Size(min = 1, message = "Responsible for point cannot be empty")
-    String responsibleForPoint
+    @Size(min = 1, message = "Responsible text cannot be empty")
+    String responsibleText
 ) {}
