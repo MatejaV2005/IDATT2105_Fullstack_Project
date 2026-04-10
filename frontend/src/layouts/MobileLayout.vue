@@ -1,13 +1,20 @@
 <script setup lang="ts">
 import OrganizationSwitcher from '@/components/OrganizationSwitcher.vue'
+import ViewModeSwitcher from '@/components/ViewModeSwitcher.vue'
 import { useOrgSession } from '@/composables/useOrgSession'
-import { getPostAuthRoute } from '@/utils/auth-routing'
 import { computed, onMounted } from 'vue'
 import { RouterLink, RouterView, useRoute } from 'vue-router'
 
 const route = useRoute()
-const { claims, currentUserInitials, currentUserName, ensureOrgSessionLoaded, isAuthenticated, organizations } =
-  useOrgSession()
+const {
+  claims,
+  currentOrganization,
+  currentUserInitials,
+  currentUserName,
+  ensureOrgSessionLoaded,
+  isAuthenticated,
+  organizations,
+} = useOrgSession()
 
 const tabs = [
   { name: 'rutiner', label: 'Rutiner', to: '/mobile/rutiner' },
@@ -18,10 +25,10 @@ const tabs = [
 
 const showTabs = computed(() => route.name !== 'login')
 const isLoginPage = computed(() => route.name === 'login')
-const authenticatedRoute = computed(() => getPostAuthRoute(claims.value, organizations.value))
-const profileLink = computed(() => (isAuthenticated.value ? authenticatedRoute.value : '/auth'))
+const profileLink = computed(() => (isAuthenticated.value ? '/desktop/users/me' : '/auth'))
 const profileName = computed(() => currentUserName.value || 'Logg inn')
 const profileInitials = computed(() => currentUserInitials.value)
+const showViewModeSwitcher = computed(() => showTabs.value && currentOrganization.value !== null)
 
 onMounted(() => {
   void ensureOrgSessionLoaded()
@@ -48,10 +55,16 @@ onMounted(() => {
             v-if="showTabs"
             class="top-app-bar__center"
           >
-            <OrganizationSwitcher
-              variant="mobile"
-              redirect-to="/mobile/rutiner"
-            />
+            <div class="top-app-bar__center-stack">
+              <OrganizationSwitcher
+                variant="mobile"
+                redirect-to="/mobile/rutiner"
+              />
+              <ViewModeSwitcher
+                v-if="showViewModeSwitcher"
+                variant="mobile"
+              />
+            </div>
           </div>
           <div
             v-else
@@ -96,3 +109,13 @@ onMounted(() => {
 </template>
 
 <style src="@/assets/mobile.css"></style>
+<style scoped>
+.top-app-bar__center-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+  width: 100%;
+}
+</style>

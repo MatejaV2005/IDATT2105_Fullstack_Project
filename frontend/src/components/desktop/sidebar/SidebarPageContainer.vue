@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import SidebarMenuOption from './SidebarMenuOption.vue'
 import {
-  FileCheck2,
   ChartColumnIncreasing,
   PersonStanding,
   Brain,
@@ -9,78 +8,99 @@ import {
   Beer,
   CookingPot,
   CheckCheck,
-  AlertTriangle,
+  Building2,
 } from '@lucide/vue'
 
-defineProps<{
+withDefaults(
+  defineProps<{
   activePage?: string
-}>()
+  navigationMode?: 'full' | 'no-org'
+}>(),
+  {
+    navigationMode: 'full',
+  },
+)
 </script>
 
 <template>
   <div class="sidebar-page-container">
     <div class="sidebar">
-      <div>
+      <template v-if="navigationMode === 'no-org'">
         <div>
-          <span class="accent-title"> Regulering </span>
-          <SidebarMenuOption
-            to="/desktop/haccp"
-            name="IK-MAT HACCP"
-            :is-selected="activePage === '/desktop/haccp'"
-            :icon="CookingPot"
-          />
-          <SidebarMenuOption
-            to="/desktop/ik-alkohol-kartlegging-og-tiltak"
-            name="IK-ALKOHOL kartlegging"
-            :is-selected="activePage === '/desktop/ik-alkohol-kartlegging-og-tiltak'"
-            :icon="Beer"
-          />
+          <div>
+            <span class="accent-title">Meg</span>
+            <SidebarMenuOption
+              to="/desktop/users/me"
+              name="Min profil"
+              :is-selected="activePage === '/desktop/users/me'"
+              :icon="PersonStanding"
+            />
+            <SidebarMenuOption
+              to="/desktop/no-org"
+              name="Opprett / bli med i organisasjon"
+              :is-selected="activePage === '/desktop/no-org'"
+              :icon="Building2"
+            />
+          </div>
         </div>
-        <hr class="no-margin">
+      </template>
+      <template v-else>
         <div>
-          <span class="accent-title"> BEDRIFT </span>
-          <SidebarMenuOption
-            to="/desktop/bedrift-teamsammensetning"
-            name="Teamsammensetning"
-            :is-selected="activePage === '/desktop/bedrift-teamsammensetning'"
-            :icon="PersonStanding"
-          />
-          <SidebarMenuOption
-            to="/desktop/bedrift-analyse"
-            name="Analyse"
-            :is-selected="activePage === '/desktop/bedrift-analyse'"
-            :icon="ChartColumnIncreasing"
-          />
-          <SidebarMenuOption
-            to="/desktop/bedrift-opplaering"
-            name="Opplæring"
-            :is-selected="activePage === '/desktop/bedrift-opplaering'"
-            :icon="Brain"
-          />
-          <!-- <SidebarMenuOption
-            to="/desktop/deviations"
-            name="Avvikshåndtering"
-            :is-selected="activePage === '/desktop/deviations'"
-            :icon="AlertTriangle"
-          /> -->
+          <div>
+            <span class="accent-title"> Regulering </span>
+            <SidebarMenuOption
+              to="/desktop/haccp"
+              name="IK-MAT HACCP"
+              :is-selected="activePage === '/desktop/haccp'"
+              :icon="CookingPot"
+            />
+            <SidebarMenuOption
+              to="/desktop/ik-alkohol-kartlegging-og-tiltak"
+              name="IK-ALKOHOL kartlegging"
+              :is-selected="activePage === '/desktop/ik-alkohol-kartlegging-og-tiltak'"
+              :icon="Beer"
+            />
+          </div>
+          <hr class="no-margin">
+          <div>
+            <span class="accent-title"> BEDRIFT </span>
+            <SidebarMenuOption
+              to="/desktop/bedrift-teamsammensetning"
+              name="Teamsammensetning"
+              :is-selected="activePage === '/desktop/bedrift-teamsammensetning'"
+              :icon="PersonStanding"
+            />
+            <SidebarMenuOption
+              to="/desktop/bedrift-analyse"
+              name="Analyse"
+              :is-selected="activePage === '/desktop/bedrift-analyse'"
+              :icon="ChartColumnIncreasing"
+            />
+            <SidebarMenuOption
+              to="/desktop/bedrift-opplaering"
+              name="Opplæring"
+              :is-selected="activePage === '/desktop/bedrift-opplaering'"
+              :icon="Brain"
+            />
+          </div>
+          <hr class="no-margin">
+          <div>
+            <span class="accent-title">Meg</span>
+            <SidebarMenuOption
+              to="/desktop/oppgaver-oversikt"
+              name="Mine oppgaver"
+              :is-selected="activePage === '/desktop/oppgaver-oversikt'"
+              :icon="CheckCheck"
+            />
+          </div>
         </div>
-        <hr class="no-margin">
-        <div>
-          <span class="accent-title">Meg</span>
-          <SidebarMenuOption
-            to="/desktop/oppgaver-oversikt"
-            name="Mine oppgaver"
-            :is-selected="activePage === '/desktop/oppgaver-oversikt'"
-            :icon="CheckCheck"
-          />
-        </div>
-      </div>
-      <SidebarMenuOption
-        to="/desktop/bedrift-innstillinger"
-        name="Bedrift Innstillinger"
-        :is-selected="activePage === '/desktop/bedrift-innstillinger'"
-        :icon="Settings"
-      />
+        <SidebarMenuOption
+          to="/desktop/bedrift-innstillinger"
+          name="Bedrift Innstillinger"
+          :is-selected="activePage === '/desktop/bedrift-innstillinger'"
+          :icon="Settings"
+        />
+      </template>
     </div>
     <main class="main-view">
       <slot />

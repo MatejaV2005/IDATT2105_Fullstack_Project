@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import SidebarPageContainer from '@/components/desktop/sidebar/SidebarPageContainer.vue'
 import { ensureOrgSessionLoaded, useOrgSession } from '@/composables/useOrgSession'
 import { getPostAuthRoute } from '@/utils/auth-routing'
 import { computed, onMounted } from 'vue'
@@ -25,50 +26,55 @@ onMounted(() => {
 </script>
 
 <template>
-  <main class="no-org-shell">
-    <section class="no-org-page">
-      <h1 class="instrument-serif-regular no-margin">
-        Du er logget inn, men har ingen organisasjon ennå
-      </h1>
+  <SidebarPageContainer
+    active-page="/desktop/no-org"
+    navigation-mode="no-org"
+  >
+    <main class="no-org-shell">
+      <section class="no-org-page">
+        <h1 class="instrument-serif-regular no-margin">
+          Du er logget inn, men har ingen organisasjon ennå
+        </h1>
 
-      <div class="no-org-grid">
-        <article class="no-org-card">
-          <p class="no-org-card__eyebrow">
-            Join an org
-          </p>
-          <h2 class="no-margin">
-            Be om å bli lagt til
-          </h2>
-          <p class="no-margin">
-            Fortell manager eller owner at du har opprettet bruker i Grimni, og be dem legge deg
-            til i organisasjonen med denne e-posten:
-          </p>
-          <p class="no-org-card__email no-margin">
-            {{ userEmail || 'Ingen e-post tilgjengelig' }}
-          </p>
-        </article>
+        <div class="no-org-grid">
+          <article class="no-org-card">
+            <p class="no-org-card__eyebrow">
+              Join an org
+            </p>
+            <h2 class="no-margin">
+              Be om å bli lagt til
+            </h2>
+            <p class="no-margin">
+              Fortell manager eller owner at du har opprettet bruker i Grimni, og be dem legge deg
+              til i organisasjonen med denne e-posten:
+            </p>
+            <p class="no-org-card__email no-margin">
+              {{ userEmail || 'Ingen e-post tilgjengelig' }}
+            </p>
+          </article>
 
-        <article class="no-org-card">
-          <p class="no-org-card__eyebrow">
-            Create an org
-          </p>
-          <h2 class="no-margin">
-            Opprett en ny organisasjon
-          </h2>
-          <p class="no-margin">
-            Hvis du skal sette opp en ny bedrift i Grimni, kan du opprette organisasjonen selv og
-            bli owner med en gang.
-          </p>
-          <RouterLink
-            class="no-org-card__button transition"
-            to="/desktop/create-org"
-          >
-            Gå til opprett organisasjon
-          </RouterLink>
-        </article>
-      </div>
-    </section>
-  </main>
+          <article class="no-org-card">
+            <p class="no-org-card__eyebrow">
+              Create an org
+            </p>
+            <h2 class="no-margin">
+              Opprett en ny organisasjon
+            </h2>
+            <p class="no-margin">
+              Hvis du skal sette opp en ny bedrift i Grimni, kan du opprette organisasjonen selv og
+              bli owner med en gang.
+            </p>
+            <RouterLink
+              class="no-org-card__button transition"
+              to="/desktop/create-org"
+            >
+              Gå til opprett organisasjon
+            </RouterLink>
+          </article>
+        </div>
+      </section>
+    </main>
+  </SidebarPageContainer>
 </template>
 
 <style scoped>
