@@ -9,28 +9,34 @@ services:
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     volumes:
       - db_data:/var/lib/mysql
+      - ./schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${MYSQL_ROOT_PASSWORD}"]
       interval: 10s
       timeout: 5s
       retries: 10
     # ! Only use port forwarding for dev
-    # ports: 
-    #   - "3306:3306"
+    ports: 
+     - "3306:3306"
   
   seaweedfs:
     image: chrislusf/seaweedfs:3.94
     restart: unless-stopped
-    command: >
-      server
-      -dir=/data
-      -s3
-      -s3.port=8333
-      -ip.bind=0.0.0.0
+    entrypoint: #  entrypoint is the main executable the container starts with. i.e. use shell (sh) to run start-seaweedfs.sh
+      - /bin/sh
+      - /etc/seaweedfs/start-seaweedfs.sh
+    environment:
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+      S3_SECRET_KEY: ${S3_SECRET_KEY}
     volumes:
       - seaweedfs_data:/data
+
+      # This binds our script into the container (from ./seaweedfs/start-seaweedfs.sh) at startup (:ro = read only) which 
+      # lets us start the container using our own script and therefore create & attach configs
+      - ./seaweedfs/start-seaweedfs.sh:/etc/seaweedfs/start-seaweedfs.sh:ro  
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O- http://localhost:8333 || exit 1"]
+      test: ["CMD-SHELL", "wget -q -O- http://localhost:8888 || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 20
@@ -39,7 +45,6 @@ services:
     #   - "8333:8333" # Default s3 endpoint port
     #   - "9333:9333" # Master UI
     #   - "8888:8888" # Filer UI
-    #   - "23646:23646" # Admin UI
 
   backend_app:
     restart: unless-stopped
@@ -64,15 +69,71 @@ services:
       S3_SECRET_KEY: ${S3_SECRET_KEY}
       S3_REGION: us-east-1
       S3_FORCE_PATH_STYLE: "true" # wtf is this?
+
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY} 
+
     # ! Only use port forwarding for dev
     # ports:
-    #   - "8080:8080" # Default ports
+    #  - "1234:8080" # Default ports
+
+  db_seed:
+    image: mysql:8.4
+    restart: "no"
+    depends_on:
+      db:
+        condition: service_healthy
+      backend_app:
+        condition: service_started
+    environment:
+      MYSQL_DATABASE: mydb
+      MYSQL_USER: myuser
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - ./seed.sql:/seed.sql:ro
+    command:
+      - /bin/sh
+      - -c
+      - |
+        set -eu
+        echo "Waiting for backend schema updates before seeding..."
+        until mysql -h db -u"$${MYSQL_USER}" -p"$${MYSQL_PASSWORD}" -D "$${MYSQL_DATABASE}" -Nse "
+          SELECT
+            EXISTS (
+              SELECT 1
+              FROM information_schema.tables
+              WHERE table_schema = DATABASE()
+                AND table_name = 'org_user_bridge_danger_analysis_collaborator'
+            )
+            AND EXISTS (
+              SELECT 1
+              FROM information_schema.columns
+              WHERE table_schema = DATABASE()
+                AND table_name = 'product_category'
+                AND column_name = 'flowchart'
+            )
+            AND EXISTS (
+              SELECT 1
+              FROM information_schema.columns
+              WHERE table_schema = DATABASE()
+                AND table_name = 'prerequisite_routine_record'
+                AND column_name = 'verification_status'
+            );
+        " | grep -qx 1; do
+          sleep 2
+        done
+        echo "Applying demo seed..."
+        mysql -h db -u"$${MYSQL_USER}" -p"$${MYSQL_PASSWORD}" -D "$${MYSQL_DATABASE}" < /seed.sql
 
   frontend_app: # should be a vue project ran in production mode. Using normal vue, not some SSR framework 
     restart: unless-stopped
     build:
       context: ./frontend
       dockerfile: Dockerfile
+    depends_on:
+      backend_app:
+        condition: service_started
+      db_seed:
+        condition: service_completed_successfully
     ports:
       - "8080:80"
 

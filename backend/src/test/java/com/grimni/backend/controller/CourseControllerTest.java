@@ -1,0 +1,1133 @@
+package com.grimni.backend.controller;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.grimni.controller.CourseController;
+import com.grimni.domain.Course;
+import com.grimni.domain.CourseLink;
+import com.grimni.domain.CourseResponsibleUser;
+import com.grimni.domain.CourseUserProgress;
+import com.grimni.domain.FileObject;
+import com.grimni.domain.Organization;
+import com.grimni.domain.User;
+import com.grimni.dto.CourseOverviewResponse;
+import com.grimni.dto.CreateCourseLinkRequest;
+import com.grimni.dto.CreateCourseRequest;
+import com.grimni.dto.UpdateCourseRequest;
+import com.grimni.repository.OrganizationRepository;
+import com.grimni.repository.UserRepository;
+import com.grimni.security.JwtUserPrinciple;
+import com.grimni.security.SecurityConfig;
+import com.grimni.service.CourseService;
+import com.grimni.service.SimpleStorageService;
+import com.grimni.util.JwtAuthFilter;
+import com.grimni.util.JwtUtil;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.test.web.servlet.MockMvc;
+
+import jakarta.persistence.EntityNotFoundException;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
+import java.util.List;
+import java.util.Optional;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+@WebMvcTest(CourseController.class)
+@Import(SecurityConfig.class)
+public class CourseControllerTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockitoBean
+    private CourseService courseService;
+
+    @MockitoBean
+    private JwtUtil jwtUtil;
+
+    @MockitoBean
+    private JwtAuthFilter jwtAuthFilter;
+
+    @MockitoBean
+    private SimpleStorageService simpleStorageService;
+
+    @MockitoBean
+    private UserRepository userRepository;
+
+    @MockitoBean
+    private OrganizationRepository organizationRepository;
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
+    private Organization testOrg;
+    private Course testCourse;
+    private User targetUser;
+
+    @BeforeEach
+    void setUp() throws Exception {
+        doAnswer(invocation -> {
+            HttpServletRequest req = invocation.getArgument(0);
+            HttpServletResponse res = invocation.getArgument(1);
+            FilterChain chain = invocation.getArgument(2);
+            chain.doFilter(req, res);
+            return null;
+        }).when(jwtAuthFilter).doFilter(any(HttpServletRequest.class), any(HttpServletResponse.class), any(FilterChain.class));
+
+        testOrg = new Organization();
+        ReflectionTestUtils.setField(testOrg, "id", 10L);
+        testOrg.setOrgName("Test Org");
+
+        testCourse = new Course();
+        testCourse.setId(100L);
+        testCourse.setTitle("Safety Course");
+        testCourse.setCourseDescription("Learn safety");
+        testCourse.setOrganization(testOrg);
+
+        targetUser = new User();
+        ReflectionTestUtils.setField(targetUser, "id", 2L);
+        targetUser.setLegalName("bob");
+    }
+
+    private static UsernamePasswordAuthenticationToken authWithRole(String role) {
+        JwtUserPrinciple principal = new JwtUserPrinciple(1L, 10L, "alice", role);
+        return new UsernamePasswordAuthenticationToken(
+                principal, null, List.of(new SimpleGrantedAuthority(role)));
+    }
+
+    // =========================================================================
+    // CRUD Endpoints
+    // =========================================================================
+
+    @Nested
+    @DisplayName("POST /courses")
+    class CreateCourseTests {
+
+        @Test
+        @DisplayName("OWNER can create — returns 201")
+        void createCourse_owner_returns201() throws Exception {
+            CreateCourseRequest request = new CreateCourseRequest("Safety Course", "Learn safety");
+            when(courseService.createCourse(any(CreateCourseRequest.class), eq(10L), eq(1L)))
+                    .thenReturn(testCourse);
+
+            mockMvc.perform(post("/courses")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request))
+                            .with(authentication(authWithRole("OWNER")))
+                            .with(csrf()))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.id").value(100))
+                    .andExpect(jsonPath("$.title").value("Safety Course"))
+                    .andExpect(jsonPath("$.courseDescription").value("Learn safety"))
+                    .andExpect(jsonPath("$.organizationId").value(10));
+        }
+
+        @Test
+        @DisplayName("MANAGER can create — returns 201")
+        void createCourse_manager_returns201() throws Exception {
+            CreateCourseRequest request = new CreateCourseRequest("Safety Course", "Learn safety");
+            when(courseService.createCourse(any(CreateCourseRequest.class), eq(10L), eq(1L)))
+                    .thenReturn(testCourse);
+
+            mockMvc.perform(post("/courses")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request))
+                            .with(authentication(authWithRole("MANAGER")))
+                            .with(csrf()))
+                    .andExpect(status().isCreated());
+        }
+
+        @Test
+        @DisplayName("WORKER cannot create — returns 403")
+        void createCourse_worker_returns403() throws Exception {
+            CreateCourseRequest request = new CreateCourseRequest("Title", "Desc");
+
+            mockMvc.perform(post("/courses")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request))
+                            .with(authentication(authWithRole("WORKER")))
+                            .with(csrf()))
+                    .andExpect(status().isForbidden());
+
+            verify(courseService, never()).createCourse(any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("unauthenticated — returns 403")
+        void createCourse_unauthenticated_returns403() throws Exception {
+            CreateCourseRequest request = new CreateCourseRequest("Title", "Desc");
+
+            mockMvc.perform(post("/courses")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request))
+                            .with(csrf()))
+                    .andExpect(status().isForbidden());
+
+            verify(courseService, never()).createCourse(any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("service throws EntityNotFound — returns 404")
+        void createCourse_orgNotFound_returns404() throws Exception {
+            CreateCourseRequest request = new CreateCourseRequest("Title", "Desc");
+            when(courseService.createCourse(any(), eq(10L), eq(1L)))
+                    .thenThrow(new EntityNotFoundException("Organization not found"));
+
+            mockMvc.perform(post("/courses")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request))
+                            .with(authentication(authWithRole("OWNER")))
+                            .with(csrf()))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.error").value("Organization not found"));
+        }
+    }
+
+    @Nested
+    @DisplayName("POST /courses/create-course (multipart)")
+    class CreateCourseMultipartTests {
+
+        @Test
+        @DisplayName("OWNER can create course with links and resources — returns 201")
+        void createCourseMultipart_owner_returns201() throws Exception {
+            MockMultipartFile resource1 = new MockMultipartFile(
+                    "resources", "intro.pdf", "application/pdf", "first-file".getBytes());
+            MockMultipartFile resource2 = new MockMultipartFile(
+                    "resources", "guide.pdf", "application/pdf", "second-file".getBytes());
+
+            when(courseService.createCourseWithLinks(
+                    eq("Safety Course"),
+                    eq("Learn safety"),
+                    eq(List.of("https://a.example", "https://b.example")),
+                    eq(10L),
+                    eq(1L)
+            )).thenReturn(testCourse);
+
+            when(userRepository.findById(1L)).thenReturn(Optional.of(targetUser));
+            when(organizationRepository.findById(10L)).thenReturn(Optional.of(testOrg));
+
+            FileObject saved1 = new FileObject();
+            ReflectionTestUtils.setField(saved1, "id", 50L);
+            FileObject saved2 = new FileObject();
+            ReflectionTestUtils.setField(saved2, "id", 51L);
+            when(simpleStorageService.upload(any(), any(), anyLong(), any(), any(), any(), any(), any(), any()))
+                    .thenReturn(saved1, saved2);
+
+            mockMvc.perform(multipart("/courses/create-course")
+                            .file(resource1)
+                            .file(resource2)
+                            .param("title", "Safety Course")
+                            .param("description", "Learn safety")
+                            .param("links", "https://a.example")
+                            .param("links", "https://b.example")
+                            .with(authentication(authWithRole("OWNER")))
+                            .with(csrf()))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.id").value(100))
+                    .andExpect(jsonPath("$.title").value("Safety Course"))
+                    .andExpect(jsonPath("$.courseDescription").value("Learn safety"));
+
+            verify(simpleStorageService, times(2))
+                    .upload(any(), any(), anyLong(), any(), any(), any(), any(), any(), any());
+            verify(simpleStorageService).linkFileToCourse(50L, 100L);
+            verify(simpleStorageService).linkFileToCourse(51L, 100L);
+        }
+
+        @Test
+        @DisplayName("works without resources or links — returns 201 and uploads nothing")
+        void createCourseMultipart_noFilesNoLinks_returns201() throws Exception {
+            when(courseService.createCourseWithLinks(
+                    eq("Safety Course"),
+                    eq("Learn safety"),
+                    eq(List.of()),
+                    eq(10L),
+                    eq(1L)
+            )).thenReturn(testCourse);
+
+            mockMvc.perform(multipart("/courses/create-course")
+                            .param("title", "Safety Course")
+                            .param("description", "Learn safety")
+                            .with(authentication(authWithRole("OWNER")))
+                            .with(csrf()))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.id").value(100));
+
+            verify(simpleStorageService, never())
+                    .upload(any(), any(), anyLong(), any(), any(), any(), any(), any(), any());
+            verify(simpleStorageService, never()).linkFileToCourse(any(), any());
+        }
+
+        @Test
+        @DisplayName("blank title — returns 400")
+        void createCourseMultipart_blankTitle_returns400() throws Exception {
+            mockMvc.perform(multipart("/courses/create-course")
+                            .param("title", "  ")
+                            .param("description", "Learn safety")
+                            .with(authentication(authWithRole("OWNER")))
+                            .with(csrf()))
+                    .andExpect(status().isBadRequest());
+
+            verify(courseService, never()).createCourseWithLinks(any(), any(), any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("WORKER cannot create — returns 403")
+        void createCourseMultipart_worker_returns403() throws Exception {
+            mockMvc.perform(multipart("/courses/create-course")
+                            .param("title", "Safety Course")
+                            .param("description", "Learn safety")
+                            .with(authentication(authWithRole("WORKER")))
+                            .with(csrf()))
+                    .andExpect(status().isForbidden());
+
+            verify(courseService, never()).createCourseWithLinks(any(), any(), any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("unauthenticated — returns 403")
+        void createCourseMultipart_unauthenticated_returns403() throws Exception {
+            mockMvc.perform(multipart("/courses/create-course")
+                            .param("title", "Safety Course")
+                            .param("description", "Learn safety")
+                            .with(csrf()))
+                    .andExpect(status().isForbidden());
+
+            verify(courseService, never()).createCourseWithLinks(any(), any(), any(), any(), any());
+        }
+    }
+
+    @Nested
+    @DisplayName("GET /courses")
+    class GetCoursesTests {
+
+        @Test
+        @DisplayName("any authenticated user — returns 200 with courses")
+        void getCourses_authenticated_returns200() throws Exception {
+            when(courseService.getCoursesByOrg(10L, 1L)).thenReturn(List.of(testCourse));
+
+            mockMvc.perform(get("/courses")
+                            .with(authentication(authWithRole("WORKER"))))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$[0].id").value(100))
+                    .andExpect(jsonPath("$[0].title").value("Safety Course"));
+        }
+
+        @Test
+        @DisplayName("returns empty list when no courses")
+        void getCourses_empty_returns200() throws Exception {
+            when(courseService.getCoursesByOrg(10L, 1L)).thenReturn(List.of());
+
+            mockMvc.perform(get("/courses")
+                            .with(authentication(authWithRole("WORKER"))))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$").isEmpty());
+        }
+
+        @Test
+        @DisplayName("unauthenticated — returns 403")
+        void getCourses_unauthenticated_returns403() throws Exception {
+            mockMvc.perform(get("/courses"))
+                    .andExpect(status().isForbidden());
+        }
+    }
+
+    @Nested
+    @DisplayName("GET /courses/{courseId}")
+    class GetCourseByIdTests {
+
+        @Test
+        @DisplayName("returns 200 with course details")
+        void getCourse_success() throws Exception {
+            when(courseService.getCourseById(100L, 10L, 1L)).thenReturn(testCourse);
+
+            mockMvc.perform(get("/courses/100")
+                            .with(authentication(authWithRole("WORKER"))))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.id").value(100))
+                    .andExpect(jsonPath("$.title").value("Safety Course"))
+                    .andExpect(jsonPath("$.courseDescription").value("Learn safety"))
+                    .andExpect(jsonPath("$.organizationId").value(10));
+        }
+
+        @Test
+        @DisplayName("returns 404 when course not found")
+        void getCourse_notFound_returns404() throws Exception {
+            when(courseService.getCourseById(999L, 10L, 1L))
+                    .thenThrow(new EntityNotFoundException("Course not found"));
+
+            mockMvc.perform(get("/courses/999")
+                            .with(authentication(authWithRole("WORKER"))))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.error").value("Course not found"));
+        }
+    }
+
+    @Nested
+    @DisplayName("PATCH /courses/{courseId}")
+    class UpdateCourseTests {
+
+        @Test
+        @DisplayName("OWNER can update — returns 200")
+        void updateCourse_owner_returns200() throws Exception {
+            Course updated = new Course();
+            updated.setId(100L);
+            updated.setTitle("Updated Title");
+            updated.setCourseDescription("Learn safety");
+            updated.setOrganization(testOrg);
+
+            UpdateCourseRequest request = new UpdateCourseRequest("Updated Title", null);
+            when(courseService.updateCourse(eq(100L), any(UpdateCourseRequest.class), eq(10L), eq(1L)))
+                    .thenReturn(updated);
+
+            mockMvc.perform(patch("/courses/100")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request))
+                            .with(authentication(authWithRole("OWNER")))
+                            .with(csrf()))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.title").value("Updated Title"));
+        }
+
+        @Test
+        @DisplayName("WORKER cannot update — returns 403")
+        void updateCourse_worker_returns403() throws Exception {
+            UpdateCourseRequest request = new UpdateCourseRequest("Title", null);
+
+            mockMvc.perform(patch("/courses/100")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request))
+                            .with(authentication(authWithRole("WORKER")))
+                            .with(csrf()))
+                    .andExpect(status().isForbidden());
+
+            verify(courseService, never()).updateCourse(any(), any(), any(), any());
+        }
+    }
+
+    @Nested
+    @DisplayName("DELETE /courses/{courseId}")
+    class DeleteCourseTests {
+
+        @Test
+        @DisplayName("OWNER can delete — returns 204")
+        void deleteCourse_owner_returns204() throws Exception {
+            mockMvc.perform(delete("/courses/100")
+                            .with(authentication(authWithRole("OWNER")))
+                            .with(csrf()))
+                    .andExpect(status().isNoContent());
+
+            verify(courseService).deleteCourse(100L, 10L, 1L);
+        }
+
+        @Test
+        @DisplayName("WORKER cannot delete — returns 403")
+        void deleteCourse_worker_returns403() throws Exception {
+            mockMvc.perform(delete("/courses/100")
+                            .with(authentication(authWithRole("WORKER")))
+                            .with(csrf()))
+                    .andExpect(status().isForbidden());
+
+            verify(courseService, never()).deleteCourse(any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("returns 404 when course not found")
+        void deleteCourse_notFound_returns404() throws Exception {
+            doThrow(new EntityNotFoundException("Course not found"))
+                    .when(courseService).deleteCourse(999L, 10L, 1L);
+
+            mockMvc.perform(delete("/courses/999")
+                            .with(authentication(authWithRole("OWNER")))
+                            .with(csrf()))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.error").value("Course not found"));
+        }
+    }
+
+    // =========================================================================
+    // Course Overview
+    // =========================================================================
+
+    @Nested
+    @DisplayName("GET /courses/overview")
+    class GetCourseOverviewTests {
+
+        @Test
+        @DisplayName("OWNER gets overview — returns 200 with allCourses and userProgress")
+        void getOverview_owner_returns200() throws Exception {
+            CourseOverviewResponse response = new CourseOverviewResponse(
+                    List.of(
+                            new CourseOverviewResponse.CourseDetailResponse(
+                                    100L,
+                                    "Safety Course",
+                                    "Learn safety",
+                                    List.of(new CourseOverviewResponse.ResponsibleUserResponse(1L, "alice")),
+                                    List.of(
+                                            new CourseOverviewResponse.CourseResourceResponse(11L, "link", "https://example.com"),
+                                            new CourseOverviewResponse.CourseResourceResponse(22L, "file", "safety.pdf")
+                                    )
+                            ),
+                            new CourseOverviewResponse.CourseDetailResponse(
+                                    200L,
+                                    "Drink Course",
+                                    "Learn drinks",
+                                    List.of(new CourseOverviewResponse.ResponsibleUserResponse(2L, "bob")),
+                                    List.of()
+                            )
+                    ),
+                    List.of(
+                            new CourseOverviewResponse.UserProgressOverview(2L, "bob", List.of(
+                                    new CourseOverviewResponse.UserCourseStatus(100L, "Safety Course", true),
+                                    new CourseOverviewResponse.UserCourseStatus(200L, "Drink Course", false)
+                            ))
+                    )
+            );
+
+            when(courseService.getCourseOverview(10L, 1L)).thenReturn(response);
+
+            mockMvc.perform(get("/courses/overview")
+                            .with(authentication(authWithRole("OWNER"))))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.allCourses").isArray())
+                    .andExpect(jsonPath("$.allCourses.length()").value(2))
+                    .andExpect(jsonPath("$.allCourses[0].id").value(100))
+                    .andExpect(jsonPath("$.allCourses[0].title").value("Safety Course"))
+                    .andExpect(jsonPath("$.allCourses[0].courseDescription").value("Learn safety"))
+                    .andExpect(jsonPath("$.allCourses[0].responsibleUsers[0].userId").value(1))
+                    .andExpect(jsonPath("$.allCourses[0].responsibleUsers[0].legalName").value("alice"))
+                    .andExpect(jsonPath("$.allCourses[0].resources[0].id").value(11))
+                    .andExpect(jsonPath("$.allCourses[0].resources[0].type").value("link"))
+                    .andExpect(jsonPath("$.allCourses[0].resources[0].name").value("https://example.com"))
+                    .andExpect(jsonPath("$.allCourses[1].id").value(200))
+                    .andExpect(jsonPath("$.allCourses[1].title").value("Drink Course"))
+                    .andExpect(jsonPath("$.allCourses[1].responsibleUsers[0].legalName").value("bob"))
+                    .andExpect(jsonPath("$.userProgress").isArray())
+                    .andExpect(jsonPath("$.userProgress.length()").value(1))
+                    .andExpect(jsonPath("$.userProgress[0].userId").value(2))
+                    .andExpect(jsonPath("$.userProgress[0].legalName").value("bob"))
+                    .andExpect(jsonPath("$.userProgress[0].courses.length()").value(2))
+                    .andExpect(jsonPath("$.userProgress[0].courses[0].courseId").value(100))
+                    .andExpect(jsonPath("$.userProgress[0].courses[0].title").value("Safety Course"))
+                    .andExpect(jsonPath("$.userProgress[0].courses[0].completed").value(true))
+                    .andExpect(jsonPath("$.userProgress[0].courses[1].courseId").value(200))
+                    .andExpect(jsonPath("$.userProgress[0].courses[1].completed").value(false));
+        }
+
+        @Test
+        @DisplayName("WORKER cannot access overview — returns 403")
+        void getOverview_worker_returns403() throws Exception {
+            mockMvc.perform(get("/courses/overview")
+                            .with(authentication(authWithRole("WORKER"))))
+                    .andExpect(status().isForbidden());
+
+            verify(courseService, never()).getCourseOverview(any(), any());
+        }
+
+        @Test
+        @DisplayName("unauthenticated — returns 403")
+        void getOverview_unauthenticated_returns403() throws Exception {
+            mockMvc.perform(get("/courses/overview"))
+                    .andExpect(status().isForbidden());
+
+            verify(courseService, never()).getCourseOverview(any(), any());
+        }
+
+        @Test
+        @DisplayName("returns 404 when user not in org")
+        void getOverview_notInOrg_returns404() throws Exception {
+            when(courseService.getCourseOverview(10L, 1L))
+                    .thenThrow(new EntityNotFoundException("Organization not found"));
+
+            mockMvc.perform(get("/courses/overview")
+                            .with(authentication(authWithRole("OWNER"))))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.error").value("Organization not found"));
+        }
+    }
+
+    @Nested
+    @DisplayName("POST /courses/{courseId}/links")
+    class AddCourseLinkTests {
+
+        @Test
+        @DisplayName("OWNER can add link — returns 201")
+        void addCourseLink_owner_returns201() throws Exception {
+            CourseLink courseLink = new CourseLink();
+            ReflectionTestUtils.setField(courseLink, "id", 21L);
+            courseLink.setCourse(testCourse);
+            courseLink.setLink("https://example.com/course");
+
+            when(courseService.addCourseLink(100L, "https://example.com/course", 10L, 1L))
+                    .thenReturn(courseLink);
+
+            mockMvc.perform(post("/courses/100/links")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(new CreateCourseLinkRequest("https://example.com/course")))
+                            .with(authentication(authWithRole("OWNER")))
+                            .with(csrf()))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.id").value(21))
+                    .andExpect(jsonPath("$.courseId").value(100))
+                    .andExpect(jsonPath("$.link").value("https://example.com/course"));
+        }
+
+        @Test
+        @DisplayName("WORKER cannot add link — returns 403")
+        void addCourseLink_worker_returns403() throws Exception {
+            mockMvc.perform(post("/courses/100/links")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(new CreateCourseLinkRequest("https://example.com/course")))
+                            .with(authentication(authWithRole("WORKER")))
+                            .with(csrf()))
+                    .andExpect(status().isForbidden());
+
+            verify(courseService, never()).addCourseLink(any(), any(), any(), any());
+        }
+    }
+
+    @Nested
+    @DisplayName("DELETE /courses/{courseId}/links/{linkId}")
+    class RemoveCourseLinkTests {
+
+        @Test
+        @DisplayName("OWNER can delete link — returns 204")
+        void removeCourseLink_owner_returns204() throws Exception {
+            mockMvc.perform(delete("/courses/100/links/21")
+                            .with(authentication(authWithRole("OWNER")))
+                            .with(csrf()))
+                    .andExpect(status().isNoContent());
+
+            verify(courseService).removeCourseLink(100L, 21L, 10L, 1L);
+        }
+
+        @Test
+        @DisplayName("WORKER cannot delete link — returns 403")
+        void removeCourseLink_worker_returns403() throws Exception {
+            mockMvc.perform(delete("/courses/100/links/21")
+                            .with(authentication(authWithRole("WORKER")))
+                            .with(csrf()))
+                    .andExpect(status().isForbidden());
+
+            verify(courseService, never()).removeCourseLink(any(), any(), any(), any());
+        }
+    }
+
+    // =========================================================================
+    // Progress Endpoints
+    // =========================================================================
+
+    @Nested
+    @DisplayName("GET /courses/{courseId}/progress")
+    class GetProgressByCourseTests {
+
+        @Test
+        @DisplayName("OWNER gets progress list — returns 200")
+        void getProgress_owner_returns200() throws Exception {
+            CourseUserProgress p = new CourseUserProgress();
+            p.setCourse(testCourse);
+            p.setUser(targetUser);
+            p.setIsCompleted(true);
+            when(courseService.getProgressByCourse(100L, 10L, 1L)).thenReturn(List.of(p));
+
+            mockMvc.perform(get("/courses/100/progress")
+                            .with(authentication(authWithRole("OWNER"))))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$[0].courseId").value(100))
+                    .andExpect(jsonPath("$[0].userId").value(2))
+                    .andExpect(jsonPath("$[0].isCompleted").value(true));
+        }
+
+        @Test
+        @DisplayName("WORKER cannot view all progress — returns 403")
+        void getProgress_worker_returns403() throws Exception {
+            mockMvc.perform(get("/courses/100/progress")
+                            .with(authentication(authWithRole("WORKER"))))
+                    .andExpect(status().isForbidden());
+
+            verify(courseService, never()).getProgressByCourse(any(), any(), any());
+        }
+    }
+
+    @Nested
+    @DisplayName("GET /courses/{courseId}/progress/{targetUserId}")
+    class GetProgressForUserTests {
+
+        @Test
+        @DisplayName("any authenticated user can view — returns 200")
+        void getProgressForUser_worker_returns200() throws Exception {
+            CourseUserProgress p = new CourseUserProgress();
+            p.setCourse(testCourse);
+            p.setUser(targetUser);
+            p.setIsCompleted(false);
+            when(courseService.getProgressForUser(100L, 2L, 10L, 1L)).thenReturn(p);
+
+            mockMvc.perform(get("/courses/100/progress/2")
+                            .with(authentication(authWithRole("WORKER"))))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.courseId").value(100))
+                    .andExpect(jsonPath("$.userId").value(2))
+                    .andExpect(jsonPath("$.isCompleted").value(false));
+        }
+
+        @Test
+        @DisplayName("returns 404 when progress not found")
+        void getProgressForUser_notFound_returns404() throws Exception {
+            when(courseService.getProgressForUser(100L, 99L, 10L, 1L))
+                    .thenThrow(new EntityNotFoundException("Progress not found"));
+
+            mockMvc.perform(get("/courses/100/progress/99")
+                            .with(authentication(authWithRole("WORKER"))))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.error").value("Progress not found"));
+        }
+    }
+
+    @Nested
+    @DisplayName("POST /courses/{courseId}/progress/{targetUserId}")
+    class AssignUserToCourseTests {
+
+        @Test
+        @DisplayName("OWNER can assign — returns 201")
+        void assignUser_owner_returns201() throws Exception {
+            CourseUserProgress p = new CourseUserProgress();
+            p.setCourse(testCourse);
+            p.setUser(targetUser);
+            p.setIsCompleted(false);
+            when(courseService.assignUserToCourse(100L, 2L, 10L, 1L)).thenReturn(p);
+
+            mockMvc.perform(post("/courses/100/progress/2")
+                            .with(authentication(authWithRole("OWNER")))
+                            .with(csrf()))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.courseId").value(100))
+                    .andExpect(jsonPath("$.userId").value(2))
+                    .andExpect(jsonPath("$.isCompleted").value(false));
+        }
+
+        @Test
+        @DisplayName("WORKER cannot assign — returns 403")
+        void assignUser_worker_returns403() throws Exception {
+            mockMvc.perform(post("/courses/100/progress/2")
+                            .with(authentication(authWithRole("WORKER")))
+                            .with(csrf()))
+                    .andExpect(status().isForbidden());
+
+            verify(courseService, never()).assignUserToCourse(any(), any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("duplicate assignment — returns 400")
+        void assignUser_duplicate_returns400() throws Exception {
+            when(courseService.assignUserToCourse(100L, 2L, 10L, 1L))
+                    .thenThrow(new IllegalArgumentException("User is already assigned to this course"));
+
+            mockMvc.perform(post("/courses/100/progress/2")
+                            .with(authentication(authWithRole("OWNER")))
+                            .with(csrf()))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.error").value("User is already assigned to this course"));
+        }
+    }
+
+    @Nested
+    @DisplayName("PUT /courses/course-progress")
+    class UpdateProgressTests {
+
+        @Test
+        @DisplayName("OWNER can update progress — returns 200")
+        void updateProgress_owner_returns200() throws Exception {
+            CourseUserProgress p = new CourseUserProgress();
+            p.setCourse(testCourse);
+            p.setUser(targetUser);
+            p.setIsCompleted(true);
+            when(courseService.updateProgress(100L, 2L, true, 10L, 1L)).thenReturn(p);
+
+            mockMvc.perform(put("/courses/course-progress")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"courseId\":100,\"userId\":2,\"completed\":true}")
+                            .with(authentication(authWithRole("OWNER")))
+                            .with(csrf()))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.isCompleted").value(true));
+        }
+
+        @Test
+        @DisplayName("WORKER cannot update progress — returns 403")
+        void updateProgress_worker_returns403() throws Exception {
+            mockMvc.perform(put("/courses/course-progress")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"courseId\":100,\"userId\":2,\"completed\":true}")
+                            .with(authentication(authWithRole("WORKER")))
+                            .with(csrf()))
+                    .andExpect(status().isForbidden());
+
+            verify(courseService, never()).updateProgress(any(), any(), any(), any(), any());
+        }
+    }
+
+    @Nested
+    @DisplayName("DELETE /courses/{courseId}/progress/{targetUserId}")
+    class RemoveUserFromCourseTests {
+
+        @Test
+        @DisplayName("OWNER can remove — returns 204")
+        void removeUser_owner_returns204() throws Exception {
+            mockMvc.perform(delete("/courses/100/progress/2")
+                            .with(authentication(authWithRole("OWNER")))
+                            .with(csrf()))
+                    .andExpect(status().isNoContent());
+
+            verify(courseService).removeUserFromCourse(100L, 2L, 10L, 1L);
+        }
+
+        @Test
+        @DisplayName("WORKER cannot remove — returns 403")
+        void removeUser_worker_returns403() throws Exception {
+            mockMvc.perform(delete("/courses/100/progress/2")
+                            .with(authentication(authWithRole("WORKER")))
+                            .with(csrf()))
+                    .andExpect(status().isForbidden());
+
+            verify(courseService, never()).removeUserFromCourse(any(), any(), any(), any());
+        }
+    }
+
+    // =========================================================================
+    // Responsible User Endpoints
+    // =========================================================================
+
+    @Nested
+    @DisplayName("GET /courses/{courseId}/responsible")
+    class GetResponsibleUsersTests {
+
+        @Test
+        @DisplayName("OWNER gets responsible users — returns 200")
+        void getResponsible_owner_returns200() throws Exception {
+            CourseResponsibleUser r = new CourseResponsibleUser();
+            r.setCourse(testCourse);
+            r.setUser(targetUser);
+            when(courseService.getResponsibleUsers(100L, 10L, 1L)).thenReturn(List.of(r));
+
+            mockMvc.perform(get("/courses/100/responsible")
+                            .with(authentication(authWithRole("OWNER"))))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$[0].courseId").value(100))
+                    .andExpect(jsonPath("$[0].userId").value(2));
+        }
+
+        @Test
+        @DisplayName("WORKER cannot view responsible users — returns 403")
+        void getResponsible_worker_returns403() throws Exception {
+            mockMvc.perform(get("/courses/100/responsible")
+                            .with(authentication(authWithRole("WORKER"))))
+                    .andExpect(status().isForbidden());
+
+            verify(courseService, never()).getResponsibleUsers(any(), any(), any());
+        }
+    }
+
+    @Nested
+    @DisplayName("POST /courses/{courseId}/responsible/{targetUserId}")
+    class AssignResponsibleUserTests {
+
+        @Test
+        @DisplayName("OWNER can assign responsible — returns 201")
+        void assignResponsible_owner_returns201() throws Exception {
+            CourseResponsibleUser r = new CourseResponsibleUser();
+            r.setCourse(testCourse);
+            r.setUser(targetUser);
+            when(courseService.assignResponsibleUser(100L, 2L, 10L, 1L)).thenReturn(r);
+
+            mockMvc.perform(post("/courses/100/responsible/2")
+                            .with(authentication(authWithRole("OWNER")))
+                            .with(csrf()))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.courseId").value(100))
+                    .andExpect(jsonPath("$.userId").value(2));
+        }
+
+        @Test
+        @DisplayName("WORKER cannot assign responsible — returns 403")
+        void assignResponsible_worker_returns403() throws Exception {
+            mockMvc.perform(post("/courses/100/responsible/2")
+                            .with(authentication(authWithRole("WORKER")))
+                            .with(csrf()))
+                    .andExpect(status().isForbidden());
+
+            verify(courseService, never()).assignResponsibleUser(any(), any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("duplicate responsible — returns 400")
+        void assignResponsible_duplicate_returns400() throws Exception {
+            when(courseService.assignResponsibleUser(100L, 2L, 10L, 1L))
+                    .thenThrow(new IllegalArgumentException("User is already a responsible user for this course"));
+
+            mockMvc.perform(post("/courses/100/responsible/2")
+                            .with(authentication(authWithRole("OWNER")))
+                            .with(csrf()))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.error").value("User is already a responsible user for this course"));
+        }
+    }
+
+    @Nested
+    @DisplayName("DELETE /courses/{courseId}/responsible/{targetUserId}")
+    class RemoveResponsibleUserTests {
+
+        @Test
+        @DisplayName("OWNER can remove responsible — returns 204")
+        void removeResponsible_owner_returns204() throws Exception {
+            mockMvc.perform(delete("/courses/100/responsible/2")
+                            .with(authentication(authWithRole("OWNER")))
+                            .with(csrf()))
+                    .andExpect(status().isNoContent());
+
+            verify(courseService).removeResponsibleUser(100L, 2L, 10L, 1L);
+        }
+
+        @Test
+        @DisplayName("WORKER cannot remove responsible — returns 403")
+        void removeResponsible_worker_returns403() throws Exception {
+            mockMvc.perform(delete("/courses/100/responsible/2")
+                            .with(authentication(authWithRole("WORKER")))
+                            .with(csrf()))
+                    .andExpect(status().isForbidden());
+
+            verify(courseService, never()).removeResponsibleUser(any(), any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("returns 404 when responsible user not found")
+        void removeResponsible_notFound_returns404() throws Exception {
+            doThrow(new EntityNotFoundException("Responsible user not found"))
+                    .when(courseService).removeResponsibleUser(100L, 99L, 10L, 1L);
+
+            mockMvc.perform(delete("/courses/100/responsible/99")
+                            .with(authentication(authWithRole("OWNER")))
+                            .with(csrf()))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.error").value("Responsible user not found"));
+        }
+    }
+
+    // =========================================================================
+    // Course File Endpoints
+    // =========================================================================
+
+    @Nested
+    @DisplayName("POST /courses/{courseId}/files")
+    class UploadCourseFileTests {
+
+        @Test
+        @DisplayName("OWNER can upload file — returns 201")
+        void uploadFile_owner_returns201() throws Exception {
+            MockMultipartFile file = new MockMultipartFile(
+                    "file", "test.pdf", "application/pdf", "file-content".getBytes());
+
+            when(courseService.getCourseById(100L, 10L, 1L)).thenReturn(testCourse);
+            when(userRepository.findById(1L)).thenReturn(Optional.of(targetUser));
+            when(organizationRepository.findById(10L)).thenReturn(Optional.of(testOrg));
+
+            FileObject savedFile = new FileObject();
+            ReflectionTestUtils.setField(savedFile, "id", 50L);
+            when(simpleStorageService.upload(any(), any(), anyLong(), any(), any(), any(), any(), any(), any()))
+                    .thenReturn(savedFile);
+
+            mockMvc.perform(multipart("/courses/100/files")
+                            .file(file)
+                            .with(authentication(authWithRole("OWNER")))
+                            .with(csrf()))
+                    .andExpect(status().isCreated())
+                    .andExpect(content().string("50"));
+
+            verify(simpleStorageService).linkFileToCourse(50L, 100L);
+        }
+
+        @Test
+        @DisplayName("WORKER cannot upload — returns 403")
+        void uploadFile_worker_returns403() throws Exception {
+            MockMultipartFile file = new MockMultipartFile(
+                    "file", "test.pdf", "application/pdf", "file-content".getBytes());
+
+            mockMvc.perform(multipart("/courses/100/files")
+                            .file(file)
+                            .with(authentication(authWithRole("WORKER")))
+                            .with(csrf()))
+                    .andExpect(status().isForbidden());
+
+            verify(simpleStorageService, never()).upload(any(), any(), anyLong(), any(), any(), any(), any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("unauthenticated — returns 403")
+        void uploadFile_unauthenticated_returns403() throws Exception {
+            MockMultipartFile file = new MockMultipartFile(
+                    "file", "test.pdf", "application/pdf", "file-content".getBytes());
+
+            mockMvc.perform(multipart("/courses/100/files")
+                            .file(file)
+                            .with(csrf()))
+                    .andExpect(status().isForbidden());
+        }
+
+        @Test
+        @DisplayName("course not found — returns 404")
+        void uploadFile_courseNotFound_returns404() throws Exception {
+            MockMultipartFile file = new MockMultipartFile(
+                    "file", "test.pdf", "application/pdf", "file-content".getBytes());
+
+            when(courseService.getCourseById(999L, 10L, 1L))
+                    .thenThrow(new EntityNotFoundException("Course not found"));
+
+            mockMvc.perform(multipart("/courses/999/files")
+                            .file(file)
+                            .with(authentication(authWithRole("OWNER")))
+                            .with(csrf()))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.error").value("Course not found"));
+        }
+    }
+
+    @Nested
+    @DisplayName("GET /courses/{courseId}/files/{fileId}")
+    class DownloadCourseFileTests {
+
+        @Test
+        @DisplayName("authenticated user can download — returns 200")
+        void downloadFile_authenticated_returns200() throws Exception {
+            when(courseService.getCourseById(100L, 10L, 1L)).thenReturn(testCourse);
+
+            User user = new User();
+            ReflectionTestUtils.setField(user, "id", 1L);
+            when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+
+            FileObject fileObject = new FileObject();
+            ReflectionTestUtils.setField(fileObject, "id", 50L);
+            fileObject.setFileName("test.pdf");
+
+            SimpleStorageService.StoredFile storedFile =
+                    new SimpleStorageService.StoredFile(fileObject, "file-content".getBytes(), "application/pdf");
+            when(simpleStorageService.read(eq(50L), any())).thenReturn(storedFile);
+
+            mockMvc.perform(get("/courses/100/files/50")
+                            .with(authentication(authWithRole("WORKER"))))
+                    .andExpect(status().isOk())
+                    .andExpect(content().contentType(MediaType.APPLICATION_PDF))
+                    .andExpect(header().string("Content-Disposition", "attachment; filename=\"test.pdf\""))
+                    .andExpect(content().bytes("file-content".getBytes()));
+        }
+
+        @Test
+        @DisplayName("file not found — returns 404")
+        void downloadFile_notFound_returns404() throws Exception {
+            when(courseService.getCourseById(100L, 10L, 1L)).thenReturn(testCourse);
+
+            User user = new User();
+            ReflectionTestUtils.setField(user, "id", 1L);
+            when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+
+            when(simpleStorageService.read(eq(999L), any()))
+                    .thenThrow(new EntityNotFoundException("File object not found"));
+
+            mockMvc.perform(get("/courses/100/files/999")
+                            .with(authentication(authWithRole("WORKER"))))
+                    .andExpect(status().isNotFound());
+        }
+
+        @Test
+        @DisplayName("no access — returns 403")
+        void downloadFile_noAccess_returns403() throws Exception {
+            when(courseService.getCourseById(100L, 10L, 1L)).thenReturn(testCourse);
+
+            User user = new User();
+            ReflectionTestUtils.setField(user, "id", 1L);
+            when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+
+            when(simpleStorageService.read(eq(50L), any()))
+                    .thenThrow(new SecurityException("You don't have access level to read this file"));
+
+            mockMvc.perform(get("/courses/100/files/50")
+                            .with(authentication(authWithRole("WORKER"))))
+                    .andExpect(status().isForbidden());
+        }
+
+        @Test
+        @DisplayName("unauthenticated — returns 403")
+        void downloadFile_unauthenticated_returns403() throws Exception {
+            mockMvc.perform(get("/courses/100/files/50"))
+                    .andExpect(status().isForbidden());
+        }
+    }
+
+    @Nested
+    @DisplayName("DELETE /courses/{courseId}/files/{fileId}")
+    class DeleteCourseFileTests {
+
+        @Test
+        @DisplayName("OWNER can delete file — returns 204")
+        void deleteFile_owner_returns204() throws Exception {
+            when(courseService.getCourseById(100L, 10L, 1L)).thenReturn(testCourse);
+
+            User user = new User();
+            ReflectionTestUtils.setField(user, "id", 1L);
+            when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+
+            mockMvc.perform(delete("/courses/100/files/50")
+                            .with(authentication(authWithRole("OWNER")))
+                            .with(csrf()))
+                    .andExpect(status().isNoContent());
+
+            verify(simpleStorageService).delete(eq(50L), any());
+        }
+
+        @Test
+        @DisplayName("WORKER cannot delete file — returns 403")
+        void deleteFile_worker_returns403() throws Exception {
+            mockMvc.perform(delete("/courses/100/files/50")
+                            .with(authentication(authWithRole("WORKER")))
+                            .with(csrf()))
+                    .andExpect(status().isForbidden());
+
+            verify(simpleStorageService, never()).delete(any(), any());
+        }
+
+        @Test
+        @DisplayName("file not found — returns 404")
+        void deleteFile_notFound_returns404() throws Exception {
+            when(courseService.getCourseById(100L, 10L, 1L)).thenReturn(testCourse);
+
+            User user = new User();
+            ReflectionTestUtils.setField(user, "id", 1L);
+            when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+
+            doThrow(new EntityNotFoundException("File object not found"))
+                    .when(simpleStorageService).delete(eq(999L), any());
+
+            mockMvc.perform(delete("/courses/100/files/999")
+                            .with(authentication(authWithRole("OWNER")))
+                            .with(csrf()))
+                    .andExpect(status().isNotFound());
+        }
+    }
+}

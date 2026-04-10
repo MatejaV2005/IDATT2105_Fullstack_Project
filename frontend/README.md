@@ -35,6 +35,18 @@ npm install
 npm run dev
 ```
 
+### Run linter to check adherence to linting rules
+
+```sh
+npm run lint
+```
+
+### Run prettier on /src
+
+```sh
+npm run format 
+```
+
 ### Type-Check, Compile and Minify for Production
 
 ```sh

@@ -1,3 +1,5 @@
+DROP TABLE IF EXISTS internal_control_review;
+DROP TABLE IF EXISTS certificates;
 DROP TABLE IF EXISTS deviation;
 DROP TABLE IF EXISTS prerequisite_routine_record;
 DROP TABLE IF EXISTS ccp_record;
@@ -8,29 +10,29 @@ DROP TABLE IF EXISTS file_course_bridge;
 DROP TABLE IF EXISTS course_link;
 DROP TABLE IF EXISTS user_course_bridge_responsible;
 DROP TABLE IF EXISTS course_user_bridge_progress;
-DROP TABLE IF EXISTS mapping_point_user_bridge;
 DROP TABLE IF EXISTS danger_risk_combo;
-DROP TABLE IF EXISTS org_user_bridge_danger_analysis_collaborator;
-DROP TABLE IF EXISTS org_user_bridge;
-DROP TABLE IF EXISTS file_object;
 DROP TABLE IF EXISTS prerequisite_standard;
+DROP TABLE IF EXISTS mapping_point_user_bridge;
+DROP TABLE IF EXISTS mapping_point;
+DROP TABLE IF EXISTS todo;
+DROP TABLE IF EXISTS refresh_token;
+DROP TABLE IF EXISTS org_user_bridge;
 DROP TABLE IF EXISTS prerequisite_routine;
 DROP TABLE IF EXISTS prerequisite_category;
 DROP TABLE IF EXISTS ccp;
-DROP TABLE IF EXISTS mapping_point;
 DROP TABLE IF EXISTS product_category;
 DROP TABLE IF EXISTS course;
-DROP TABLE IF EXISTS todo;
-DROP TABLE IF EXISTS refresh_token;
+DROP TABLE IF EXISTS file_object;
 DROP TABLE IF EXISTS interval_rule;
 DROP TABLE IF EXISTS organization;
 DROP TABLE IF EXISTS users;
 
+
 CREATE TABLE users ( -- The users of the system
     id INT AUTO_INCREMENT PRIMARY KEY,
-    password_hash TEXT NOT NULL,
-    salt BLOB NOT NULL,
+    password_data TEXT NOT NULL,
     legal_name TEXT NOT NULL,
+    email VARCHAR(255) NOT NULL UNIQUE,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -38,6 +40,7 @@ CREATE TABLE refresh_token (
     id INT AUTO_INCREMENT PRIMARY KEY,
     refresh_token TEXT,
     user_id INT,
+    org_id INT,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_refresh_token_user
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -52,6 +55,10 @@ CREATE TABLE organization ( -- A organization is typically a resturaunt
     org_number INT NOT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+ALTER TABLE refresh_token
+    ADD CONSTRAINT fk_refresh_token_org
+        FOREIGN KEY (org_id) REFERENCES organization(id) ON DELETE SET NULL;
 
 CREATE TABLE todo ( -- Basic todo for any task which doesn't neatly fit our schema
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -76,25 +83,32 @@ CREATE TABLE org_user_bridge ( -- showing who is a part of what orgs
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
-CREATE TABLE org_user_bridge_danger_analysis_collaborator ( -- Showing who is a part of the HACCP group doing the danger analysis
-    org_id INT,
-    user_id INT,
+CREATE TABLE file_object ( -- A file in seaweedfs
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    uploaded_by INT NOT NULL,
+    file_name TEXT NOT NULL,
+    org_id INT NOT NULL,
+    object_key TEXT NOT NULL,
+    read_access ENUM('OWNER', 'MANAGER', 'WORKER', 'ANYONE_IN_ORG', 'PUBLIC') NOT NULL,
+    delete_access ENUM('OWNER', 'MANAGER', 'WORKER', 'ANYONE_IN_ORG', 'PUBLIC') NOT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (org_id, user_id),
-    CONSTRAINT fk_danger_analysis_collaborator_org
-        FOREIGN KEY (org_id) REFERENCES organization(id) ON DELETE CASCADE,
-    CONSTRAINT fk_danger_analysis_collaborator_user
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    CONSTRAINT fk_file_object_uploaded_by
+        FOREIGN KEY (uploaded_by) REFERENCES users(id) ON DELETE NO ACTION,
+    CONSTRAINT fk_file_object_org
+        FOREIGN KEY (org_id) REFERENCES organization(id) ON DELETE NO ACTION
 );
 
 CREATE TABLE product_category ( -- For the danger analysis
     id INT AUTO_INCREMENT PRIMARY KEY,
+    product_name TEXT NOT NULL,
     product_description TEXT NOT NULL,
     org_id INT,
-    flowchart JSON NOT NULL, -- showing the process the product goes through
+    flowchart_file_id INT, -- showing the process the product goes through
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_product_category_org
-        FOREIGN KEY (org_id) REFERENCES organization(id) ON DELETE CASCADE
+        FOREIGN KEY (org_id) REFERENCES organization(id) ON DELETE CASCADE,
+    CONSTRAINT fk_product_category_flowchart_file
+        FOREIGN KEY (flowchart_file_id) REFERENCES file_object(id) ON DELETE SET NULL
 );
 
 CREATE TABLE danger_risk_combo ( -- A point under the product category showing a risk in the process the product goes through
@@ -107,22 +121,6 @@ CREATE TABLE danger_risk_combo ( -- A point under the product category showing a
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_danger_risk_combo_product_category
         FOREIGN KEY (product_category_id) REFERENCES product_category(id) ON DELETE CASCADE
-);
-
-CREATE TABLE file_object ( -- A file in seaweedfs
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    uploaded_by INT NOT NULL,
-    file_name TEXT NOT NULL,
-    org_id INT NOT NULL,
-    object_key TEXT NOT NULL,
-    create_access ENUM('OWNER', 'MANAGER', 'WORKER', 'ANYONE_IN_ORG', 'PUBLIC') NOT NULL,
-    read_access ENUM('OWNER', 'MANAGER', 'WORKER', 'ANYONE_IN_ORG', 'PUBLIC') NOT NULL,
-    delete_access ENUM('OWNER', 'MANAGER', 'WORKER', 'ANYONE_IN_ORG', 'PUBLIC') NOT NULL,
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_file_object_uploaded_by
-        FOREIGN KEY (uploaded_by) REFERENCES users(id) ON DELETE NO ACTION,
-    CONSTRAINT fk_file_object_org
-        FOREIGN KEY (org_id) REFERENCES organization(id) ON DELETE NO ACTION
 );
 
 CREATE TABLE course (
@@ -184,23 +182,13 @@ CREATE TABLE mapping_point ( -- For "IK alkohol" its a specific law, and how to 
     title TEXT,
     challenges TEXT,
     measures TEXT,
+    responsible_for_point TEXT NOT NULL,
     law VARCHAR(25),
     severity_dots TINYINT UNSIGNED,
     org_id INT,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_mapping_point_org
         FOREIGN KEY (org_id) REFERENCES organization(id)
-);
-
-CREATE TABLE mapping_point_user_bridge ( -- The people responsible for this point (in IK alkohol)
-    mapping_point_id INT,
-    user_id INT,
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (user_id, mapping_point_id),
-    CONSTRAINT fk_mapping_point_user_bridge_mapping_point
-        FOREIGN KEY (mapping_point_id) REFERENCES mapping_point(id) ON DELETE CASCADE,
-    CONSTRAINT fk_mapping_point_user_bridge_user
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 CREATE TABLE interval_rule ( -- Info about something which has to repeat with some interval
@@ -218,7 +206,7 @@ CREATE TABLE ccp ( -- Critical Control Point
     immediate_corrective_action TEXT NOT NULL,
     critical_min DECIMAL(10,2) NOT NULL,
     critical_max DECIMAL(10,2) NOT NULL,
-    UNIT TEXT,
+    unit TEXT,
     ccp_name TEXT NOT NULL,
     monitored_description TEXT,
     org_id INT,
@@ -254,6 +242,7 @@ CREATE TABLE prerequisite_routine ( -- A routine to meet "grunnforutsetninger"
     immediate_corrective_action TEXT NOT NULL,
     title TEXT NOT NULL,
     prerequisite_category_id INT,
+    prerequisite_description TEXT NOT NULL,
     org_id INT,
     interval_id INT,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -311,7 +300,7 @@ CREATE TABLE ccp_record (
     verified_at DATETIME,
 
     performed_by INT,
-    comment TEXT,
+    comment TEXT, -- by performer
     measured_value DECIMAL(10,2) NOT NULL, -- reasonable default precision for measurements
     critical_min DECIMAL(10,2) NOT NULL,
     critical_max DECIMAL(10,2) NOT NULL,
@@ -335,11 +324,7 @@ CREATE TABLE prerequisite_routine_record (
     routine_id INT,
     performed_by INT,
     result_status ENUM('COMPLETED', 'FAILED') NOT NULL,
-    comment TEXT,
-
-    last_verifier INT,
-    verification_status ENUM('SKIPPED', 'VERIFIED', 'REJECTED', 'WAITING') NOT NULL DEFAULT 'WAITING',
-    verified_at DATETIME,
+    comment TEXT, -- by performer
 
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -348,9 +333,7 @@ CREATE TABLE prerequisite_routine_record (
     CONSTRAINT fk_prerequisite_routine_record_routine
         FOREIGN KEY (routine_id) REFERENCES prerequisite_routine(id) ON DELETE SET NULL,
     CONSTRAINT fk_prerequisite_routine_record_performed_by
-        FOREIGN KEY (performed_by) REFERENCES users(id) ON DELETE NO ACTION,
-    CONSTRAINT fk_prerequisite_routine_record_last_verifier
-        FOREIGN KEY (last_verifier) REFERENCES users(id) ON DELETE NO ACTION
+        FOREIGN KEY (performed_by) REFERENCES users(id) ON DELETE NO ACTION
 );
 
 CREATE TABLE deviation ( -- A "avvik" / deviation for any mistake anywhere, not just ccp or a prerequisite routine
@@ -359,8 +342,9 @@ CREATE TABLE deviation ( -- A "avvik" / deviation for any mistake anywhere, not 
     routine_record_id INT,
     org_id INT NOT NULL,
     reported_by INT,
+    category ENUM('IK_MAT', 'IK_ALKOHOL', 'OTHER') NOT NULL DEFAULT 'OTHER',
 
-    reviewed_by INT, -- a DEVIATION_RECEIVER who reviewsed the deviation
+    reviewed_by INT, -- a DEVIATION_RECEIVER who reviews the deviation
     review_status ENUM('OPEN', 'CLOSED') NOT NULL DEFAULT 'OPEN',
     reviewed_at DATETIME,
 
@@ -380,5 +364,34 @@ CREATE TABLE deviation ( -- A "avvik" / deviation for any mistake anywhere, not 
     CONSTRAINT fk_deviation_reported_by
         FOREIGN KEY (reported_by) REFERENCES users(id) ON DELETE NO ACTION,
     CONSTRAINT fk_deviation_reviewed_by
+        FOREIGN KEY (reviewed_by) REFERENCES users(id) ON DELETE NO ACTION
+);
+
+CREATE TABLE certificates (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    certificate_name TEXT NOT NULL,
+    user_id INT NOT NULL,
+    file_id INT NOT NULL,
+    org_id INT,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_certificates_user
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_certificates_file
+        FOREIGN KEY (file_id) REFERENCES file_object(id) ON DELETE CASCADE,
+    CONSTRAINT fk_certificates_org
+        FOREIGN KEY (org_id) REFERENCES organization(id) ON DELETE SET NULL
+);
+
+CREATE TABLE internal_control_review (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    org_id INT NOT NULL,
+    reviewed_by INT NOT NULL,
+    summary TEXT NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_internal_control_review_org
+        FOREIGN KEY (org_id) REFERENCES organization(id) ON DELETE CASCADE,
+    CONSTRAINT fk_internal_control_review_reviewed_by
         FOREIGN KEY (reviewed_by) REFERENCES users(id) ON DELETE NO ACTION
 );
