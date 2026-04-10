@@ -1,18 +1,16 @@
 <script setup lang="ts">
-import { getMockProductCategoryName } from '@/data/mockProductCategories'
 import DesktopButton from '@/components/desktop/shared/DesktopButton.vue'
+import type { DesktopProductCategory, NewCriticalControlPoint } from '@/interfaces/api-interfaces'
 import { Plus, Save, X } from '@lucide/vue'
 import { computed, ref, watch } from 'vue'
 import CorrectiveMeasureCard from './CorrectiveMeasureCard.vue'
 import ProductCatgorySelector from './ProductCatgorySelector.vue'
 
-type CorrectiveMeasurePayload = {
-  productCategoryId: number
-  measureDescription: string
-}
+type CorrectiveMeasurePayload = NewCriticalControlPoint['ccpCorrectiveMeasure'][number]
 
 type EditableCorrectiveMeasure = {
-  id: number
+  localId: number
+  id: number | null
   productCategoryId: number
   productCategoryName: string
   measureDescription: string
@@ -22,6 +20,7 @@ const props = withDefaults(
   defineProps<{
     measures: CorrectiveMeasurePayload[]
     setMeasures: (measures: CorrectiveMeasurePayload[]) => void
+    categories?: DesktopProductCategory[]
     disabled?: boolean
   }>(),
   {
@@ -39,7 +38,8 @@ const selectedCategoryIds = computed(() => {
 })
 
 function getCategoryNameById(categoryId: number) {
-  return getMockProductCategoryName(categoryId)
+  const category = props.categories?.find((entry) => entry.id === categoryId)
+  return category?.name ?? `Produktkategori #${categoryId}`
 }
 
 const canAdd = computed(() => {
@@ -57,9 +57,11 @@ watch(
   () => props.measures,
   (measures) => {
     localMeasures.value = measures.map((measure) => ({
-      id: randomId(),
+      localId: measure.id ?? randomId(),
+      id: measure.id ?? null,
       productCategoryId: measure.productCategoryId,
-      productCategoryName: getCategoryNameById(measure.productCategoryId),
+      productCategoryName:
+        measure.productName?.trim() || getCategoryNameById(measure.productCategoryId),
       measureDescription: measure.measureDescription,
     }))
   },
@@ -73,8 +75,10 @@ function randomId() {
 function syncMeasuresToParent() {
   props.setMeasures(
     localMeasures.value.map((measure) => ({
+      id: measure.id,
       productCategoryId: measure.productCategoryId,
       measureDescription: measure.measureDescription,
+      productName: measure.productCategoryName,
     })),
   )
 }
@@ -109,7 +113,8 @@ function addMeasure() {
   localMeasures.value = [
     ...localMeasures.value,
     {
-      id: randomId(),
+      localId: randomId(),
+      id: null,
       productCategoryId: newCategoryId.value,
       productCategoryName: getCategoryNameById(newCategoryId.value),
       measureDescription: newMeasureDescription.value.trim(),
@@ -121,7 +126,7 @@ function addMeasure() {
 
 function updateMeasure(payload: { id: number; measureDescription: string }) {
   localMeasures.value = localMeasures.value.map((measure) => {
-    if (measure.id !== payload.id) {
+    if (measure.localId !== payload.id) {
       return measure
     }
 
@@ -135,7 +140,7 @@ function updateMeasure(payload: { id: number; measureDescription: string }) {
 }
 
 function deleteMeasure(payload: { id: number }) {
-  localMeasures.value = localMeasures.value.filter((measure) => measure.id !== payload.id)
+  localMeasures.value = localMeasures.value.filter((measure) => measure.localId !== payload.id)
   syncMeasuresToParent()
 }
 </script>
@@ -157,6 +162,7 @@ function deleteMeasure(payload: { id: number }) {
       <label class="form-field">
         <span class="navy-subtitle">Produktkategori</span>
         <ProductCatgorySelector
+          :categories="categories"
           :selected-category-id="newCategoryId"
           :set-selected-category-id="setNewCategoryId"
           :excluded-category-ids="selectedCategoryIds"
@@ -197,8 +203,8 @@ function deleteMeasure(payload: { id: number }) {
 
     <CorrectiveMeasureCard
       v-for="measure in localMeasures"
-      :id="measure.id"
-      :key="measure.id"
+      :id="measure.localId"
+      :key="measure.localId"
       :product-category-id="measure.productCategoryId"
       :product-category-name="measure.productCategoryName"
       :measure-description="measure.measureDescription"

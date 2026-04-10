@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { mockProductCategories, type ProductCategory } from '@/data/mockProductCategories'
-import { delay } from '@/utils'
+import api from '@/api/api'
+import type { DesktopProductCategory } from '@/interfaces/api-interfaces'
 import { computed, onMounted, ref, watch } from 'vue'
 
 const props = withDefaults(
@@ -9,6 +9,7 @@ const props = withDefaults(
     setSelectedCategoryId: (categoryId: number | null) => void
     excludedCategoryIds?: number[]
     disabled?: boolean
+    categories?: DesktopProductCategory[]
   }>(),
   {
     excludedCategoryIds: () => [],
@@ -16,7 +17,12 @@ const props = withDefaults(
   },
 )
 
-const categories = ref<ProductCategory[]>([])
+type ProductCategoryApiResponse = {
+  id: number
+  productDescription: string
+}
+
+const categories = ref<DesktopProductCategory[]>([])
 const loading = ref(true)
 const error = ref('')
 const isOpen = ref(false)
@@ -49,6 +55,20 @@ const filteredCategories = computed(() => {
 })
 
 watch(
+  () => props.categories,
+  (nextCategories) => {
+    if (nextCategories === undefined) {
+      return
+    }
+
+    categories.value = nextCategories.map((category) => ({ ...category }))
+    error.value = ''
+    loading.value = false
+  },
+  { immediate: true, deep: true },
+)
+
+watch(
   selectedCategory,
   (category) => {
     searchQuery.value = category ? category.name : ''
@@ -57,16 +77,26 @@ watch(
 )
 
 onMounted(async () => {
-  try {
-    // const response = await fetch('/api/product-categories')
-    // if (!response.ok) {
-    //   throw new Error(`Failed to fetch product categories (${response.status})`)
-    // }
-    // const data: ProductCategory[] = await response.json()
-    await delay(400)
-    const data: ProductCategory[] = mockProductCategories
+  if (props.categories !== undefined) {
+    return
+  }
 
-    categories.value = data
+  try {
+    let response
+
+    try {
+      response = await api.get<ProductCategoryApiResponse[]>('/product-categories')
+    } catch {
+      response = await api.get<ProductCategoryApiResponse[]>('/api/product-categories')
+    }
+
+    const data = Array.isArray(response.data) ? response.data : []
+
+    categories.value = data.map((category) => ({
+      id: category.id,
+      name: category.productDescription,
+      description: category.productDescription,
+    }))
     error.value = ''
   } catch (err) {
     if (err instanceof Error) {
@@ -80,7 +110,7 @@ onMounted(async () => {
   }
 })
 
-function selectCategory(category: ProductCategory) {
+function selectCategory(category: DesktopProductCategory) {
   if (props.disabled) {
     return
   }

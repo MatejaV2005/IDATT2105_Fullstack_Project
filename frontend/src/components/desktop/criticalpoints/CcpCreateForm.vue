@@ -2,7 +2,7 @@
 import CorrectiveMeasures from '@/components/desktop/criticalpoints/CorrectiveMeasures.vue'
 import AddUsers from '@/components/desktop/shared/AddUsers.vue'
 import DesktopButton from '@/components/desktop/shared/DesktopButton.vue'
-import type { NewCriticalControlPoint } from '@/interfaces/api-interfaces'
+import type { DesktopProductCategory, NewCriticalControlPoint } from '@/interfaces/api-interfaces'
 import type { BasicUserWithAccessLevel } from '@/interfaces/util-interfaces'
 import { Save, X } from '@lucide/vue'
 import { computed, ref, watch } from 'vue'
@@ -21,13 +21,19 @@ const props = withDefaults(
     mode?: FormMode
     isSubmitting: boolean
     submitError: boolean
+    submitErrorText?: string
     initialPayload?: NewCriticalControlPoint | null
     initialRoleUsers?: InitialRoleUsers | null
+    availableUsers?: BasicUserWithAccessLevel[]
+    productCategories?: DesktopProductCategory[]
   }>(),
   {
     mode: 'create',
     initialPayload: null,
     initialRoleUsers: null,
+    submitErrorText: '',
+    availableUsers: () => [],
+    productCategories: () => [],
   },
 )
 
@@ -45,6 +51,8 @@ const criticalMin = ref(0)
 const criticalMax = ref(0)
 const unit = ref('C')
 const monitoredDescription = ref('')
+const intervalStart = ref<number | null>(null)
+const intervalRepeatTime = ref<number | null>(null)
 const correctiveMeasures = ref<NewCriticalControlPoint['ccpCorrectiveMeasure']>([])
 const verifiers = ref<BasicUserWithAccessLevel[]>([])
 const deviationRecievers = ref<BasicUserWithAccessLevel[]>([])
@@ -77,11 +85,15 @@ const headerTitle = computed(() =>
 )
 const submitButtonText = computed(() => (isEditMode.value ? 'Oppdater' : 'Lagre'))
 const submitLoadingText = computed(() => (isEditMode.value ? 'Oppdaterer' : 'Lagrer'))
-const submitErrorText = computed(() =>
-  isEditMode.value
+const submitErrorText = computed(() => {
+  if (props.submitErrorText.trim().length > 0) {
+    return props.submitErrorText
+  }
+
+  return isEditMode.value
     ? 'Klarte ikke å oppdatere kritisk kontrollpunkt.'
-    : 'Klarte ikke å opprette kritisk kontrollpunkt.',
-)
+    : 'Klarte ikke å opprette kritisk kontrollpunkt.'
+})
 
 function applyInitialPayload(payload: NewCriticalControlPoint | null) {
   if (!payload) {
@@ -94,6 +106,8 @@ function applyInitialPayload(payload: NewCriticalControlPoint | null) {
     criticalMax.value = 0
     unit.value = 'C'
     monitoredDescription.value = ''
+    intervalStart.value = null
+    intervalRepeatTime.value = null
     correctiveMeasures.value = []
     verifiers.value = []
     deviationRecievers.value = []
@@ -111,6 +125,8 @@ function applyInitialPayload(payload: NewCriticalControlPoint | null) {
   criticalMax.value = payload.criticalMax
   unit.value = payload.unit
   monitoredDescription.value = payload.monitoredDescription
+  intervalStart.value = payload.intervalStart ?? null
+  intervalRepeatTime.value = payload.intervalRepeatTime ?? null
   correctiveMeasures.value = payload.ccpCorrectiveMeasure.map((measure) => ({ ...measure }))
 
   if (props.initialRoleUsers) {
@@ -192,6 +208,8 @@ function submitCcp() {
     criticalMax: criticalMax.value,
     unit: unit.value.trim(),
     monitoredDescription: monitoredDescription.value.trim(),
+    intervalStart: intervalStart.value,
+    intervalRepeatTime: intervalRepeatTime.value,
     verifiers: verifiers.value.map((user) => user.id),
     deviationRecievers: deviationRecievers.value.map((user) => user.id),
     performers: performers.value.map((user) => user.id),
@@ -334,6 +352,7 @@ function cancel() {
       <label class="form-field">
         <span class="navy-subtitle">Godkjennere</span>
         <AddUsers
+          :users="availableUsers"
           :set-users="setVerifiers"
           :initial-user-ids="verifiers.map((user) => user.id)"
           :initial-users="verifiers"
@@ -342,6 +361,7 @@ function cancel() {
       <label class="form-field">
         <span class="navy-subtitle">Avviksmottakere</span>
         <AddUsers
+          :users="availableUsers"
           :set-users="setDeviationRecievers"
           :initial-user-ids="deviationRecievers.map((user) => user.id)"
           :initial-users="deviationRecievers"
@@ -350,6 +370,7 @@ function cancel() {
       <label class="form-field">
         <span class="navy-subtitle">Utførere</span>
         <AddUsers
+          :users="availableUsers"
           :set-users="setPerformers"
           :initial-user-ids="performers.map((user) => user.id)"
           :initial-users="performers"
@@ -358,6 +379,7 @@ function cancel() {
       <label class="form-field">
         <span class="navy-subtitle">Vikarleder</span>
         <AddUsers
+          :users="availableUsers"
           :set-users="setDeputy"
           :initial-user-ids="deputy.map((user) => user.id)"
           :initial-users="deputy"
@@ -366,6 +388,7 @@ function cancel() {
     </div>
 
     <CorrectiveMeasures
+      :categories="productCategories"
       :measures="correctiveMeasures"
       :set-measures="setCorrectiveMeasures"
       :disabled="isSubmitting"

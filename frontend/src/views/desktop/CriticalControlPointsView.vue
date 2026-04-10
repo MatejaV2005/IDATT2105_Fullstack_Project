@@ -1,208 +1,80 @@
 <script setup lang="ts">
+import api from '@/api/api'
 import CcpCard from '@/components/desktop/criticalpoints/CcpCard.vue'
 import CcpCreateForm from '@/components/desktop/criticalpoints/CcpCreateForm.vue'
-import { getMockProductCategoryName } from '@/data/mockProductCategories'
-import { getMockUserNameById } from '@/data/mockUsers'
 import DesktopButton from '@/components/desktop/shared/DesktopButton.vue'
 import Loading from '@/components/desktop/shared/Loading.vue'
 import Paginator from '@/components/desktop/shared/Paginator.vue'
+import { useOrgSession } from '@/composables/useOrgSession'
 import type {
   CriticalControlPoint,
   CriticalControlPointAllInfo,
+  DesktopProductCategory,
   NewCriticalControlPoint,
 } from '@/interfaces/api-interfaces'
 import type { BasicUserWithAccessLevel } from '@/interfaces/util-interfaces'
-import { delay } from '@/utils'
 import { Plus } from '@lucide/vue'
-import { onMounted, ref } from 'vue'
+import { ref, watch } from 'vue'
 
-const mockData: CriticalControlPointAllInfo = [
-  {
-    name: 'Renhold av lokaler og utstyr',
-    how: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod  tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim  veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea  commodo consequat. Duis aute irure dolor. Lerum in reprehenderit in voluptate  velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint  occaecat cupidatat non proident, sunt in culpa qui officia deserunt  mollit anim id est laborum',
-    equipment:
-      'Lorem ipsum esse dolor sit amet, consectetur adipiscing elit, sed do eiusmod  tempor incididunt ut labore et dolore esse magna aliqua. Ut enim ad minim  veniam, quis nostrud exercitation esse ullamco laboris nisi ut aliquip ex ea  commodo consequat. Duis aute irure dolor. Lerum in reprehenderit in voluptate  velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint  occaecat cupidatat non proident, sunt in culpa qui officia deserunt  mollit anim id est laborum',
-    instructionsAndCalibration:
-      'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod  tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim  veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea  commodo consequat. Duis aute irure dolor. Lerum in reprehenderit in voluptate  velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint  occaecat cupidatat non proident, sunt in culpa qui officia deserunt  mollit anim id est laborum esse',
-    immediateCorrectiveAction:
-      'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod  tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim  veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea  commodo consequat. Duis aute irure dolor. Lerum in reprehenderit in voluptate  velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint  occaecat cupidatat non proident, sunt in culpa qui officia deserunt  mollit anim id est laborum. Duis aute irure dolor. Lerum in reprehenderit in voluptate  velit esse cillum.',
-    criticalMin: 2.1,
-    criticalMax: 4.2,
-    unit: 'C',
-    monitoredDescription: '',
-    id: 5,
-    verifiers: [
-      {
-        userId: 1234,
-        userName: 'Kari Næss Northun',
-      },
-      {
-        userId: 5643,
-        userName: 'Stoltenberg',
-      },
-    ],
-    deviationRecievers: [
-      {
-        userId: 1234,
-        userName: 'Simen Velle',
-      },
-      {
-        userId: 5643,
-        userName: 'Ola Svenneby',
-      },
-    ],
-    performers: [
-      {
-        userId: 1234,
-        userName: 'Jonas Ghar Støre',
-      },
-      {
-        userId: 5643,
-        userName: 'Jens Stoltenberg',
-      },
-    ],
-    deputy: [
-      {
-        userId: 1234,
-        userName: 'Kårw Willoch',
-      },
-      {
-        userId: 5643,
-        userName: 'Gro Harlem Brundtland',
-      },
-    ],
-    ccpCorrectiveMeasure: [
-      {
-        productName: 'Burger',
-        measureDescription:
-          'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod  tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim  veniam, quis nostrud exercitation Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod  tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim  veniam, quis nostrud exercitation Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod  tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim  veniam, quis nostrud exercitation Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod  tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim  veniam, quis nostrud exercitation Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod  tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim  veniam, quis nostrud exercitation Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod  tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim  veniam, quis nostrud exercitation',
-        id: 19,
-        productCategoryId: 12,
-      },
-      {
-        productName: 'Fish',
-        measureDescription:
-          'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod  tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim  veniam, quis nostrud exercitation Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod  tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim  veniam, quis nostrud exercitation Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod  tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim  veniam, quis nostrud exercitation Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod  tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim  veniam, quis nostrud exercitation Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod  tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim  veniam, quis nostrud exercitation Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod  tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim  veniam, quis nostrud exercitation',
-        id: 72,
-        productCategoryId: 10,
-      },
-    ],
-  },
-  {
-    name: 'Oppbevaring av ferske råvarer',
-    how: 'Kontroll utføres ved åpning, etter varelevering og før stengetid.',
-    equipment: 'Kalibrert termometer og loggskjema.',
-    instructionsAndCalibration: 'Termometer kontrolleres ukentlig mot referansepunkt.',
-    immediateCorrectiveAction: 'Flytt produkter til reservekjøl og varsle ansvarlig leder.',
-    criticalMin: 0,
-    criticalMax: 4,
-    unit: 'C',
-    monitoredDescription: 'Kjølerom for fisk, kjøtt og meieri.',
-    id: 10,
-    verifiers: [
-      {
-        userId: 3344,
-        userName: 'Mona Jul',
-      },
-    ],
-    deviationRecievers: [
-      {
-        userId: 4499,
-        userName: 'Ane Brevik',
-      },
-    ],
-    performers: [
-      {
-        userId: 9301,
-        userName: 'Jagland',
-      },
-    ],
-    deputy: [
-      {
-        userId: 1199,
-        userName: 'Bondevik',
-      },
-    ],
-    ccpCorrectiveMeasure: [
-      {
-        productName: 'Kylling',
-        measureDescription: 'Kasser produkt hvis temperaturgrense er brutt over tid.',
-        id: 100,
-        productCategoryId: 109,
-      },
-    ],
-  },
-  {
-    name: 'Varmholding ved servering',
-    how: 'Måles hver 30. minutt under service.',
-    equipment: 'Digitalt stikktermometer.',
-    instructionsAndCalibration: 'Termometer desinfiseres mellom hver måling.',
-    immediateCorrectiveAction: 'Øk varme umiddelbart, eller ta produkt ut av salg.',
-    criticalMin: 60,
-    criticalMax: 90,
-    unit: 'C',
-    monitoredDescription: 'Supper, sauser og varme retter i buffet.',
-    id: 20,
-    verifiers: [
-      {
-        userId: 2222,
-        userName: 'Kari Næss Northun',
-      },
-    ],
-    deviationRecievers: [
-      {
-        userId: 7777,
-        userName: 'Simen Velle',
-      },
-    ],
-    performers: [
-      {
-        userId: 9090,
-        userName: 'Jens Stoltenberg',
-      },
-    ],
-    deputy: [
-      {
-        userId: 8080,
-        userName: 'Gro Harlem Brundtland',
-      },
-    ],
-    ccpCorrectiveMeasure: [
-      {
-        productName: 'Suppe',
-        measureDescription: 'Fortsett oppvarming til kritisk grense er oppnådd før servering.',
-        id: 10,
-        productCategoryId: 91,
-      },
-      {
-        productName: 'Saus',
-        measureDescription: 'Skift beholder og dokumenter avvik i logg.',
-        id: 11,
-        productCategoryId: 98,
-      },
-    ],
-  },
-]
-
-function cloneCcps(data: CriticalControlPointAllInfo): CriticalControlPointAllInfo {
-  return data.map((ccp) => ({
-    ...ccp,
-    verifiers: ccp.verifiers.map((user) => ({ ...user })),
-    deviationRecievers: ccp.deviationRecievers.map((user) => ({ ...user })),
-    performers: ccp.performers.map((user) => ({ ...user })),
-    deputy: ccp.deputy.map((user) => ({ ...user })),
-    ccpCorrectiveMeasure: ccp.ccpCorrectiveMeasure.map((measure) => ({ ...measure })),
-  }))
+type CcpApiUser = {
+  userId: number
+  legalName: string
 }
 
-const mockServerState = ref<CriticalControlPointAllInfo>(cloneCcps(mockData))
+type CcpApiCorrectiveMeasure = {
+  id: number
+  productCategoryId: number
+  productName: string
+  measureDescription: string
+}
+
+type CcpApiInterval = {
+  intervalId: number
+  intervalStart: number
+  intervalRepeatTime: number
+}
+
+type CcpApiResponse = {
+  id: number
+  name: string
+  how: string
+  equipment: string
+  instructionsAndCalibration: string
+  immediateCorrectiveAction: string
+  criticalMin: number
+  criticalMax: number
+  unit: string
+  monitoredDescription: string
+  interval: CcpApiInterval | null
+  repeatText: string | null
+  verifiers: CcpApiUser[]
+  deviationReceivers: CcpApiUser[]
+  performers: CcpApiUser[]
+  deputy: CcpApiUser[]
+  ccpCorrectiveMeasures: CcpApiCorrectiveMeasure[]
+}
+
+type ProductCategoryApiResponse = {
+  id: number
+  productDescription: string
+}
+
+type UserOrgApiResponse = {
+  id: number
+  legalName: string
+  email: string
+  accessLevel: BasicUserWithAccessLevel['accessLevel']
+}
 
 const resource = ref<CriticalControlPointAllInfo>([])
+const organizationUsers = ref<BasicUserWithAccessLevel[]>([])
+const productCategories = ref<DesktopProductCategory[]>([])
 const loading = ref(true)
 const error = ref<boolean | null>(null)
 const isCreating = ref(false)
 const isCreatingCcp = ref(false)
 const createError = ref(false)
+const createErrorMessage = ref('')
 const editingCcpId = ref<number | null>(null)
 const editingPayload = ref<NewCriticalControlPoint | null>(null)
 const editingRoleUsers = ref<{
@@ -213,8 +85,135 @@ const editingRoleUsers = ref<{
 } | null>(null)
 const isUpdatingCcp = ref(false)
 const updateError = ref(false)
+const updateErrorMessage = ref('')
+const { claims } = useOrgSession()
+const DEFAULT_INTERVAL_REPEAT_TIME_SECONDS = 86400
+let activeFetchId = 0
 
 type UpdateCriticalControlPointPayload = NewCriticalControlPoint & { id: number }
+
+function extractErrorMessage(error: unknown, fallback: string) {
+  if (
+    typeof error === 'object' &&
+    error !== null &&
+    'response' in error &&
+    typeof error.response === 'object' &&
+    error.response !== null &&
+    'data' in error.response
+  ) {
+    const responseData = error.response.data
+    if (typeof responseData === 'string' && responseData.trim().length > 0) {
+      return responseData
+    }
+  }
+
+  return error instanceof Error ? error.message : fallback
+}
+
+function mapOrgUser(user: UserOrgApiResponse): BasicUserWithAccessLevel {
+  return {
+    id: user.id,
+    legalName: user.legalName,
+    email: user.email,
+    accessLevel: user.accessLevel,
+  }
+}
+
+function mapProductCategory(category: ProductCategoryApiResponse): DesktopProductCategory {
+  return {
+    id: category.id,
+    name: category.productDescription,
+    description: category.productDescription,
+  }
+}
+
+function mapCcpUser(user: CcpApiUser) {
+  return {
+    userId: user.userId,
+    userName: user.legalName,
+  }
+}
+
+function mapApiCcp(ccp: CcpApiResponse): CriticalControlPoint {
+  return {
+    id: ccp.id,
+    name: ccp.name,
+    how: ccp.how,
+    equipment: ccp.equipment,
+    instructionsAndCalibration: ccp.instructionsAndCalibration,
+    immediateCorrectiveAction: ccp.immediateCorrectiveAction,
+    criticalMin: Number(ccp.criticalMin),
+    criticalMax: Number(ccp.criticalMax),
+    unit: ccp.unit ?? '',
+    monitoredDescription: ccp.monitoredDescription ?? '',
+    repeatText: ccp.repeatText,
+    intervalStart: ccp.interval?.intervalStart ?? null,
+    intervalRepeatTime: ccp.interval?.intervalRepeatTime ?? null,
+    verifiers: (ccp.verifiers ?? []).map(mapCcpUser),
+    deviationRecievers: (ccp.deviationReceivers ?? []).map(mapCcpUser),
+    performers: (ccp.performers ?? []).map(mapCcpUser),
+    deputy: (ccp.deputy ?? []).map(mapCcpUser),
+    ccpCorrectiveMeasure: (ccp.ccpCorrectiveMeasures ?? []).map((measure) => ({
+      id: measure.id,
+      productCategoryId: measure.productCategoryId,
+      productName: measure.productName,
+      measureDescription: measure.measureDescription,
+    })),
+  }
+}
+
+function getCurrentEpochSeconds() {
+  return Math.floor(Date.now() / 1000)
+}
+
+function buildCreateRequest(payload: NewCriticalControlPoint) {
+  return {
+    name: payload.name,
+    how: payload.how,
+    equipment: payload.equipment,
+    instructionsAndCalibration: payload.instructionsAndCalibration,
+    immediateCorrectiveAction: payload.immediateCorrectiveAction,
+    criticalMin: payload.criticalMin,
+    criticalMax: payload.criticalMax,
+    unit: payload.unit,
+    monitoredDescription: payload.monitoredDescription,
+    intervalStart: payload.intervalStart ?? getCurrentEpochSeconds(),
+    intervalRepeatTime: payload.intervalRepeatTime ?? DEFAULT_INTERVAL_REPEAT_TIME_SECONDS,
+    verifierUserIds: payload.verifiers,
+    deviationReceiverUserIds: payload.deviationRecievers,
+    performerUserIds: payload.performers,
+    deputyUserIds: payload.deputy,
+    correctiveMeasures: payload.ccpCorrectiveMeasure.map((measure) => ({
+      productCategoryId: measure.productCategoryId,
+      measureDescription: measure.measureDescription,
+    })),
+  }
+}
+
+function buildUpdateRequest(payload: NewCriticalControlPoint) {
+  return {
+    name: payload.name,
+    how: payload.how,
+    equipment: payload.equipment,
+    instructionsAndCalibration: payload.instructionsAndCalibration,
+    immediateCorrectiveAction: payload.immediateCorrectiveAction,
+    criticalMin: payload.criticalMin,
+    criticalMax: payload.criticalMax,
+    unit: payload.unit,
+    monitoredDescription: payload.monitoredDescription,
+    intervalStart: payload.intervalStart ?? undefined,
+    intervalRepeatTime: payload.intervalRepeatTime ?? undefined,
+  }
+}
+
+function buildAssignmentsRequest(payload: NewCriticalControlPoint) {
+  return {
+    verifierUserIds: payload.verifiers,
+    deviationReceiverUserIds: payload.deviationRecievers,
+    performerUserIds: payload.performers,
+    deputyUserIds: payload.deputy,
+  }
+}
 
 function startCreating() {
   if (isCreatingCcp.value || isUpdatingCcp.value || editingCcpId.value !== null) {
@@ -223,6 +222,7 @@ function startCreating() {
 
   isCreating.value = true
   createError.value = false
+  createErrorMessage.value = ''
 }
 
 function cancelCreating() {
@@ -232,24 +232,70 @@ function cancelCreating() {
 
   isCreating.value = false
   createError.value = false
+  createErrorMessage.value = ''
 }
 
 async function fetchCcps() {
-  // const response = await fetch('/api/haccp/critical-control-points/get-all-info')
-  // if (!response.ok) {
-  //   throw new Error(`Failed to fetch critical control points (${response.status})`)
-  // }
-  // const data: CriticalControlPointAllInfo = await response.json()
+  const fetchId = ++activeFetchId
 
-  await delay(500)
-  resource.value = cloneCcps(mockServerState.value)
-}
+  loading.value = true
+  error.value = false
 
-function mapUsersByIds(ids: number[]) {
-  return ids.map((id) => ({
-    userId: id,
-    userName: getMockUserNameById(id),
-  }))
+  try {
+    const [ccpResult, usersResult, categoriesResult] = await Promise.allSettled([
+      api.get<CcpApiResponse[]>('/haccp/critical-control-points/get-all-info'),
+      api.get<UserOrgApiResponse[]>('/organizations/users'),
+      (async () => {
+        try {
+          return await api.get<ProductCategoryApiResponse[]>('/product-categories')
+        } catch {
+          return api.get<ProductCategoryApiResponse[]>('/api/product-categories')
+        }
+      })(),
+    ])
+
+    if (fetchId !== activeFetchId) {
+      return
+    }
+
+    if (ccpResult.status !== 'fulfilled') {
+      throw ccpResult.reason
+    }
+
+    resource.value = Array.isArray(ccpResult.value.data) ? ccpResult.value.data.map(mapApiCcp) : []
+    organizationUsers.value =
+      usersResult.status === 'fulfilled' && Array.isArray(usersResult.value.data)
+        ? usersResult.value.data.map(mapOrgUser)
+        : []
+    productCategories.value =
+      categoriesResult.status === 'fulfilled' && Array.isArray(categoriesResult.value.data)
+        ? categoriesResult.value.data.map(mapProductCategory)
+        : []
+
+    if (usersResult.status === 'rejected') {
+      console.error(extractErrorMessage(usersResult.reason, 'Klarte ikke å hente brukere.'))
+    }
+
+    if (categoriesResult.status === 'rejected') {
+      console.error(
+        extractErrorMessage(categoriesResult.reason, 'Klarte ikke å hente produktkategorier.'),
+      )
+    }
+  } catch (err) {
+    if (fetchId !== activeFetchId) {
+      return
+    }
+
+    resource.value = []
+    organizationUsers.value = []
+    productCategories.value = []
+    error.value = true
+    console.error(extractErrorMessage(err, 'Klarte ikke å hente kritiske kontrollpunkter.'))
+  } finally {
+    if (fetchId === activeFetchId) {
+      loading.value = false
+    }
+  }
 }
 
 function toCreatePayload(ccp: CriticalControlPoint): NewCriticalControlPoint {
@@ -263,104 +309,93 @@ function toCreatePayload(ccp: CriticalControlPoint): NewCriticalControlPoint {
     criticalMax: ccp.criticalMax,
     unit: ccp.unit,
     monitoredDescription: ccp.monitoredDescription,
+    intervalStart: ccp.intervalStart ?? null,
+    intervalRepeatTime: ccp.intervalRepeatTime ?? null,
     verifiers: ccp.verifiers.map((user) => user.userId),
     deviationRecievers: ccp.deviationRecievers.map((user) => user.userId),
     performers: ccp.performers.map((user) => user.userId),
     deputy: ccp.deputy.map((user) => user.userId),
     ccpCorrectiveMeasure: ccp.ccpCorrectiveMeasure.map((measure) => ({
+      id: measure.id,
       productCategoryId: measure.productCategoryId,
       measureDescription: measure.measureDescription,
+      productName: measure.productName,
     })),
   }
 }
 
 async function createCcp(payload: NewCriticalControlPoint) {
-  // const response = await fetch('/api/haccp/critical-control-points', {
-  //   method: 'POST',
-  //   headers: { 'Content-Type': 'application/json' },
-  //   body: JSON.stringify(payload),
-  // })
-  // if (!response.ok) {
-  //   throw new Error(`Failed to create critical control point (${response.status})`)
-  // }
+  await api.post('/haccp/critical-control-points', buildCreateRequest(payload))
+}
 
-  await delay(700)
+async function syncCorrectiveMeasures(
+  ccpId: number,
+  currentMeasures: CriticalControlPoint['ccpCorrectiveMeasure'],
+  nextMeasures: NewCriticalControlPoint['ccpCorrectiveMeasure'],
+) {
+  const nextMeasureIds = new Set(
+    nextMeasures
+      .map((measure) => measure.id)
+      .filter((id): id is number => typeof id === 'number'),
+  )
 
-  const newCcp = {
-    id: Math.floor(Math.random() * 1000000),
-    name: payload.name,
-    how: payload.how,
-    equipment: payload.equipment,
-    instructionsAndCalibration: payload.instructionsAndCalibration,
-    immediateCorrectiveAction: payload.immediateCorrectiveAction,
-    criticalMin: payload.criticalMin,
-    criticalMax: payload.criticalMax,
-    unit: payload.unit,
-    monitoredDescription: payload.monitoredDescription,
-    verifiers: mapUsersByIds(payload.verifiers),
-    deviationRecievers: mapUsersByIds(payload.deviationRecievers),
-    performers: mapUsersByIds(payload.performers),
-    deputy: mapUsersByIds(payload.deputy),
-    ccpCorrectiveMeasure: payload.ccpCorrectiveMeasure.map((measure) => ({
-      id: Math.floor(Math.random() * 1000000),
-      productCategoryId: measure.productCategoryId,
-      productName: getMockProductCategoryName(measure.productCategoryId),
-      measureDescription: measure.measureDescription,
-    })),
+  for (const measure of currentMeasures) {
+    if (!nextMeasureIds.has(measure.id)) {
+      await api.delete(`/haccp/critical-control-points/corrective-measures/${measure.id}`)
+    }
   }
 
-  mockServerState.value = [...mockServerState.value, newCcp]
+  const currentMeasuresById = new Map(currentMeasures.map((measure) => [measure.id, measure]))
+
+  for (const measure of nextMeasures) {
+    const trimmedDescription = measure.measureDescription.trim()
+    if (typeof measure.id !== 'number') {
+      await api.post(`/haccp/critical-control-points/${ccpId}/corrective-measures`, {
+        productCategoryId: measure.productCategoryId,
+        measureDescription: trimmedDescription,
+      })
+      continue
+    }
+
+    const currentMeasure = currentMeasuresById.get(measure.id)
+    if (
+      !currentMeasure ||
+      currentMeasure.productCategoryId !== measure.productCategoryId ||
+      currentMeasure.measureDescription !== trimmedDescription
+    ) {
+      await api.patch(`/haccp/critical-control-points/corrective-measures/${measure.id}`, {
+        productCategoryId: measure.productCategoryId,
+        measureDescription: trimmedDescription,
+      })
+    }
+  }
 }
 
 async function updateCcp(payload: UpdateCriticalControlPointPayload) {
-  // const response = await fetch('/api/haccp/critical-control-points', {
-  //   method: 'PUT',
-  //   headers: { 'Content-Type': 'application/json' },
-  //   body: JSON.stringify(payload),
-  // })
-  // if (!response.ok) {
-  //   throw new Error(`Failed to update critical control point (${response.status})`)
-  // }
-
-  await delay(700)
-
-  const ccpIndex = mockServerState.value.findIndex((ccp) => ccp.id === payload.id)
-  if (ccpIndex === -1) {
-    throw new Error('Critical control point not found')
-  }
-
-  const currentCcp = mockServerState.value[ccpIndex]
+  const currentCcp = resource.value.find((ccp) => ccp.id === payload.id)
   if (!currentCcp) {
     throw new Error('Critical control point not found')
   }
 
-  mockServerState.value[ccpIndex] = {
-    ...currentCcp,
-    name: payload.name,
-    how: payload.how,
-    equipment: payload.equipment,
-    instructionsAndCalibration: payload.instructionsAndCalibration,
-    immediateCorrectiveAction: payload.immediateCorrectiveAction,
-    criticalMin: payload.criticalMin,
-    criticalMax: payload.criticalMax,
-    unit: payload.unit,
-    monitoredDescription: payload.monitoredDescription,
-    verifiers: mapUsersByIds(payload.verifiers),
-    deviationRecievers: mapUsersByIds(payload.deviationRecievers),
-    performers: mapUsersByIds(payload.performers),
-    deputy: mapUsersByIds(payload.deputy),
-    ccpCorrectiveMeasure: payload.ccpCorrectiveMeasure.map((measure, index) => {
-      const existing = currentCcp.ccpCorrectiveMeasure.find(
-        (entry) => entry.productCategoryId === measure.productCategoryId,
-      )
+  await api.patch(`/haccp/critical-control-points/${payload.id}`, buildUpdateRequest(payload))
+  await api.put(
+    `/haccp/critical-control-points/${payload.id}/assignments`,
+    buildAssignmentsRequest(payload),
+  )
+  await syncCorrectiveMeasures(payload.id, currentCcp.ccpCorrectiveMeasure, payload.ccpCorrectiveMeasure)
+}
 
-      return {
-        id: existing?.id ?? Date.now() + index,
-        productCategoryId: measure.productCategoryId,
-        productName: getMockProductCategoryName(measure.productCategoryId),
-        measureDescription: measure.measureDescription,
-      }
-    }),
+function toRoleUser(userId: number, fallbackName: string): BasicUserWithAccessLevel {
+  const existingUser = organizationUsers.value.find((user) => user.id === userId)
+  if (existingUser) {
+    return { ...existingUser }
+  }
+
+  return {
+    id: userId,
+    legalName: fallbackName,
+    email: '',
+    accessLevel: 'WORKER',
   }
 }
 
@@ -377,32 +412,13 @@ function startEditingCcp(ccpId: number) {
   editingCcpId.value = ccpId
   editingPayload.value = toCreatePayload(ccp)
   editingRoleUsers.value = {
-    verifiers: ccp.verifiers.map((user) => ({
-      id: user.userId,
-      legalName: user.userName,
-      email: '',
-      accessLevel: 'WORKER',
-    })),
-    deviationRecievers: ccp.deviationRecievers.map((user) => ({
-      id: user.userId,
-      legalName: user.userName,
-      email: '',
-      accessLevel: 'WORKER',
-    })),
-    performers: ccp.performers.map((user) => ({
-      id: user.userId,
-      legalName: user.userName,
-      email: '',
-      accessLevel: 'WORKER',
-    })),
-    deputy: ccp.deputy.map((user) => ({
-      id: user.userId,
-      legalName: user.userName,
-      email: '',
-      accessLevel: 'WORKER',
-    })),
+    verifiers: ccp.verifiers.map((user) => toRoleUser(user.userId, user.userName)),
+    deviationRecievers: ccp.deviationRecievers.map((user) => toRoleUser(user.userId, user.userName)),
+    performers: ccp.performers.map((user) => toRoleUser(user.userId, user.userName)),
+    deputy: ccp.deputy.map((user) => toRoleUser(user.userId, user.userName)),
   }
   updateError.value = false
+  updateErrorMessage.value = ''
 }
 
 function cancelEditingCcp() {
@@ -414,6 +430,7 @@ function cancelEditingCcp() {
   editingPayload.value = null
   editingRoleUsers.value = null
   updateError.value = false
+  updateErrorMessage.value = ''
 }
 
 async function submitEditCcp(payload: NewCriticalControlPoint) {
@@ -434,32 +451,14 @@ async function submitEditCcp(payload: NewCriticalControlPoint) {
     editingPayload.value = null
     editingRoleUsers.value = null
   } catch (err) {
-    if (err instanceof Error) {
-      console.error(err.message)
-    } else {
-      console.error('Unknown error occurred')
-    }
+    const message = extractErrorMessage(err, 'Klarte ikke å oppdatere kritisk kontrollpunkt.')
+    console.error(message)
     updateError.value = true
+    updateErrorMessage.value = message
   } finally {
     isUpdatingCcp.value = false
   }
 }
-
-onMounted(async () => {
-  try {
-    await fetchCcps()
-    error.value = false
-  } catch (err) {
-    if (err instanceof Error) {
-      console.error(err.message)
-    } else {
-      console.error('Unknown error occurred')
-    }
-    error.value = true
-  } finally {
-    loading.value = false
-  }
-})
 
 async function addCcp(payload: NewCriticalControlPoint) {
   if (isCreatingCcp.value) {
@@ -474,16 +473,30 @@ async function addCcp(payload: NewCriticalControlPoint) {
     await fetchCcps()
     isCreating.value = false
   } catch (err) {
-    if (err instanceof Error) {
-      console.error(err.message)
-    } else {
-      console.error('Unknown error occurred')
-    }
+    const message = extractErrorMessage(err, 'Klarte ikke å opprette kritisk kontrollpunkt.')
+    console.error(message)
     createError.value = true
+    createErrorMessage.value = message
   } finally {
     isCreatingCcp.value = false
   }
 }
+
+watch(
+  () => claims.value?.orgId ?? null,
+  () => {
+    isCreating.value = false
+    editingCcpId.value = null
+    editingPayload.value = null
+    editingRoleUsers.value = null
+    createError.value = false
+    createErrorMessage.value = ''
+    updateError.value = false
+    updateErrorMessage.value = ''
+    void fetchCcps()
+  },
+  { immediate: true },
+)
 </script>
 
 <template>
@@ -499,19 +512,23 @@ async function addCcp(payload: NewCriticalControlPoint) {
           content="Legg til CCP"
           :on-click="startCreating"
         />
+        <CcpCreateForm
+          v-if="isCreating"
+          mode="create"
+          :is-submitting="isCreatingCcp"
+          :submit-error="createError"
+          :submit-error-text="createErrorMessage"
+          :available-users="organizationUsers"
+          :product-categories="productCategories"
+          @submit="addCcp"
+          @cancel="cancelCreating"
+        />
         <Loading v-if="loading" />
-        <p v-else-if="error" class="error-message">Klarte ikke å hente kritiske kontrollpunkter.</p>
+        <p v-else-if="error && !isCreating" class="error-message">
+          Klarte ikke å hente kritiske kontrollpunkter.
+        </p>
 
-        <template v-else>
-          <CcpCreateForm
-            v-if="isCreating"
-            mode="create"
-            :is-submitting="isCreatingCcp"
-            :submit-error="createError"
-            @submit="addCcp"
-            @cancel="cancelCreating"
-          />
-
+        <template v-if="!loading && !error">
           <template v-for="ccp in resource" :key="ccp.id">
             <CcpCreateForm
               v-if="editingCcpId === ccp.id"
@@ -520,6 +537,9 @@ async function addCcp(payload: NewCriticalControlPoint) {
               :initial-role-users="editingRoleUsers"
               :is-submitting="isUpdatingCcp"
               :submit-error="updateError"
+              :submit-error-text="updateErrorMessage"
+              :available-users="organizationUsers"
+              :product-categories="productCategories"
               @submit="submitEditCcp"
               @cancel="cancelEditingCcp"
             />
