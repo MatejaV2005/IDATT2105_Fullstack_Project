@@ -9,8 +9,11 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.grimni.domain.CcpRecord;
+import com.grimni.domain.enums.VerificationStatus;
 
 public interface CcpRecordRepository extends JpaRepository<CcpRecord, Long>  {
+    long countByOrganization_IdAndVerificationStatus(Long orgId, VerificationStatus verificationStatus);
+
 
     @Query("""
         SELECT cr FROM CcpRecord cr

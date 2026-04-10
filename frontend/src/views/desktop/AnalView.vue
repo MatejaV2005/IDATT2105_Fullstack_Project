@@ -2,7 +2,7 @@
 import SidebarPageContainer from '@/components/desktop/sidebar/SidebarPageContainer.vue'
 import Loading from '@/components/desktop/shared/Loading.vue'
 import Paginator from '@/components/desktop/shared/Paginator.vue'
-import { delay } from '@/utils'
+import api from '@/api/api'
 import { computed, onMounted, ref } from 'vue'
 
 type AnalyticsOverview = {
@@ -58,50 +58,8 @@ const totalDeviations = computed(() => {
 })
 
 async function fetchAnalyticsOverview() {
-  // const response = await fetch('/api/organizations/analytics-overview')
-  // if (!response.ok) {
-  //   throw new Error(`Failed to fetch analytics overview (${response.status})`)
-  // }
-  // const data: AnalyticsOverview = await response.json()
-
-  await delay(500)
-
-  resource.value = {
-    prerequisiteRoutineRecord: {
-      completed: 184,
-      failed: 13,
-    },
-    ccpRecords: {
-      skipped: 7,
-      verified: 239,
-      rejected: 19,
-      waiting: 22,
-    },
-    deviations: {
-      ikMat: {
-        open: 6,
-        closed: 31,
-      },
-      ikAlkohol: {
-        open: 2,
-        closed: 9,
-      },
-      other: {
-        open: 3,
-        closed: 14,
-      },
-    },
-    users: {
-      owners: 1,
-      managers: 3,
-      workers: 14,
-    },
-    resources: {
-      routines: 22,
-      ccps: 11,
-      productCategories: 9,
-    },
-  }
+  const response = await api.get<AnalyticsOverview>('/organizations/analysis')
+  resource.value = response.data
 }
 
 onMounted(async () => {

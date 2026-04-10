@@ -13,6 +13,7 @@ import com.grimni.domain.enums.RoutineUserRole;
 
 public interface CcpRepository extends JpaRepository<Ccp, Long> {
     List<Ccp> findByOrganization_Id(Long orgId);
+    long countByOrganization_Id(Long orgId);
     Optional<Ccp> findByIdAndOrganization_Id(Long id, Long orgId);
     boolean existsByIntervalRule_Id(Long intervalId);
 

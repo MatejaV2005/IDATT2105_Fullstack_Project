@@ -35,12 +35,23 @@ import com.grimni.domain.PrerequisiteStandard;
 import com.grimni.domain.RoutineUserBridge;
 import com.grimni.domain.Todo;
 import com.grimni.domain.User;
+import com.grimni.domain.enums.DeviationCategory;
 import com.grimni.domain.enums.OrgUserRole;
+import com.grimni.domain.enums.ResultStatus;
+import com.grimni.domain.enums.ReviewStatus;
 import com.grimni.domain.enums.RoutineUserRole;
+import com.grimni.domain.enums.VerificationStatus;
 import com.grimni.domain.ids.OrgUserBridgeId;
 import com.grimni.dto.AddOrganizationUserRequest;
 import com.grimni.dto.CollaboratorResponse;
 import com.grimni.dto.CreateOrganizationRequest;
+import com.grimni.dto.OrgAnalysisResponse;
+import com.grimni.dto.OrgAnalysisResponse.CcpRecordStats;
+import com.grimni.dto.OrgAnalysisResponse.DeviationCategoryStats;
+import com.grimni.dto.OrgAnalysisResponse.DeviationStats;
+import com.grimni.dto.OrgAnalysisResponse.PrerequisiteRoutineRecordStats;
+import com.grimni.dto.OrgAnalysisResponse.ResourceStats;
+import com.grimni.dto.OrgAnalysisResponse.UserStats;
 import com.grimni.dto.MyOrganizationMembershipResponse;
 import com.grimni.dto.TeamAssignmentsResponse;
 import com.grimni.dto.TeamCourseProgressResponse;
@@ -48,6 +59,8 @@ import com.grimni.dto.TeamUserOverviewResponse;
 import com.grimni.dto.UpdateOrganizationRequest;
 import com.grimni.dto.UserDirectoryResponse;
 import com.grimni.dto.UserOrgResponse;
+import com.grimni.repository.CcpRecordRepository;
+import com.grimni.repository.CcpRepository;
 import com.grimni.repository.CcpUserBridgeRepository;
 import com.grimni.repository.CcpCorrectiveMeasureRepository;
 import com.grimni.repository.CcpRecordRepository;
@@ -173,6 +186,52 @@ public class OrganizationService {
         this.internalControlReviewRepository = internalControlReviewRepository;
         this.productCategoryRepository = productCategoryRepository;
         this.intervalRuleRepository = intervalRuleRepository;
+    }
+
+    /**
+     * Aggregates analysis data for the organization dashboard.
+     */
+    public OrgAnalysisResponse getOrgAnalysis(long orgId) {
+        PrerequisiteRoutineRecordStats prerequisiteRoutineRecord = new PrerequisiteRoutineRecordStats(
+            prerequisiteRoutineRecordRepository.countByOrganization_IdAndResultStatus(orgId, ResultStatus.COMPLETED),
+            prerequisiteRoutineRecordRepository.countByOrganization_IdAndResultStatus(orgId, ResultStatus.FAILED)
+        );
+
+        CcpRecordStats ccpRecords = new CcpRecordStats(
+            ccpRecordRepository.countByOrganization_IdAndVerificationStatus(orgId, VerificationStatus.SKIPPED),
+            ccpRecordRepository.countByOrganization_IdAndVerificationStatus(orgId, VerificationStatus.VERIFIED),
+            ccpRecordRepository.countByOrganization_IdAndVerificationStatus(orgId, VerificationStatus.REJECTED),
+            ccpRecordRepository.countByOrganization_IdAndVerificationStatus(orgId, VerificationStatus.WAITING)
+        );
+
+        DeviationStats deviations = new DeviationStats(
+            new DeviationCategoryStats(
+                deviationRepository.countByOrganization_IdAndCategoryAndReviewStatus(orgId, DeviationCategory.IK_MAT, ReviewStatus.OPEN),
+                deviationRepository.countByOrganization_IdAndCategoryAndReviewStatus(orgId, DeviationCategory.IK_MAT, ReviewStatus.CLOSED)
+            ),
+            new DeviationCategoryStats(
+                deviationRepository.countByOrganization_IdAndCategoryAndReviewStatus(orgId, DeviationCategory.IK_ALKOHOL, ReviewStatus.OPEN),
+                deviationRepository.countByOrganization_IdAndCategoryAndReviewStatus(orgId, DeviationCategory.IK_ALKOHOL, ReviewStatus.CLOSED)
+            ),
+            new DeviationCategoryStats(
+                deviationRepository.countByOrganization_IdAndCategoryAndReviewStatus(orgId, DeviationCategory.OTHER, ReviewStatus.OPEN),
+                deviationRepository.countByOrganization_IdAndCategoryAndReviewStatus(orgId, DeviationCategory.OTHER, ReviewStatus.CLOSED)
+            )
+        );
+
+        List<OrgUserBridge> members = orgUserBridgeRepository.findByOrganizationId(orgId);
+        long owners = members.stream().filter(bridge -> bridge.getUserRole() == OrgUserRole.OWNER).count();
+        long managers = members.stream().filter(bridge -> bridge.getUserRole() == OrgUserRole.MANAGER).count();
+        long workers = members.stream().filter(bridge -> bridge.getUserRole() == OrgUserRole.WORKER).count();
+        UserStats users = new UserStats(owners, managers, workers);
+
+        ResourceStats resources = new ResourceStats(
+            prerequisiteRoutineRepository.countByOrganization_Id(orgId),
+            ccpRepository.countByOrganization_Id(orgId),
+            productCategoryRepository.countByOrganization_Id(orgId)
+        );
+
+        return new OrgAnalysisResponse(prerequisiteRoutineRecord, ccpRecords, deviations, users, resources);
     }
 
     /**

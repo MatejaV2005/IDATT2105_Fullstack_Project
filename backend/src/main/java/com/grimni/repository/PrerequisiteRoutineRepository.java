@@ -13,6 +13,7 @@ import com.grimni.domain.enums.RoutineUserRole;
 
 public interface PrerequisiteRoutineRepository extends JpaRepository<PrerequisiteRoutine, Long> {
     List<PrerequisiteRoutine> findByOrganization_Id(Long orgId);
+    long countByOrganization_Id(Long orgId);
     Optional<PrerequisiteRoutine> findByIdAndOrganization_Id(Long id, Long orgId);
     boolean existsByIntervalRule_Id(Long intervalId);
 

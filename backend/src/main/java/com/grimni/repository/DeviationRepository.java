@@ -7,8 +7,12 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.grimni.domain.Deviation;
+import com.grimni.domain.enums.DeviationCategory;
+import com.grimni.domain.enums.ReviewStatus;
 
 public interface DeviationRepository extends JpaRepository<Deviation, Long> {
+    long countByOrganization_IdAndCategoryAndReviewStatus(Long orgId, DeviationCategory category, ReviewStatus reviewStatus);
+
 
     @Query(value = """
         SELECT * FROM deviation d

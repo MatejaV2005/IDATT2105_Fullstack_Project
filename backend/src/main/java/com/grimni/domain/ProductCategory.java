@@ -12,6 +12,9 @@ public class ProductCategory extends CreatedAtEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "product_name", nullable = false, columnDefinition = "TEXT")
+    private String productName;
+
     @Column(name = "product_description", nullable = false, columnDefinition = "TEXT")
     private String productDescription;
 
@@ -19,15 +22,16 @@ public class ProductCategory extends CreatedAtEntity {
     @JoinColumn(name = "org_id")
     private Organization organization;
 
-    @Column(name = "flowchart", nullable = false, columnDefinition = "JSON")
-    private String flowchart;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "flowchart_file_id")
+    private FileObject flowchartFile;
 
     @OneToMany(mappedBy = "productCategory")
     private List<DangerRiskCombo> dangerRiskCombos = new ArrayList<>();
 
     @OneToMany(mappedBy = "productCategory")
     private List<CcpCorrectiveMeasure> correctiveMeasures = new ArrayList<>();
-    
+
     public ProductCategory() {
     }
 
@@ -37,6 +41,14 @@ public class ProductCategory extends CreatedAtEntity {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public String getProductName() {
+        return productName;
+    }
+
+    public void setProductName(String productName) {
+        this.productName = productName;
     }
 
     public String getProductDescription() {
@@ -55,12 +67,12 @@ public class ProductCategory extends CreatedAtEntity {
         this.organization = organization;
     }
 
-    public String getFlowchart() {
-        return flowchart;
+    public FileObject getFlowchartFile() {
+        return flowchartFile;
     }
 
-    public void setFlowchart(String flowchart) {
-        this.flowchart = flowchart;
+    public void setFlowchartFile(FileObject flowchartFile) {
+        this.flowchartFile = flowchartFile;
     }
 
     public List<DangerRiskCombo> getDangerRiskCombos() {

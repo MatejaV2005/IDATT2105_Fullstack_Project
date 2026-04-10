@@ -6,6 +6,13 @@ import com.grimni.domain.Organization;
 import com.grimni.domain.enums.OrgUserRole;
 import com.grimni.dto.AddUserToOrgRequest;
 import com.grimni.dto.CreateOrganizationRequest;
+import com.grimni.dto.OrgAnalysisResponse;
+import com.grimni.dto.OrgAnalysisResponse.CcpRecordStats;
+import com.grimni.dto.OrgAnalysisResponse.DeviationCategoryStats;
+import com.grimni.dto.OrgAnalysisResponse.DeviationStats;
+import com.grimni.dto.OrgAnalysisResponse.PrerequisiteRoutineRecordStats;
+import com.grimni.dto.OrgAnalysisResponse.ResourceStats;
+import com.grimni.dto.OrgAnalysisResponse.UserStats;
 import com.grimni.dto.TeamUserOverviewResponse;
 import com.grimni.dto.TeamAssignmentsResponse;
 import com.grimni.dto.TeamCourseProgressResponse;
@@ -90,6 +97,7 @@ public class OrganizationControllerTest {
     private Organization createOrg(Long id, String name) {
         Organization org = new Organization();
         ReflectionTestUtils.setField(org, "id", id);
+        ReflectionTestUtils.setField(org, "createdAt", java.time.LocalDateTime.of(2025, 1, 1, 12, 0));
         org.setOrgName(name);
         org.setOrgAddress("123 Main St");
         org.setOrgNumber(100);
@@ -454,6 +462,58 @@ public class OrganizationControllerTest {
                     .andExpect(status().isForbidden());
 
             verify(organizationService, never()).getAllUsersInOrg(anyLong());
+        }
+    }
+
+    @Nested
+    @DisplayName("GET /organizations/analysis")
+    class GetOrgAnalysisTests {
+
+        @Test
+        @DisplayName("returns aggregated analysis data for the organization")
+        void getOrgAnalysis_success() throws Exception {
+            OrgAnalysisResponse response = new OrgAnalysisResponse(
+                    new PrerequisiteRoutineRecordStats(184L, 13L),
+                    new CcpRecordStats(7L, 239L, 19L, 22L),
+                    new DeviationStats(
+                            new DeviationCategoryStats(6L, 31L),
+                            new DeviationCategoryStats(2L, 9L),
+                            new DeviationCategoryStats(3L, 14L)),
+                    new UserStats(1L, 3L, 14L),
+                    new ResourceStats(22L, 11L, 9L));
+
+            when(organizationService.getOrgAnalysis(10L)).thenReturn(response);
+
+            mockMvc.perform(get("/organizations/analysis")
+                            .with(authentication(authWithRole("WORKER"))))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.prerequisiteRoutineRecord.completed").value(184))
+                    .andExpect(jsonPath("$.prerequisiteRoutineRecord.failed").value(13))
+                    .andExpect(jsonPath("$.ccpRecords.skipped").value(7))
+                    .andExpect(jsonPath("$.ccpRecords.verified").value(239))
+                    .andExpect(jsonPath("$.ccpRecords.rejected").value(19))
+                    .andExpect(jsonPath("$.ccpRecords.waiting").value(22))
+                    .andExpect(jsonPath("$.deviations.ikMat.open").value(6))
+                    .andExpect(jsonPath("$.deviations.ikMat.closed").value(31))
+                    .andExpect(jsonPath("$.deviations.ikAlkohol.open").value(2))
+                    .andExpect(jsonPath("$.deviations.ikAlkohol.closed").value(9))
+                    .andExpect(jsonPath("$.deviations.other.open").value(3))
+                    .andExpect(jsonPath("$.deviations.other.closed").value(14))
+                    .andExpect(jsonPath("$.users.owners").value(1))
+                    .andExpect(jsonPath("$.users.managers").value(3))
+                    .andExpect(jsonPath("$.users.workers").value(14))
+                    .andExpect(jsonPath("$.resources.routines").value(22))
+                    .andExpect(jsonPath("$.resources.ccps").value(11))
+                    .andExpect(jsonPath("$.resources.productCategories").value(9));
+        }
+
+        @Test
+        @DisplayName("unauthenticated returns 403")
+        void getOrgAnalysis_unauthenticated() throws Exception {
+            mockMvc.perform(get("/organizations/analysis"))
+                    .andExpect(status().isForbidden());
+
+            verify(organizationService, never()).getOrgAnalysis(anyLong());
         }
     }
 
