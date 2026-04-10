@@ -6,9 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -58,18 +56,6 @@ public class InternalControlReviewController {
             );
         } catch (IllegalArgumentException exception) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(exception.getMessage());
-        } catch (EntityNotFoundException exception) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(exception.getMessage());
-        }
-    }
-
-    @DeleteMapping("/{reviewId}")
-    @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
-    public ResponseEntity<?> deleteReview(@PathVariable Long reviewId, Authentication authentication) {
-        try {
-            JwtUserPrinciple principal = (JwtUserPrinciple) authentication.getPrincipal();
-            internalControlReviewService.deleteReview(reviewId, principal.userId(), principal.orgId());
-            return ResponseEntity.noContent().build();
         } catch (EntityNotFoundException exception) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(exception.getMessage());
         }

@@ -153,34 +153,6 @@ public class InternalControlReviewServiceTest {
         }
     }
 
-    @Nested
-    @DisplayName("deleteReview")
-    class DeleteReviewTests {
-
-        @Test
-        @DisplayName("deletes review in org")
-        void deleteReview_success() {
-            InternalControlReview review = createReview(7L, "Summary", LocalDateTime.now());
-
-            when(orgUserBridgeRepository.findByOrganizationIdAndUserId(10L, 1L)).thenReturn(Optional.of(membership));
-            when(internalControlReviewRepository.findByIdAndOrganization_Id(7L, 10L)).thenReturn(Optional.of(review));
-
-            internalControlReviewService.deleteReview(7L, 1L, 10L);
-
-            verify(internalControlReviewRepository).delete(review);
-        }
-
-        @Test
-        @DisplayName("throws when review is missing")
-        void deleteReview_notFound_throws() {
-            when(orgUserBridgeRepository.findByOrganizationIdAndUserId(10L, 1L)).thenReturn(Optional.of(membership));
-            when(internalControlReviewRepository.findByIdAndOrganization_Id(7L, 10L)).thenReturn(Optional.empty());
-
-            assertThrows(EntityNotFoundException.class, () -> internalControlReviewService.deleteReview(7L, 1L, 10L));
-            verify(internalControlReviewRepository, never()).delete(any());
-        }
-    }
-
     private InternalControlReview createReview(Long id, String summary, LocalDateTime createdAt) {
         InternalControlReview review = new InternalControlReview();
         ReflectionTestUtils.setField(review, "id", id);

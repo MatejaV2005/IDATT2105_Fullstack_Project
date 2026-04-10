@@ -12,7 +12,4 @@ public interface InternalControlReviewRepository extends JpaRepository<InternalC
 
     @EntityGraph(attributePaths = {"organization", "reviewedBy"})
     List<InternalControlReview> findByOrganization_IdOrderByCreatedAtDesc(Long orgId);
-
-    @EntityGraph(attributePaths = {"organization", "reviewedBy"})
-    Optional<InternalControlReview> findByIdAndOrganization_Id(Long id, Long orgId);
 }

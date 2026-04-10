@@ -3,11 +3,9 @@ package com.grimni.backend.controller;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -182,41 +180,6 @@ public class InternalControlReviewControllerTest {
                           "summary": "Daily summary"
                         }
                         """))
-                .andExpect(status().isForbidden());
-        }
-    }
-
-    @Nested
-    @DisplayName("DELETE /internal-control-reviews/{reviewId}")
-    class DeleteReviewTests {
-
-        @Test
-        @DisplayName("deletes review")
-        void deleteReview_success() throws Exception {
-            mockMvc.perform(delete("/internal-control-reviews/7")
-                    .with(authentication(authWithRole("MANAGER")))
-                    .with(csrf()))
-                .andExpect(status().isNoContent());
-        }
-
-        @Test
-        @DisplayName("returns 404 when review is missing")
-        void deleteReview_notFound() throws Exception {
-            doThrow(new EntityNotFoundException("Internal control review not found"))
-                .when(internalControlReviewService).deleteReview(7L, 1L, 10L);
-
-            mockMvc.perform(delete("/internal-control-reviews/7")
-                    .with(authentication(authWithRole("OWNER")))
-                    .with(csrf()))
-                .andExpect(status().isNotFound());
-        }
-
-        @Test
-        @DisplayName("rejects worker access")
-        void deleteReview_workerForbidden() throws Exception {
-            mockMvc.perform(delete("/internal-control-reviews/7")
-                    .with(authentication(authWithRole("WORKER")))
-                    .with(csrf()))
                 .andExpect(status().isForbidden());
         }
     }

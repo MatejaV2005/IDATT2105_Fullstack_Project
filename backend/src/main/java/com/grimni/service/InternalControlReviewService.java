@@ -58,14 +58,6 @@ public class InternalControlReviewService {
         return internalControlReviewRepository.save(review);
     }
 
-    @Transactional
-    public void deleteReview(Long reviewId, Long authenticatedUserId, Long orgId) {
-        ensureAuthenticatedMember(authenticatedUserId, orgId);
-        InternalControlReview review = internalControlReviewRepository.findByIdAndOrganization_Id(reviewId, orgId)
-            .orElseThrow(() -> new EntityNotFoundException("Internal control review not found"));
-        internalControlReviewRepository.delete(review);
-    }
-
     private OrgUserBridge ensureAuthenticatedMember(Long authenticatedUserId, Long orgId) {
         return orgUserBridgeRepository.findByOrganizationIdAndUserId(orgId, authenticatedUserId)
             .orElseThrow(() -> new EntityNotFoundException("Organization not found"));
