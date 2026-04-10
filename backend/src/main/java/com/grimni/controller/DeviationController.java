@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -103,6 +104,26 @@ public class DeviationController {
     }
 
     /**
+     * Retrieves all deviations the authenticated user is configured to receive within their
+     * current organization. Uses the same receiver-resolution rules as the review-count endpoint.
+     *
+     * @param authentication The security context containing the {@link JwtUserPrinciple}.
+     * @return {@link ResponseEntity} containing the matching {@link DeviationResponse} list.
+     */
+    @Operation(summary = "List received deviations")
+    @GetMapping("/received")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<DeviationResponse>> getReceivedDeviations(Authentication authentication) {
+        JwtUserPrinciple principal = (JwtUserPrinciple) authentication.getPrincipal();
+        List<DeviationResponse> response = deviationService
+                .getReceivedDeviations(principal.userId(), principal.orgId(), principal.role())
+                .stream()
+                .map(DeviationResponse::fromEntity)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(response);
+    }
+
+    /**
      * Resolves an existing deviation by documenting the corrective and preventative actions taken.
      * <p>
      * Closing a deviation transitions its status and archives the resolution for audit purposes.
@@ -112,6 +133,30 @@ public class DeviationController {
      * @param authentication The security context containing the {@link JwtUserPrinciple}.
      * @return {@link ResponseEntity} containing the updated {@link DeviationResponse}.
      */
+    /**
+     * Updates a deviation by closing it: sets {@code reviewedBy} to the caller, marks
+     * {@code reviewStatus = CLOSED}, stamps {@code reviewedAt}, and stores the implemented
+     * preventative measure. {@code reviewedBy} is sourced from the JWT, not the request body,
+     * so a user cannot close a deviation on someone else's behalf.
+     *
+     * @param id             The unique identifier of the deviation to update.
+     * @param request        The DTO containing the implemented preventative measure.
+     * @param authentication The security context containing the {@link JwtUserPrinciple}.
+     * @return {@link ResponseEntity} containing the updated {@link DeviationResponse}.
+     */
+    @Operation(summary = "Update deviation", description = "Closes a deviation and records the measure taken")
+    @PutMapping("/{id}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<DeviationResponse> updateDeviation(
+            @PathVariable Long id,
+            @Valid @RequestBody ResolveDeviationRequest request,
+            Authentication authentication) {
+
+        JwtUserPrinciple principal = (JwtUserPrinciple) authentication.getPrincipal();
+        Deviation updated = deviationService.resolveDeviation(id, principal.userId(), request.preventativeMeasureActuallyTaken());
+        return ResponseEntity.ok(DeviationResponse.fromEntity(updated));
+    }
+
     @Operation(summary = "Resolve deviation", description = "Closes a deviation with the measure taken")
     @PatchMapping("/{id}/resolve")
     @PreAuthorize("isAuthenticated()")

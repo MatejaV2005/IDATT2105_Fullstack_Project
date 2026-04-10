@@ -96,6 +96,23 @@ public class DeviationService {
     }
 
     /**
+     * Retrieves all deviations the caller is configured to receive, scoped to their organization.
+     * <p>
+     * Mirrors the receiver-resolution logic of {@link #getDeviationReviewCount}: a row is included
+     * when the caller is a {@code DEVIATION_RECEIVER} on the linked CCP or routine, or when the
+     * deviation is unlinked and the caller is OWNER/MANAGER.
+     *
+     * @param userId the requesting user's ID.
+     * @param orgId  the organization ID.
+     * @param role   the security role of the requesting user.
+     * @return list of {@link Deviation} entities ordered by creation time, newest first.
+     */
+    public List<Deviation> getReceivedDeviations(Long userId, Long orgId, String role) {
+        boolean isManagerOrOwner = "OWNER".equals(role) || "MANAGER".equals(role);
+        return deviationRepository.findReceivedDeviations(orgId, userId, isManagerOrOwner);
+    }
+
+    /**
      * Retrieves a list of all deviations recorded in the system.
      *
      * @return a list of {@link Deviation} entities.
