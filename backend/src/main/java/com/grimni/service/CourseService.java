@@ -7,17 +7,21 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import com.grimni.domain.Course;
+import com.grimni.domain.CourseLink;
 import com.grimni.domain.CourseResponsibleUser;
 import com.grimni.domain.CourseUserProgress;
+import com.grimni.domain.FileCourseBridge;
 import com.grimni.domain.Organization;
 import com.grimni.domain.User;
 import com.grimni.domain.ids.CourseUserProgressId;
 import com.grimni.dto.CourseOverviewResponse;
 import com.grimni.dto.CreateCourseRequest;
 import com.grimni.dto.UpdateCourseRequest;
+import com.grimni.repository.CourseLinkRepository;
 import com.grimni.repository.CourseRepository;
 import com.grimni.repository.CourseResponsibleUserRepository;
 import com.grimni.repository.CourseUserProgressRepository;
+import com.grimni.repository.FileCourseBridgeRepository;
 import com.grimni.repository.OrgUserBridgeRepository;
 import com.grimni.repository.OrganizationRepository;
 import com.grimni.repository.UserRepository;
@@ -34,6 +38,8 @@ public class CourseService {
     private final OrgUserBridgeRepository orgUserBridgeRepository;
     private final CourseUserProgressRepository courseUserProgressRepository;
     private final CourseResponsibleUserRepository courseResponsibleUserRepository;
+    private final CourseLinkRepository courseLinkRepository;
+    private final FileCourseBridgeRepository fileCourseBridgeRepository;
     private final UserRepository userRepository;
 
     public CourseService(CourseRepository courseRepository,
@@ -41,12 +47,16 @@ public class CourseService {
                          OrgUserBridgeRepository orgUserBridgeRepository,
                          CourseUserProgressRepository courseUserProgressRepository,
                          CourseResponsibleUserRepository courseResponsibleUserRepository,
+                         CourseLinkRepository courseLinkRepository,
+                         FileCourseBridgeRepository fileCourseBridgeRepository,
                          UserRepository userRepository) {
         this.courseRepository = courseRepository;
         this.organizationRepository = organizationRepository;
         this.orgUserBridgeRepository = orgUserBridgeRepository;
         this.courseUserProgressRepository = courseUserProgressRepository;
         this.courseResponsibleUserRepository = courseResponsibleUserRepository;
+        this.courseLinkRepository = courseLinkRepository;
+        this.fileCourseBridgeRepository = fileCourseBridgeRepository;
         this.userRepository = userRepository;
     }
 
@@ -281,6 +291,37 @@ public class CourseService {
         logger.info("Responsible user {} removed from course {} in organization {}", targetUserId, courseId, orgId);
     }
 
+    public CourseLink addCourseLink(Long courseId, String link, Long orgId, Long userId) {
+        logger.info("Adding link to course {} in organization {} by user {}", courseId, orgId, userId);
+
+        validateUserBelongsToOrg(orgId, userId);
+        Course course = findCourseAndValidateOrg(courseId, orgId);
+
+        CourseLink courseLink = new CourseLink();
+        courseLink.setCourse(course);
+        courseLink.setLink(link);
+        courseLink = courseLinkRepository.save(courseLink);
+
+        logger.info("Added link {} to course {} in organization {}", courseLink.getId(), courseId, orgId);
+        return courseLink;
+    }
+
+    public void removeCourseLink(Long courseId, Long linkId, Long orgId, Long userId) {
+        logger.info("Removing link {} from course {} in organization {}", linkId, courseId, orgId);
+
+        validateUserBelongsToOrg(orgId, userId);
+        findCourseAndValidateOrg(courseId, orgId);
+
+        CourseLink courseLink = courseLinkRepository.findByIdAndCourseId(linkId, courseId)
+                .orElseThrow(() -> {
+                    logger.warn("Course link {} not found for course {}", linkId, courseId);
+                    return new EntityNotFoundException("Course link not found");
+                });
+
+        courseLinkRepository.delete(courseLink);
+        logger.info("Removed link {} from course {} in organization {}", linkId, courseId, orgId);
+    }
+
     public CourseOverviewResponse getCourseOverview(Long orgId, Long userId) {
     logger.info("Fetching course overview for organization {}", orgId);
 
@@ -290,15 +331,37 @@ public class CourseService {
 
     List<CourseOverviewResponse.CourseDetailResponse> allCourses = courses.stream()
             .map(course -> {
-                List<String> responsible = courseResponsibleUserRepository.findByCourseId(course.getId())
+                List<CourseOverviewResponse.ResponsibleUserResponse> responsibleUsers = courseResponsibleUserRepository.findByCourseId(course.getId())
                         .stream()
-                        .map(r -> r.getUser().getLegalName())
+                        .map(r -> new CourseOverviewResponse.ResponsibleUserResponse(
+                                r.getUser().getId(),
+                                r.getUser().getLegalName()
+                        ))
                         .toList();
+                List<CourseOverviewResponse.CourseResourceResponse> resources = courseLinkRepository.findByCourseId(course.getId())
+                        .stream()
+                        .map(link -> new CourseOverviewResponse.CourseResourceResponse(
+                                link.getId(),
+                                "link",
+                                link.getLink()
+                        ))
+                        .collect(java.util.stream.Collectors.toCollection(java.util.ArrayList::new));
+
+                resources.addAll(fileCourseBridgeRepository.findByCourseId(course.getId())
+                        .stream()
+                        .map(fileBridge -> new CourseOverviewResponse.CourseResourceResponse(
+                                fileBridge.getFile().getId(),
+                                "file",
+                                fileBridge.getFile().getFileName()
+                        ))
+                        .toList());
+
                 return new CourseOverviewResponse.CourseDetailResponse(
                         course.getId(),
                         course.getTitle(),
                         course.getCourseDescription(),
-                        responsible
+                        responsibleUsers,
+                        resources
                 );
             }).toList();
 

@@ -133,24 +133,30 @@ export type MappingPointAllInfo = MappingPoint[]
 // #endregion
 
 // #region LearningView
-interface LearningResource {
+export interface LearningResource {
   name: string
   type: 'link' | 'file'
   id: number
 }
 
-export interface LearningCourse {
-  name: string
-  description: string
-  resources: LearningResource[]
-  responsible: string[]
-  uniqueId: number
+export interface LearningResponsibleUser {
+  userId: number
+  legalName: string
 }
 
-interface LearningUserCourseProgress {
-  name: string
+export interface LearningCourse {
+  id: number
+  title: string
+  courseDescription: string
+  resources: LearningResource[]
+  responsibleUsers: LearningResponsibleUser[]
+}
+
+export interface LearningUserCourseProgress {
+  title: string
   completed: boolean
-  uniqueId: number
+  courseId: number
+  hasProgressRecord?: boolean
 }
 
 export interface LearningUserProgress {
@@ -160,9 +166,33 @@ export interface LearningUserProgress {
   courses: LearningUserCourseProgress[]
 }
 
-export interface LearningAllInfo {
+export interface LearningOverviewResponse {
   allCourses: LearningCourse[]
-  userProgress: LearningUserProgress[]
+  userProgress: {
+    userId: number
+    legalName: string
+    courses: {
+      courseId: number
+      title: string
+      completed: boolean
+    }[]
+  }[]
+}
+
+export type LearningAllInfo = LearningOverviewResponse
+
+export interface LearningOrganizationUser {
+  id: number
+  legalName: string
+  email: string
+  accessLevel: string
+}
+
+export interface CreateLearningCoursePayload {
+  title: string
+  description: string
+  links: string[]
+  resources: File[]
 }
 // #endregion
 
