@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.grimni.controller.OrganizationController;
 import com.grimni.domain.Organization;
 import com.grimni.domain.enums.OrgUserRole;
+import com.grimni.dto.AddUserToOrgRequest;
 import com.grimni.dto.CreateOrganizationRequest;
 import com.grimni.dto.UpdateOrganizationRequest;
 import com.grimni.dto.UserOrgResponse;
@@ -427,6 +428,77 @@ public class OrganizationControllerTest {
                     .andExpect(status().isForbidden());
 
             verify(organizationService, never()).getAllUsersInOrg(anyLong());
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // POST /organizations/users
+    // -------------------------------------------------------------------------
+    @Nested
+    @DisplayName("POST /organizations/users")
+    class AddUserToOrgTests {
+
+        @Test
+        @DisplayName("returns HTTP 201 with the added user")
+        void addUserToOrg_success() throws Exception {
+            AddUserToOrgRequest request = new AddUserToOrgRequest(5L, OrgUserRole.WORKER);
+
+            when(organizationService.addUserToOrg(5L, OrgUserRole.WORKER, 10L))
+                    .thenReturn(new UserOrgResponse(5L, "charlie", "charlie@test.com", OrgUserRole.WORKER));
+
+            mockMvc.perform(post("/organizations/users")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request))
+                            .with(authentication(authWithRole("OWNER")))
+                            .with(csrf()))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.id").value(5))
+                    .andExpect(jsonPath("$.legalName").value("charlie"))
+                    .andExpect(jsonPath("$.accessLevel").value("WORKER"));
+        }
+
+        @Test
+        @DisplayName("WORKER role is rejected with 403")
+        void addUserToOrg_workerForbidden() throws Exception {
+            AddUserToOrgRequest request = new AddUserToOrgRequest(5L, OrgUserRole.WORKER);
+
+            mockMvc.perform(post("/organizations/users")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request))
+                            .with(authentication(authWithRole("WORKER")))
+                            .with(csrf()))
+                    .andExpect(status().isForbidden());
+
+            verify(organizationService, never()).addUserToOrg(any(), any(), anyLong());
+        }
+
+        @Test
+        @DisplayName("MANAGER role is rejected with 403")
+        void addUserToOrg_managerForbidden() throws Exception {
+            AddUserToOrgRequest request = new AddUserToOrgRequest(5L, OrgUserRole.WORKER);
+
+            mockMvc.perform(post("/organizations/users")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request))
+                            .with(authentication(authWithRole("MANAGER")))
+                            .with(csrf()))
+                    .andExpect(status().isForbidden());
+
+            verify(organizationService, never()).addUserToOrg(any(), any(), anyLong());
+        }
+
+        @Test
+        @DisplayName("unauthenticated returns 403")
+        void addUserToOrg_unauthenticated() throws Exception {
+            AddUserToOrgRequest request = new AddUserToOrgRequest(5L, OrgUserRole.WORKER);
+
+            mockMvc.perform(post("/organizations/users")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request))
+                            .with(csrf()))
+                    .andExpect(status().isForbidden());
+
+            verify(organizationService, never()).addUserToOrg(any(), any(), anyLong());
         }
     }
 }

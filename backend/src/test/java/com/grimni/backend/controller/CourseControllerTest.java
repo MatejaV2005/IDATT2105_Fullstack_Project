@@ -549,7 +549,7 @@ public class CourseControllerTest {
     }
 
     @Nested
-    @DisplayName("PATCH /courses/{courseId}/progress/{targetUserId}")
+    @DisplayName("PUT /courses/course-progress")
     class UpdateProgressTests {
 
         @Test
@@ -561,9 +561,9 @@ public class CourseControllerTest {
             p.setIsCompleted(true);
             when(courseService.updateProgress(100L, 2L, true, 10L, 1L)).thenReturn(p);
 
-            mockMvc.perform(patch("/courses/100/progress/2")
+            mockMvc.perform(put("/courses/course-progress")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content("true")
+                            .content("{\"courseId\":100,\"userId\":2,\"completed\":true}")
                             .with(authentication(authWithRole("OWNER")))
                             .with(csrf()))
                     .andExpect(status().isOk())
@@ -573,9 +573,9 @@ public class CourseControllerTest {
         @Test
         @DisplayName("WORKER cannot update progress — returns 403")
         void updateProgress_worker_returns403() throws Exception {
-            mockMvc.perform(patch("/courses/100/progress/2")
+            mockMvc.perform(put("/courses/course-progress")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content("true")
+                            .content("{\"courseId\":100,\"userId\":2,\"completed\":true}")
                             .with(authentication(authWithRole("WORKER")))
                             .with(csrf()))
                     .andExpect(status().isForbidden());

@@ -5,7 +5,7 @@ export function getAuthToken(): string | null {
     return null
   }
 
-  return window.localStorage.getItem(AUTH_TOKEN_STORAGE_KEY)
+  return window.sessionStorage.getItem(AUTH_TOKEN_STORAGE_KEY)
 }
 
 export function setAuthToken(token: string): void {
@@ -13,7 +13,7 @@ export function setAuthToken(token: string): void {
     return
   }
 
-  window.localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, token.trim())
+  window.sessionStorage.setItem(AUTH_TOKEN_STORAGE_KEY, token.trim())
 }
 
 export function clearAuthToken(): void {
@@ -21,7 +21,7 @@ export function clearAuthToken(): void {
     return
   }
 
-  window.localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY)
+  window.sessionStorage.removeItem(AUTH_TOKEN_STORAGE_KEY)
 }
 
 export function createAuthHeaders(headers: HeadersInit = {}): Headers {

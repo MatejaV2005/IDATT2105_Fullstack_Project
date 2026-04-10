@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -30,6 +31,7 @@ import com.grimni.dto.CourseResponse;
 import com.grimni.dto.CourseResponsibleUserResponse;
 import com.grimni.dto.CourseUserProgressResponse;
 import com.grimni.dto.CreateCourseRequest;
+import com.grimni.dto.UpdateCourseProgressRequest;
 import com.grimni.dto.UpdateCourseRequest;
 import com.grimni.repository.OrganizationRepository;
 import com.grimni.repository.UserRepository;
@@ -149,16 +151,14 @@ public class CourseController {
                 courseService.assignUserToCourse(courseId, targetUserId, principal.orgId(), principal.userId())));
     }
 
-    @PatchMapping("/{courseId}/progress/{targetUserId}")
+    @PutMapping("/course-progress")
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
     public ResponseEntity<?> updateProgress(
-            @PathVariable Long courseId,
-            @PathVariable Long targetUserId,
-            @RequestBody Boolean isCompleted,
+            @Valid @RequestBody UpdateCourseProgressRequest request,
             Authentication authentication) {
         JwtUserPrinciple principal = (JwtUserPrinciple) authentication.getPrincipal();
         return ResponseEntity.ok(CourseUserProgressResponse.fromEntity(
-                courseService.updateProgress(courseId, targetUserId, isCompleted, principal.orgId(), principal.userId())));
+                courseService.updateProgress(request.courseId(), request.userId(), request.completed(), principal.orgId(), principal.userId())));
     }
 
     @DeleteMapping("/{courseId}/progress/{targetUserId}")

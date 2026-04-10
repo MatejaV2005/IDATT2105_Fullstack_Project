@@ -47,7 +47,7 @@ public class PrerequisiteCategoryController {
         }
     }
 
-    @PostMapping("/prerequisite-categories")
+    @PostMapping("/prerequisite-categories/create-category")
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
     public ResponseEntity<?> createCategory(
             @Valid @RequestBody CreatePrerequisiteCategoryRequest request,
@@ -64,16 +64,15 @@ public class PrerequisiteCategoryController {
         }
     }
 
-    @PatchMapping("/prerequisite-categories/{categoryId}")
+    @PatchMapping("/prerequisite-categories/update-category")
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
     public ResponseEntity<?> updateCategory(
-            @PathVariable Long categoryId,
             @Valid @RequestBody UpdatePrerequisiteCategoryRequest request,
             Authentication authentication) {
         try {
             JwtUserPrinciple principal = (JwtUserPrinciple) authentication.getPrincipal();
             return ResponseEntity.ok(
-                prerequisiteCategoryService.updateCategory(categoryId, request, principal.userId(), principal.orgId())
+                prerequisiteCategoryService.updateCategory(request.categoryId(), request, principal.userId(), principal.orgId())
             );
         } catch (IllegalArgumentException exception) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(exception.getMessage());
@@ -94,16 +93,15 @@ public class PrerequisiteCategoryController {
         }
     }
 
-    @PostMapping("/prerequisite-categories/{categoryId}/standards")
+    @PostMapping("/prerequisite-categories/create-standard")
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
     public ResponseEntity<?> createStandard(
-            @PathVariable Long categoryId,
             @Valid @RequestBody CreatePrerequisiteStandardRequest request,
             Authentication authentication) {
         try {
             JwtUserPrinciple principal = (JwtUserPrinciple) authentication.getPrincipal();
             return ResponseEntity.status(HttpStatus.CREATED).body(
-                prerequisiteCategoryService.createStandard(categoryId, request, principal.userId(), principal.orgId())
+                prerequisiteCategoryService.createStandard(request.categoryId(), request, principal.userId(), principal.orgId())
             );
         } catch (IllegalArgumentException exception) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(exception.getMessage());
@@ -112,16 +110,15 @@ public class PrerequisiteCategoryController {
         }
     }
 
-    @PatchMapping("/prerequisite-standards/{standardId}")
+    @PatchMapping("/prerequisite-categories/update-standard")
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
     public ResponseEntity<?> updateStandard(
-            @PathVariable Long standardId,
             @Valid @RequestBody UpdatePrerequisiteStandardRequest request,
             Authentication authentication) {
         try {
             JwtUserPrinciple principal = (JwtUserPrinciple) authentication.getPrincipal();
             return ResponseEntity.ok(
-                prerequisiteCategoryService.updateStandard(standardId, request, principal.userId(), principal.orgId())
+                prerequisiteCategoryService.updateStandard(request.standardId(), request, principal.userId(), principal.orgId())
             );
         } catch (IllegalArgumentException exception) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(exception.getMessage());
@@ -142,16 +139,15 @@ public class PrerequisiteCategoryController {
         }
     }
 
-    @PostMapping("/prerequisite-categories/{categoryId}/routines")
+    @PostMapping("/prerequisite-categories/create-routine")
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
     public ResponseEntity<?> createRoutine(
-            @PathVariable Long categoryId,
             @Valid @RequestBody CreatePrerequisiteRoutineRequest request,
             Authentication authentication) {
         try {
             JwtUserPrinciple principal = (JwtUserPrinciple) authentication.getPrincipal();
             return ResponseEntity.status(HttpStatus.CREATED).body(
-                prerequisiteCategoryService.createRoutine(categoryId, request, principal.userId(), principal.orgId())
+                prerequisiteCategoryService.createRoutine(request.categoryId(), request, principal.userId(), principal.orgId())
             );
         } catch (IllegalArgumentException exception) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(exception.getMessage());
@@ -160,16 +156,15 @@ public class PrerequisiteCategoryController {
         }
     }
 
-    @PatchMapping("/prerequisite-routines/{routineId}")
+    @PatchMapping("/prerequisite-categories/update-routine")
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
     public ResponseEntity<?> updateRoutine(
-            @PathVariable Long routineId,
             @Valid @RequestBody UpdatePrerequisiteRoutineRequest request,
             Authentication authentication) {
         try {
             JwtUserPrinciple principal = (JwtUserPrinciple) authentication.getPrincipal();
             return ResponseEntity.ok(
-                prerequisiteCategoryService.updateRoutine(routineId, request, principal.userId(), principal.orgId())
+                prerequisiteCategoryService.updateRoutine(request.routineId(), request, principal.userId(), principal.orgId())
             );
         } catch (IllegalArgumentException exception) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(exception.getMessage());

@@ -303,6 +303,14 @@ public class PrerequisiteCategoryService {
         }
 
         PrerequisiteRoutine savedRoutine = prerequisiteRoutineRepository.save(routine);
+
+        if (request.performers() != null) {
+            replaceRoleAssignments(savedRoutine, RoutineUserRole.PERFORMER, request.performers());
+        }
+        if (request.deputy() != null) {
+            replaceRoleAssignments(savedRoutine, RoutineUserRole.DEPUTY, request.deputy());
+        }
+
         return toRoutineResponse(savedRoutine, loadRoutineBridges(savedRoutine.getId()));
     }
 
@@ -437,6 +445,28 @@ public class PrerequisiteCategoryService {
         prerequisiteRoutineRepository.delete(routine);
         prerequisiteRoutineRepository.flush();
         cleanupIntervalIfOrphaned(intervalId);
+    }
+
+    private void replaceRoleAssignments(PrerequisiteRoutine routine, RoutineUserRole role, List<Long> userIds) {
+        routineUserBridgeRepository.deleteByRoutine_IdAndId_UserRole(routine.getId(), role);
+
+        if (userIds == null || userIds.isEmpty()) {
+            return;
+        }
+
+        Set<Long> userIdSet = new LinkedHashSet<>(userIds);
+        Map<Long, User> usersById = loadUsersInOrganization(userIdSet, routine.getOrganization().getId());
+
+        List<RoutineUserBridge> bridges = new ArrayList<>();
+        for (Long userId : userIdSet) {
+            RoutineUserBridge bridge = new RoutineUserBridge();
+            bridge.setId(new RoutineUserBridgeId(userId, routine.getId(), role));
+            bridge.setRoutine(routine);
+            bridge.setUser(usersById.get(userId));
+            bridge.setUserRole(role);
+            bridges.add(bridge);
+        }
+        routineUserBridgeRepository.saveAll(bridges);
     }
 
     private void cleanupIntervalIfOrphaned(Long intervalId) {

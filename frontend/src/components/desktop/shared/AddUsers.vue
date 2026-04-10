@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { mockUsers } from '@/data/mockUsers'
+import api from '@/api/api'
 import type { BasicUserWithAccessLevel } from '@/interfaces/util-interfaces'
-import { delay } from '@/utils'
 import { Plus, X } from '@lucide/vue'
 import { computed, onMounted, ref, watch } from 'vue'
 import DesktopButton from './DesktopButton.vue'
@@ -46,13 +45,8 @@ watch(
 
 onMounted(async () => {
   try {
-    // const response = await fetch('/api/organizations/users')
-    // if (!response.ok) {
-    //   throw new Error(`Failed to fetch users (${response.status})`)
-    // }
-    // const data = await response.json()
-    await delay(400)
-    allUsers.value = mockUsers
+    const response = await api.get('/organizations/users')
+    allUsers.value = response.data
     isLoading.value = false
     errorMessage.value = ''
   } catch (err) {
@@ -65,13 +59,21 @@ onMounted(async () => {
   }
 })
 
-function addUser(user: BasicUserWithAccessLevel) {
+async function addUser(user: BasicUserWithAccessLevel) {
   if (isSubmitting.value) {
     return
   }
 
-  selectedUsers.value = [...selectedUsers.value, user]
-  selectedUserId.value = null
+  try {
+    isSubmitting.value = true
+    await api.post('/organizations/users', { userId: user.id, role: user.accessLevel })
+    selectedUsers.value = [...selectedUsers.value, user]
+    selectedUserId.value = null
+  } catch {
+    errorMessage.value = 'Klarte ikke å legge til bruker.'
+  } finally {
+    isSubmitting.value = false
+  }
 }
 
 function setSelectedUserId(userId: number | null) {

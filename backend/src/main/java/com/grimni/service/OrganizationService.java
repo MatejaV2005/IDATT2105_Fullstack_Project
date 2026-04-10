@@ -6,7 +6,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import com.grimni.domain.OrgDangerAnalysisCollaborator;
 import com.grimni.domain.OrgUserBridge;
 import com.grimni.domain.Organization;
 import com.grimni.domain.User;
@@ -134,6 +133,38 @@ public class OrganizationService {
                 .map(c -> CollaboratorResponse.fromEntity(c.getUser()))
                 .toList();
         return collaborators;
+    }
+
+    public UserOrgResponse addUserToOrg(Long userId, OrgUserRole role, Long orgId) {
+        Organization org = organizationRepository.findById(orgId)
+                .orElseThrow(() -> new EntityNotFoundException("Organization not found"));
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("User not found"));
+
+        if (orgUserBridgeRepository.findByOrganizationIdAndUserId(orgId, userId).isPresent()) {
+            throw new IllegalArgumentException("User is already a member of this organization");
+        }
+
+        OrgUserBridge bridge = new OrgUserBridge();
+        bridge.setId(new OrgUserBridgeId(orgId, userId));
+        bridge.setOrganization(org);
+        bridge.setUser(user);
+        bridge.setUserRole(role);
+        orgUserBridgeRepository.save(bridge);
+
+        return UserOrgResponse.fromEntity(bridge);
+    }
+
+    public void removeUserFromOrg(Long userId, Long orgId) {
+        OrgUserBridge bridge = orgUserBridgeRepository.findByOrganizationIdAndUserId(orgId, userId)
+                .orElseThrow(() -> new EntityNotFoundException("User is not a member of this organization"));
+
+        if (bridge.getUserRole() == OrgUserRole.OWNER) {
+            throw new IllegalArgumentException("Cannot remove an owner from the organization");
+        }
+
+        orgUserBridgeRepository.delete(bridge);
     }
 
     public List<UserOrgResponse> getAllUsersInOrg(long orgId) {

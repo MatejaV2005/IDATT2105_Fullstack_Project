@@ -185,6 +185,7 @@ public class PrerequisiteCategoryServiceTest {
         @DisplayName("creates interval, routine, and multi-role assignments")
         void createRoutine_success() {
             CreatePrerequisiteRoutineRequest request = new CreatePrerequisiteRoutineRequest(
+                1L,
                 "Vask gulvene",
                 "Vask gulvene etter stengetid.",
                 "Vask ekstra godt neste gang",
@@ -237,8 +238,11 @@ public class PrerequisiteCategoryServiceTest {
         @DisplayName("updates routine content without replacing assignments")
         void updateRoutine_doesNotTouchAssignments() {
             UpdatePrerequisiteRoutineRequest request = new UpdatePrerequisiteRoutineRequest(
+                20L,
                 "Ny tittel",
                 "Oppdatert beskrivelse",
+                null,
+                null,
                 null,
                 null,
                 null,

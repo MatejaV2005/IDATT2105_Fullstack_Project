@@ -37,4 +37,6 @@ public interface RoutineUserBridgeRepository extends JpaRepository<RoutineUserBr
     );
 
     void deleteByRoutine_Id(Long routineId);
+
+    void deleteByRoutine_IdAndId_UserRole(Long routineId, RoutineUserRole userRole);
 }
