@@ -50,13 +50,13 @@ withDefaults(
             <span class="accent-title"> Regulering </span>
             <SidebarMenuOption
               to="/desktop/haccp"
-              name="HACCP"
+              name="IK-MAT HACCP"
               :is-selected="activePage === '/desktop/haccp'"
               :icon="CookingPot"
             />
             <SidebarMenuOption
               to="/desktop/ik-alkohol-kartlegging-og-tiltak"
-              name="Kartlegging & tiltak"
+              name="IK-ALKOHOL kartlegging"
               :is-selected="activePage === '/desktop/ik-alkohol-kartlegging-og-tiltak'"
               :icon="Beer"
             />
