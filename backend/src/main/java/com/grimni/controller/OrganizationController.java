@@ -117,6 +117,22 @@ public class OrganizationController {
         return ResponseEntity.ok(organizationService.getAllUsersInOrg(principal.orgId()));
     }
 
+    @Operation(summary = "Get team overview")
+    @GetMapping("/team-overview")
+    @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
+    public ResponseEntity<?> getTeamOverview(Authentication authentication) {
+        JwtUserPrinciple principal = (JwtUserPrinciple) authentication.getPrincipal();
+        return ResponseEntity.ok(organizationService.getTeamOverview(principal.orgId()));
+    }
+
+    @Operation(summary = "Get organization user directory")
+    @GetMapping("/user-directory")
+    @PreAuthorize("hasAuthority('OWNER')")
+    public ResponseEntity<?> getUserDirectory(Authentication authentication) {
+        JwtUserPrinciple principal = (JwtUserPrinciple) authentication.getPrincipal();
+        return ResponseEntity.ok(organizationService.getUserDirectory(principal.orgId()));
+    }
+
     /**
      * Grants a user membership to the organization with a specific assigned role.
      * <p>Strictly restricted to users with OWNER authority.</p>
@@ -133,7 +149,7 @@ public class OrganizationController {
             Authentication authentication) {
         JwtUserPrinciple principal = (JwtUserPrinciple) authentication.getPrincipal();
         return ResponseEntity.status(HttpStatus.CREATED).body(
-                organizationService.addUserToOrg(request.userId(), request.role(), principal.orgId()));
+                organizationService.addUserToOrg(request.userId(), request.role(), principal.orgId(), principal.userId()));
     }
 
     /**
@@ -168,7 +184,7 @@ public class OrganizationController {
             @Valid @RequestBody RemoveUserFromOrgRequest request,
             Authentication authentication) {
         JwtUserPrinciple principal = (JwtUserPrinciple) authentication.getPrincipal();
-        organizationService.removeUserFromOrg(request.userId(), principal.orgId());
+        organizationService.removeUserFromOrg(request.userId(), principal.orgId(), principal.userId());
         return ResponseEntity.ok().build();
     }
 }

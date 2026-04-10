@@ -129,6 +129,17 @@ export interface TeamUser {
 }
 
 export type TeamAllInfo = TeamUser[]
+
+export interface TeamDirectoryUser {
+  id: number
+  legalName: string
+  email: string
+}
+
+export interface NewOrganizationUserPayload {
+  userId: number
+  orgRole: 'OWNER' | 'MANAGER' | 'WORKER'
+}
 // #endregion
 
 // #region MappingAndMeasuresView

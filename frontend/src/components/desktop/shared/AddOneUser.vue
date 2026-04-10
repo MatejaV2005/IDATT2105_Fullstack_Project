@@ -1,41 +1,41 @@
 <script setup lang="ts">
-import { mockAllUsers, type DirectoryUser } from '@/data/mockAllUsers'
-import { delay } from '@/utils'
-import { computed, onMounted, ref, watch } from 'vue'
+import type { TeamDirectoryUser } from '@/interfaces/api-interfaces'
+import { computed, ref, watch } from 'vue'
 
 const props = withDefaults(
   defineProps<{
     selectedUserId: number | null
     setSelectedUserId: (userId: number | null) => void
+    users: TeamDirectoryUser[]
     excludedUserIds?: number[]
     disabled?: boolean
+    isLoading?: boolean
+    errorMessage?: string
   }>(),
   {
     excludedUserIds: () => [],
     disabled: false,
+    isLoading: false,
+    errorMessage: '',
   },
 )
 
-const users = ref<DirectoryUser[]>([])
 const searchQuery = ref('')
 const isOpen = ref(false)
-const isLoading = ref(true)
-const errorMessage = ref('')
 
 const selectedUser = computed(() => {
-  return users.value.find((user) => user.id === props.selectedUserId) || null
+  return props.users.find((user) => user.id === props.selectedUserId) || null
 })
 
 const filteredUsers = computed(() => {
   const query = searchQuery.value.trim().toLowerCase()
 
-  return users.value.filter((user) => {
+  return props.users.filter((user) => {
     const isExcluded = props.excludedUserIds.includes(user.id) && user.id !== props.selectedUserId
     const matchesQuery =
       query.length === 0 ||
       user.legalName.toLowerCase().includes(query) ||
-      user.email.toLowerCase().includes(query) ||
-      user.orgName.toLowerCase().includes(query)
+      user.email.toLowerCase().includes(query)
 
     return !isExcluded && matchesQuery
   })
@@ -49,29 +49,7 @@ watch(
   { immediate: true },
 )
 
-onMounted(async () => {
-  try {
-    // const response = await fetch('/api/users')
-    // if (!response.ok) {
-    //   throw new Error(`Failed to fetch users (${response.status})`)
-    // }
-    // const data: DirectoryUser[] = await response.json()
-    await delay(400)
-    users.value = mockAllUsers
-    errorMessage.value = ''
-  } catch (err) {
-    if (err instanceof Error) {
-      console.error(err.message)
-    } else {
-      console.error('Unknown error occurred')
-    }
-    errorMessage.value = 'Klarte ikke å hente brukere.'
-  } finally {
-    isLoading.value = false
-  }
-})
-
-function selectUser(user: DirectoryUser) {
+function selectUser(user: TeamDirectoryUser) {
   if (props.disabled) {
     return
   }
@@ -111,7 +89,7 @@ function onInput() {
         class="simple-text-input selector-input"
         type="text"
         :disabled="disabled || isLoading"
-        placeholder="Velg bruker (alle organisasjoner)"
+        placeholder="Søk på navn eller e-post"
         @focus="isOpen = true"
         @input="onInput"
       >
@@ -151,7 +129,6 @@ function onInput() {
             {{ user.email }}
           </div>
         </div>
-        <span class="option-org">{{ user.orgName }}</span>
       </button>
 
       <div
@@ -204,7 +181,6 @@ function onInput() {
   background: transparent;
   padding: 0.6rem 0.75rem;
   display: flex;
-  justify-content: space-between;
   text-align: left;
   gap: 0.75rem;
 }
@@ -214,8 +190,7 @@ function onInput() {
   background-color: var(--blue-decor-10);
 }
 
-.option-email,
-.option-org {
+.option-email {
   color: var(--blue-navy-80);
   font-size: 0.9rem;
 }

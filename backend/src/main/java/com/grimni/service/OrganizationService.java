@@ -1,27 +1,47 @@
 package com.grimni.service;
 
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
+import com.grimni.domain.CcpUserBridge;
+import com.grimni.domain.CourseUserProgress;
+import com.grimni.domain.MappingPoint;
 import com.grimni.domain.OrgUserBridge;
 import com.grimni.domain.Organization;
+import com.grimni.domain.RoutineUserBridge;
 import com.grimni.domain.User;
 import com.grimni.domain.enums.OrgUserRole;
+import com.grimni.domain.enums.RoutineUserRole;
 import com.grimni.domain.ids.OrgUserBridgeId;
 import com.grimni.dto.AddOrganizationUserRequest;
 import com.grimni.dto.CollaboratorResponse;
 import com.grimni.dto.CreateOrganizationRequest;
 import com.grimni.dto.MyOrganizationMembershipResponse;
+import com.grimni.dto.TeamAssignmentsResponse;
+import com.grimni.dto.TeamCourseProgressResponse;
+import com.grimni.dto.TeamUserOverviewResponse;
 import com.grimni.dto.UpdateOrganizationRequest;
+import com.grimni.dto.UserDirectoryResponse;
 import com.grimni.dto.UserOrgResponse;
+import com.grimni.repository.CcpUserBridgeRepository;
+import com.grimni.repository.CourseRepository;
+import com.grimni.repository.CourseUserProgressRepository;
+import com.grimni.repository.DeviationRepository;
+import com.grimni.repository.MappingPointRepository;
 import com.grimni.repository.OrgDangerAnalysisCollaboratorRepository;
 import com.grimni.repository.OrgUserBridgeRepository;
 import com.grimni.repository.OrganizationRepository;
+import com.grimni.repository.RoutineUserBridgeRepository;
 import com.grimni.repository.UserRepository;
 
 import jakarta.persistence.EntityNotFoundException;
@@ -47,15 +67,33 @@ public class OrganizationService {
     private final OrgUserBridgeRepository orgUserBridgeRepository;
     private final OrgDangerAnalysisCollaboratorRepository dangerAnalysisCollaboratorRepository;
     private final UserRepository userRepository;
+    private final CcpUserBridgeRepository ccpUserBridgeRepository;
+    private final RoutineUserBridgeRepository routineUserBridgeRepository;
+    private final CourseRepository courseRepository;
+    private final CourseUserProgressRepository courseUserProgressRepository;
+    private final DeviationRepository deviationRepository;
+    private final MappingPointRepository mappingPointRepository;
 
     public OrganizationService(OrganizationRepository organizationRepository,
                                OrgUserBridgeRepository orgUserBridgeRepository,
                                OrgDangerAnalysisCollaboratorRepository dangerAnalysisCollaboratorRepository,
-                               UserRepository userRepository) {
+                               UserRepository userRepository,
+                               CcpUserBridgeRepository ccpUserBridgeRepository,
+                               RoutineUserBridgeRepository routineUserBridgeRepository,
+                               CourseRepository courseRepository,
+                               CourseUserProgressRepository courseUserProgressRepository,
+                               DeviationRepository deviationRepository,
+                               MappingPointRepository mappingPointRepository) {
         this.organizationRepository = organizationRepository;
         this.orgUserBridgeRepository = orgUserBridgeRepository;
         this.dangerAnalysisCollaboratorRepository = dangerAnalysisCollaboratorRepository;
         this.userRepository = userRepository;
+        this.ccpUserBridgeRepository = ccpUserBridgeRepository;
+        this.routineUserBridgeRepository = routineUserBridgeRepository;
+        this.courseRepository = courseRepository;
+        this.courseUserProgressRepository = courseUserProgressRepository;
+        this.deviationRepository = deviationRepository;
+        this.mappingPointRepository = mappingPointRepository;
     }
 
     /**
@@ -294,6 +332,11 @@ public class OrganizationService {
         return UserOrgResponse.fromEntity(bridge);
     }
 
+    public UserOrgResponse addUserToOrg(Long userId, OrgUserRole role, Long orgId, Long requesterId) {
+        assertRequesterIsOwner(orgId, requesterId);
+        return addUserToOrg(userId, role, orgId);
+    }
+
     /**
      * Revokes a user's membership from an organization.
      *
@@ -311,6 +354,11 @@ public class OrganizationService {
         orgUserBridgeRepository.delete(bridge);
     }
 
+    public void removeUserFromOrg(Long userId, Long orgId, Long requesterId) {
+        assertRequesterIsOwner(orgId, requesterId);
+        removeUserFromOrg(userId, orgId);
+    }
+
     /**
      * Retrieves a list of all current members within a specific organization.
      *
@@ -321,6 +369,81 @@ public class OrganizationService {
         return orgUserBridgeRepository.findByOrganizationId(orgId)
                 .stream()
                 .map(UserOrgResponse::fromEntity)
+                .toList();
+    }
+
+    public List<UserDirectoryResponse> getUserDirectory(long orgId) {
+        Set<Long> existingMemberIds = orgUserBridgeRepository.findByOrganizationId(orgId)
+                .stream()
+                .map(bridge -> bridge.getUser().getId())
+                .collect(java.util.stream.Collectors.toSet());
+
+        return userRepository.findAll().stream()
+                .filter(user -> !existingMemberIds.contains(user.getId()))
+                .sorted(Comparator
+                        .comparing(User::getLegalName, String.CASE_INSENSITIVE_ORDER)
+                        .thenComparing(User::getEmail, String.CASE_INSENSITIVE_ORDER))
+                .map(UserDirectoryResponse::fromEntity)
+                .toList();
+    }
+
+    public List<TeamUserOverviewResponse> getTeamOverview(long orgId) {
+        List<OrgUserBridge> members = orgUserBridgeRepository.findByOrganizationId(orgId).stream()
+                .sorted(Comparator.comparing(
+                        bridge -> bridge.getUser().getLegalName().toLowerCase(Locale.ROOT)))
+                .toList();
+
+        Map<Long, MutableTeamOverview> overviewByUserId = new HashMap<>();
+        for (OrgUserBridge member : members) {
+            overviewByUserId.put(member.getUser().getId(), new MutableTeamOverview(member));
+        }
+
+        for (CcpUserBridge bridge : ccpUserBridgeRepository.findAllByOrganizationIdWithUser(orgId)) {
+            MutableTeamOverview overview = overviewByUserId.get(bridge.getUser().getId());
+            if (overview != null) {
+                overview.ccpAssignments.increment(bridge.getUserRole());
+            }
+        }
+
+        for (RoutineUserBridge bridge : routineUserBridgeRepository.findAllByOrganizationIdWithUser(orgId)) {
+            MutableTeamOverview overview = overviewByUserId.get(bridge.getUser().getId());
+            if (overview != null) {
+                overview.routineAssignments.increment(bridge.getUserRole());
+            }
+        }
+
+        int totalCourses = courseRepository.findByOrganizationId(orgId).size();
+        for (MutableTeamOverview overview : overviewByUserId.values()) {
+            overview.courseProgressTotal = totalCourses;
+        }
+
+        for (CourseUserProgress progress : courseUserProgressRepository.findAllByOrganizationIdWithUser(orgId)) {
+            if (!Boolean.TRUE.equals(progress.getIsCompleted())) {
+                continue;
+            }
+
+            MutableTeamOverview overview = overviewByUserId.get(progress.getUser().getId());
+            if (overview != null) {
+                overview.courseProgressCompleted += 1;
+            }
+        }
+
+        applyDeviationCounts(overviewByUserId, deviationRepository.countOpenCcpDeviationReviewsByReceiver(orgId), true);
+        applyDeviationCounts(overviewByUserId, deviationRepository.countOpenRoutineDeviationReviewsByReceiver(orgId), false);
+
+        List<MappingPoint> mappingPoints = mappingPointRepository.findByOrganization_IdOrderByCreatedAtAscIdAsc(orgId);
+        for (MutableTeamOverview overview : overviewByUserId.values()) {
+            String legalName = normalizeName(overview.legalName);
+            overview.mappingPointResponsibilities = (int) mappingPoints.stream()
+                    .map(MappingPoint::getResponsibleText)
+                    .filter(text -> normalizeName(text).equals(legalName))
+                    .count();
+        }
+
+        return members.stream()
+                .map(member -> overviewByUserId.get(member.getUser().getId()))
+                .filter(java.util.Objects::nonNull)
+                .map(MutableTeamOverview::toResponse)
                 .toList();
     }
 
@@ -336,18 +459,105 @@ public class OrganizationService {
     public UserOrgResponse addUserToOrganization(Long orgId, Long requesterId, AddOrganizationUserRequest request) {
         logger.info("Adding user {} to organization {} with role {} by requester {}", request.userId(), orgId, request.orgRole(), requesterId);
 
+        assertRequesterIsOwner(orgId, requesterId);
+        return addUserToOrg(request.userId(), request.orgRole(), orgId);
+    }
+
+    private void assertRequesterIsOwner(Long orgId, Long requesterId) {
         OrgUserBridge requesterBridge = orgUserBridgeRepository.findByOrganizationIdAndUserId(orgId, requesterId)
                 .orElseThrow(() -> {
-                    logger.warn("Add org user failed: organization {} not found for requester {}", orgId, requesterId);
+                    logger.warn("Organization {} not found for requester {}", orgId, requesterId);
                     return new EntityNotFoundException("Organization not found");
                 });
 
         if (requesterBridge.getUserRole() != OrgUserRole.OWNER) {
-            logger.warn("Add org user denied: requester {} is not OWNER in organization {}", requesterId, orgId);
-            throw new AccessDeniedException("Only owners can add users to the organization");
+            logger.warn("Requester {} is not OWNER in organization {}", requesterId, orgId);
+            throw new AccessDeniedException("Only owners can manage organization members");
+        }
+    }
+
+    private void applyDeviationCounts(
+            Map<Long, MutableTeamOverview> overviewByUserId,
+            List<Object[]> rows,
+            boolean ccpCounts) {
+        for (Object[] row : rows) {
+            if (row == null || row.length < 2 || row[0] == null || row[1] == null) {
+                continue;
+            }
+
+            Long userId = ((Number) row[0]).longValue();
+            long count = ((Number) row[1]).longValue();
+            MutableTeamOverview overview = overviewByUserId.get(userId);
+            if (overview == null) {
+                continue;
+            }
+
+            if (ccpCounts) {
+                overview.openReviewedCcpDeviations = count;
+            } else {
+                overview.openReviewedRoutineDeviations = count;
+            }
+        }
+    }
+
+    private String normalizeName(String value) {
+        return value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private static final class MutableAssignmentCounts {
+        private int verifier;
+        private int deviationReceiver;
+        private int performer;
+        private int deputy;
+
+        private void increment(RoutineUserRole role) {
+            if (role == null) {
+                return;
+            }
+
+            switch (role) {
+                case VERIFIER -> verifier += 1;
+                case DEVIATION_RECEIVER -> deviationReceiver += 1;
+                case PERFORMER -> performer += 1;
+                case DEPUTY -> deputy += 1;
+            }
         }
 
-        // Reuse the validated logic from the internal method
-        return addUserToOrg(request.userId(), request.orgRole(), orgId);
+        private TeamAssignmentsResponse toResponse() {
+            return new TeamAssignmentsResponse(verifier, deviationReceiver, performer, deputy);
+        }
+    }
+
+    private static final class MutableTeamOverview {
+        private final Long userId;
+        private final String legalName;
+        private final String orgRole;
+        private final MutableAssignmentCounts ccpAssignments = new MutableAssignmentCounts();
+        private final MutableAssignmentCounts routineAssignments = new MutableAssignmentCounts();
+        private int mappingPointResponsibilities;
+        private long openReviewedCcpDeviations;
+        private long openReviewedRoutineDeviations;
+        private int courseProgressCompleted;
+        private int courseProgressTotal;
+
+        private MutableTeamOverview(OrgUserBridge member) {
+            this.userId = member.getUser().getId();
+            this.legalName = member.getUser().getLegalName();
+            this.orgRole = member.getUserRole().name();
+        }
+
+        private TeamUserOverviewResponse toResponse() {
+            return new TeamUserOverviewResponse(
+                userId,
+                legalName,
+                orgRole,
+                ccpAssignments.toResponse(),
+                routineAssignments.toResponse(),
+                mappingPointResponsibilities,
+                openReviewedCcpDeviations,
+                openReviewedRoutineDeviations,
+                new TeamCourseProgressResponse(courseProgressCompleted, courseProgressTotal)
+            );
+        }
     }
 }

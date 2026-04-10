@@ -68,4 +68,28 @@ public interface DeviationRepository extends JpaRepository<Deviation, Long> {
             @Param("userId") Long userId,
             @Param("isManagerOrOwner") boolean isManagerOrOwner);
 
+    @Query(value = """
+        SELECT cub.user_id AS user_id, COUNT(DISTINCT d.id) AS open_count
+        FROM deviation d
+        JOIN ccp_record cr ON cr.id = d.ccp_record_id
+        JOIN ccp_user_bridge cub ON cub.ccp_id = cr.ccp_id
+        WHERE d.org_id = :orgId
+          AND d.review_status = 'OPEN'
+          AND cub.user_role = 'DEVIATION_RECEIVER'
+        GROUP BY cub.user_id
+        """, nativeQuery = true)
+    List<Object[]> countOpenCcpDeviationReviewsByReceiver(@Param("orgId") Long orgId);
+
+    @Query(value = """
+        SELECT rub.user_id AS user_id, COUNT(DISTINCT d.id) AS open_count
+        FROM deviation d
+        JOIN prerequisite_routine_record prr ON prr.id = d.routine_record_id
+        JOIN routine_user_bridge rub ON rub.routine_id = prr.routine_id
+        WHERE d.org_id = :orgId
+          AND d.review_status = 'OPEN'
+          AND rub.user_role = 'DEVIATION_RECEIVER'
+        GROUP BY rub.user_id
+        """, nativeQuery = true)
+    List<Object[]> countOpenRoutineDeviationReviewsByReceiver(@Param("orgId") Long orgId);
+
 }

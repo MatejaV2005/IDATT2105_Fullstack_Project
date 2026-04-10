@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import AddOneUser from '@/components/desktop/shared/AddOneUser.vue'
 import DesktopButton from '@/components/desktop/shared/DesktopButton.vue'
-import type { NewOrganizationUserPayload } from '@/data/mockAllUsers'
+import type { NewOrganizationUserPayload, TeamDirectoryUser } from '@/interfaces/api-interfaces'
 import type { OrgAccessLevel } from '@/interfaces/util-interfaces'
 import { Plus } from '@lucide/vue'
 import { computed, ref } from 'vue'
@@ -9,6 +9,9 @@ import { computed, ref } from 'vue'
 const props = defineProps<{
   excludedUserIds: number[]
   isSubmitting: boolean
+  availableUsers: TeamDirectoryUser[]
+  isLoadingUsers: boolean
+  usersErrorMessage: string
 }>()
 
 const emit = defineEmits<{
@@ -50,8 +53,11 @@ function submitAdd() {
       <AddOneUser
         :selected-user-id="selectedUserId"
         :set-selected-user-id="setSelectedUserId"
+        :users="availableUsers"
         :excluded-user-ids="excludedUserIds"
         :disabled="isSubmitting"
+        :is-loading="isLoadingUsers"
+        :error-message="usersErrorMessage"
       />
     </label>
 

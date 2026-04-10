@@ -6,7 +6,11 @@ import com.grimni.domain.Organization;
 import com.grimni.domain.enums.OrgUserRole;
 import com.grimni.dto.AddUserToOrgRequest;
 import com.grimni.dto.CreateOrganizationRequest;
+import com.grimni.dto.TeamUserOverviewResponse;
+import com.grimni.dto.TeamAssignmentsResponse;
+import com.grimni.dto.TeamCourseProgressResponse;
 import com.grimni.dto.UpdateOrganizationRequest;
+import com.grimni.dto.UserDirectoryResponse;
 import com.grimni.dto.UserOrgResponse;
 import com.grimni.security.JwtUserPrinciple;
 import com.grimni.service.OrganizationService;
@@ -426,6 +430,61 @@ public class OrganizationControllerTest {
         }
     }
 
+    @Nested
+    @DisplayName("GET /organizations/team-overview")
+    class GetTeamOverviewTests {
+
+        @Test
+        @DisplayName("OWNER and MANAGER can load team overview")
+        void getTeamOverview_success() throws Exception {
+            when(organizationService.getTeamOverview(10L)).thenReturn(List.of(
+                    new TeamUserOverviewResponse(
+                            1L,
+                            "alice",
+                            "OWNER",
+                            new TeamAssignmentsResponse(1, 0, 0, 0),
+                            new TeamAssignmentsResponse(0, 1, 0, 0),
+                            2,
+                            1,
+                            0,
+                            new TeamCourseProgressResponse(3, 4))));
+
+            mockMvc.perform(get("/organizations/team-overview")
+                            .with(authentication(authWithRole("MANAGER"))))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$[0].legalName").value("alice"))
+                    .andExpect(jsonPath("$[0].orgRole").value("OWNER"));
+        }
+    }
+
+    @Nested
+    @DisplayName("GET /organizations/user-directory")
+    class GetUserDirectoryTests {
+
+        @Test
+        @DisplayName("OWNER can load directory users")
+        void getUserDirectory_success() throws Exception {
+            when(organizationService.getUserDirectory(10L)).thenReturn(List.of(
+                    new UserDirectoryResponse(5L, "charlie", "charlie@test.com")));
+
+            mockMvc.perform(get("/organizations/user-directory")
+                            .with(authentication(authWithRole("OWNER"))))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$[0].legalName").value("charlie"))
+                    .andExpect(jsonPath("$[0].email").value("charlie@test.com"));
+        }
+
+        @Test
+        @DisplayName("MANAGER is rejected with 403")
+        void getUserDirectory_managerForbidden() throws Exception {
+            mockMvc.perform(get("/organizations/user-directory")
+                            .with(authentication(authWithRole("MANAGER"))))
+                    .andExpect(status().isForbidden());
+
+            verify(organizationService, never()).getUserDirectory(anyLong());
+        }
+    }
+
     // -------------------------------------------------------------------------
     // POST /organizations/users
     // -------------------------------------------------------------------------
@@ -438,7 +497,7 @@ public class OrganizationControllerTest {
         void addUserToOrg_success() throws Exception {
             AddUserToOrgRequest request = new AddUserToOrgRequest(5L, OrgUserRole.WORKER);
 
-            when(organizationService.addUserToOrg(5L, OrgUserRole.WORKER, 10L))
+            when(organizationService.addUserToOrg(5L, OrgUserRole.WORKER, 10L, 1L))
                     .thenReturn(new UserOrgResponse(5L, "charlie", "charlie@test.com", OrgUserRole.WORKER));
 
             mockMvc.perform(post("/organizations/users")
@@ -464,7 +523,7 @@ public class OrganizationControllerTest {
                             .with(csrf()))
                     .andExpect(status().isForbidden());
 
-            verify(organizationService, never()).addUserToOrg(any(), any(), anyLong());
+            verify(organizationService, never()).addUserToOrg(any(), any(), anyLong(), anyLong());
         }
 
         @Test
@@ -479,7 +538,7 @@ public class OrganizationControllerTest {
                             .with(csrf()))
                     .andExpect(status().isForbidden());
 
-            verify(organizationService, never()).addUserToOrg(any(), any(), anyLong());
+            verify(organizationService, never()).addUserToOrg(any(), any(), anyLong(), anyLong());
         }
 
         @Test
@@ -493,7 +552,7 @@ public class OrganizationControllerTest {
                             .with(csrf()))
                     .andExpect(status().isForbidden());
 
-            verify(organizationService, never()).addUserToOrg(any(), any(), anyLong());
+            verify(organizationService, never()).addUserToOrg(any(), any(), anyLong(), anyLong());
         }
 
         @Test
@@ -501,7 +560,7 @@ public class OrganizationControllerTest {
         void addUserToOrg_userNotFound_returns404() throws Exception {
             AddUserToOrgRequest request = new AddUserToOrgRequest(5L, OrgUserRole.WORKER);
 
-            when(organizationService.addUserToOrg(eq(5L), eq(OrgUserRole.WORKER), eq(10L)))
+            when(organizationService.addUserToOrg(eq(5L), eq(OrgUserRole.WORKER), eq(10L), eq(1L)))
                     .thenThrow(new EntityNotFoundException("User not found"));
 
             mockMvc.perform(post("/organizations/users")
@@ -518,7 +577,7 @@ public class OrganizationControllerTest {
         void addUserToOrg_duplicate_returns400() throws Exception {
             AddUserToOrgRequest request = new AddUserToOrgRequest(5L, OrgUserRole.WORKER);
 
-            when(organizationService.addUserToOrg(eq(5L), eq(OrgUserRole.WORKER), eq(10L)))
+            when(organizationService.addUserToOrg(eq(5L), eq(OrgUserRole.WORKER), eq(10L), eq(1L)))
                     .thenThrow(new IllegalArgumentException("User is already in the organization"));
 
             mockMvc.perform(post("/organizations/users")

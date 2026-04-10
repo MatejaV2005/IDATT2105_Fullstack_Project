@@ -12,17 +12,26 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import com.grimni.domain.MappingPoint;
 import com.grimni.domain.OrgUserBridge;
 import com.grimni.domain.Organization;
 import com.grimni.domain.User;
 import com.grimni.domain.enums.OrgUserRole;
 import com.grimni.dto.CreateOrganizationRequest;
+import com.grimni.dto.UserDirectoryResponse;
 import com.grimni.dto.UpdateOrganizationRequest;
 import com.grimni.dto.UserOrgResponse;
+import com.grimni.repository.CcpUserBridgeRepository;
+import com.grimni.repository.CourseRepository;
+import com.grimni.repository.CourseUserProgressRepository;
+import com.grimni.repository.DeviationRepository;
+import com.grimni.repository.MappingPointRepository;
 import com.grimni.repository.OrgUserBridgeRepository;
 import com.grimni.repository.OrganizationRepository;
+import com.grimni.repository.RoutineUserBridgeRepository;
 import com.grimni.repository.UserRepository;
 import com.grimni.service.OrganizationService;
 
@@ -43,6 +52,24 @@ public class OrganizationServiceTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private CcpUserBridgeRepository ccpUserBridgeRepository;
+
+    @Mock
+    private RoutineUserBridgeRepository routineUserBridgeRepository;
+
+    @Mock
+    private CourseRepository courseRepository;
+
+    @Mock
+    private CourseUserProgressRepository courseUserProgressRepository;
+
+    @Mock
+    private DeviationRepository deviationRepository;
+
+    @Mock
+    private MappingPointRepository mappingPointRepository;
 
     @InjectMocks
     private OrganizationService organizationService;
@@ -389,6 +416,63 @@ public class OrganizationServiceTest {
                     () -> organizationService.addUserToOrg(999L, OrgUserRole.WORKER, 10L));
 
             verify(orgUserBridgeRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("requester must be owner when using requester-aware add")
+        void addUserToOrg_requesterMustBeOwner() {
+            OrgUserBridge requesterBridge = new OrgUserBridge();
+            requesterBridge.setUserRole(OrgUserRole.MANAGER);
+
+            when(orgUserBridgeRepository.findByOrganizationIdAndUserId(10L, 2L))
+                    .thenReturn(Optional.of(requesterBridge));
+
+            assertThrows(AccessDeniedException.class,
+                    () -> organizationService.addUserToOrg(5L, OrgUserRole.WORKER, 10L, 2L));
+        }
+    }
+
+    @Nested
+    @DisplayName("removeUserFromOrg")
+    class RemoveUserFromOrgTests {
+
+        @Test
+        @DisplayName("requester must be owner")
+        void removeUserFromOrg_requesterMustBeOwner() {
+            OrgUserBridge requesterBridge = new OrgUserBridge();
+            requesterBridge.setUserRole(OrgUserRole.MANAGER);
+
+            when(orgUserBridgeRepository.findByOrganizationIdAndUserId(10L, 2L))
+                    .thenReturn(Optional.of(requesterBridge));
+
+            assertThrows(AccessDeniedException.class,
+                    () -> organizationService.removeUserFromOrg(5L, 10L, 2L));
+        }
+    }
+
+    @Nested
+    @DisplayName("getUserDirectory")
+    class GetUserDirectoryTests {
+
+        @Test
+        @DisplayName("returns users that are not already in the organization")
+        void getUserDirectory_success() {
+            User outsideUser = new User();
+            ReflectionTestUtils.setField(outsideUser, "id", 7L);
+            outsideUser.setLegalName("bob");
+            outsideUser.setEmail("bob@test.com");
+
+            OrgUserBridge existingMember = new OrgUserBridge();
+            existingMember.setUser(testUser);
+
+            when(orgUserBridgeRepository.findByOrganizationId(10L)).thenReturn(List.of(existingMember));
+            when(userRepository.findAll()).thenReturn(List.of(testUser, outsideUser));
+
+            List<UserDirectoryResponse> result = organizationService.getUserDirectory(10L);
+
+            assertEquals(1, result.size());
+            assertEquals(7L, result.getFirst().id());
+            assertEquals("bob@test.com", result.getFirst().email());
         }
     }
 }

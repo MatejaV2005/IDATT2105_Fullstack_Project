@@ -36,5 +36,14 @@ public interface CcpUserBridgeRepository extends JpaRepository<CcpUserBridge, Cc
         @Param("roles") Set<RoutineUserRole> roles
     );
 
+    @Query("""
+        select bridge
+        from CcpUserBridge bridge
+        join fetch bridge.user
+        join fetch bridge.ccp ccp
+        where ccp.organization.id = :orgId
+        """)
+    List<CcpUserBridge> findAllByOrganizationIdWithUser(@Param("orgId") Long orgId);
+
     void deleteByCcp_Id(Long ccpId);
 }

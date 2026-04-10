@@ -36,6 +36,15 @@ public interface RoutineUserBridgeRepository extends JpaRepository<RoutineUserBr
         @Param("roles") Set<RoutineUserRole> roles
     );
 
+    @Query("""
+        select bridge
+        from RoutineUserBridge bridge
+        join fetch bridge.user
+        join fetch bridge.routine routine
+        where routine.organization.id = :orgId
+        """)
+    List<RoutineUserBridge> findAllByOrganizationIdWithUser(@Param("orgId") Long orgId);
+
     void deleteByRoutine_Id(Long routineId);
 
     void deleteByRoutine_IdAndId_UserRole(Long routineId, RoutineUserRole userRole);
