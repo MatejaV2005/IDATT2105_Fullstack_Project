@@ -173,24 +173,14 @@ async function persistCompletionChange(
   nextCourse: LearningUserCourseProgress,
   userId: number,
 ) {
-  if (originalCourse.hasProgressRecord) {
-    await api.patch(`/courses/${nextCourse.courseId}/progress/${userId}`, nextCourse.completed, {
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    })
-    return
+  if (!originalCourse.hasProgressRecord) {
+    await api.post(`/courses/${nextCourse.courseId}/progress/${userId}`)
   }
 
-  if (!nextCourse.completed) {
-    return
-  }
-
-  await api.post(`/courses/${nextCourse.courseId}/progress/${userId}`)
-  await api.patch(`/courses/${nextCourse.courseId}/progress/${userId}`, true, {
-    headers: {
-      'Content-Type': 'application/json',
-    },
+  await api.put('/courses/course-progress', {
+    userId,
+    courseId: nextCourse.courseId,
+    completed: nextCourse.completed,
   })
 }
 
