@@ -4,12 +4,12 @@
 --
 -- Recommended accounts:
 --   teacher.owner@demo.local   -> OWNER in Fjord Bistro, can also switch to North Taproom and Harbor Bakery
---   anna.manager@demo.local    -> MANAGER in Fjord Bistro
---   mia.worker@demo.local      -> WORKER in Fjord Bistro, has mobile routine and CCP assignments
---   ole.tapowner@demo.local    -> OWNER in North Taproom
+--   anna.manager@demo.local    -> MANAGER in Fjord Bistro, can also switch to North Taproom
+--   mia.worker@demo.local      -> WORKER in Fjord Bistro, can also switch to North Taproom
+--   ole.tapowner@demo.local    -> OWNER in North Taproom, can also switch to Fjord Bistro
 --   lars.bartender@demo.local  -> WORKER in North Taproom, has mobile routine assignments
---   ida.bakeryowner@demo.local -> OWNER in Harbor Bakery
---   eva.baker@demo.local       -> WORKER in Harbor Bakery, has mobile routine and CCP assignments
+--   ida.bakeryowner@demo.local -> OWNER in Harbor Bakery, can also switch to Fjord Bistro
+--   eva.baker@demo.local       -> WORKER in Harbor Bakery, can also switch to Fjord Bistro and has mobile routine and CCP assignments
 
 INSERT IGNORE INTO users (id, password_data, legal_name, email, created_at) VALUES
 (1, '$2a$10$bc6qQTDUEuXSX5f6worOe.aI.ryvEu9tbdQYrUbfBjwTOwm9k0f1C', 'Teacher Owner', 'teacher.owner@demo.local', DATE_SUB(UTC_TIMESTAMP(), INTERVAL 90 DAY)),
@@ -43,7 +43,12 @@ INSERT IGNORE INTO org_user_bridge (org_id, user_id, user_role, created_at) VALU
 (1, 11, 'WORKER', DATE_SUB(UTC_TIMESTAMP(), INTERVAL 96 DAY)),
 (1, 12, 'WORKER', DATE_SUB(UTC_TIMESTAMP(), INTERVAL 92 DAY)),
 (1, 13, 'WORKER', DATE_SUB(UTC_TIMESTAMP(), INTERVAL 44 DAY)),
+(1, 6, 'MANAGER', DATE_SUB(UTC_TIMESTAMP(), INTERVAL 90 DAY)),
+(1, 9, 'MANAGER', DATE_SUB(UTC_TIMESTAMP(), INTERVAL 89 DAY)),
+(1, 15, 'WORKER', DATE_SUB(UTC_TIMESTAMP(), INTERVAL 35 DAY)),
 (2, 1, 'MANAGER', DATE_SUB(UTC_TIMESTAMP(), INTERVAL 109 DAY)),
+(2, 2, 'MANAGER', DATE_SUB(UTC_TIMESTAMP(), INTERVAL 105 DAY)),
+(2, 3, 'WORKER', DATE_SUB(UTC_TIMESTAMP(), INTERVAL 104 DAY)),
 (2, 6, 'OWNER', DATE_SUB(UTC_TIMESTAMP(), INTERVAL 108 DAY)),
 (2, 7, 'WORKER', DATE_SUB(UTC_TIMESTAMP(), INTERVAL 107 DAY)),
 (2, 8, 'MANAGER', DATE_SUB(UTC_TIMESTAMP(), INTERVAL 106 DAY)),
@@ -54,7 +59,8 @@ INSERT IGNORE INTO org_user_bridge (org_id, user_id, user_role, created_at) VALU
 (3, 10, 'MANAGER', DATE_SUB(UTC_TIMESTAMP(), INTERVAL 97 DAY)),
 (3, 11, 'WORKER', DATE_SUB(UTC_TIMESTAMP(), INTERVAL 95 DAY)),
 (3, 12, 'MANAGER', DATE_SUB(UTC_TIMESTAMP(), INTERVAL 91 DAY)),
-(3, 15, 'WORKER', DATE_SUB(UTC_TIMESTAMP(), INTERVAL 36 DAY));
+(3, 15, 'WORKER', DATE_SUB(UTC_TIMESTAMP(), INTERVAL 36 DAY)),
+(3, 5, 'MANAGER', DATE_SUB(UTC_TIMESTAMP(), INTERVAL 88 DAY));
 
 INSERT IGNORE INTO org_user_bridge_danger_analysis_collaborator (org_id, user_id, created_at) VALUES
 (1, 1, DATE_SUB(UTC_TIMESTAMP(), INTERVAL 119 DAY)),
