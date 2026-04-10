@@ -21,9 +21,16 @@ import com.grimni.dto.UpdateCcpRequest;
 import com.grimni.security.JwtUserPrinciple;
 import com.grimni.service.CcpService;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
-
+/**
+ * Manages Critical Control Points (CCPs) in the HACCP system.
+ * Supports CRUD for CCPs, user assignments, corrective measures,
+ * and verification logs/counts.
+ */
+@Tag(name = "Critical Control Points", description = "HACCP CCP management, assignments, and corrective measures")
 @RestController
 public class CcpController {
 
@@ -33,6 +40,8 @@ public class CcpController {
         this.ccpService = ccpService;
     }
 
+    /** Returns the number of CCP records pending verification. */
+    @Operation(summary = "Get verification count")
     @GetMapping("/ccps/verification-count")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Long> getVerificationCount(Authentication authentication) {
@@ -41,6 +50,8 @@ public class CcpController {
         return ResponseEntity.ok(count);
     }
 
+    /** Returns CCP verification logs visible to the caller. */
+    @Operation(summary = "Get verification logs")
     @GetMapping("/ccps/logs")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> getVerificationLogs(Authentication authentication) {
@@ -50,6 +61,8 @@ public class CcpController {
         );
     }
 
+    /** Returns all CCPs with full detail for the caller's organization. */
+    @Operation(summary = "Get all CCP info")
     @GetMapping("/haccp/critical-control-points/get-all-info")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> getAllInfo(Authentication authentication) {
@@ -63,6 +76,8 @@ public class CcpController {
         }
     }    
 
+    /** Creates a new CCP. */
+    @Operation(summary = "Create CCP")
     @PostMapping("/haccp/critical-control-points")
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
     public ResponseEntity<?> createCcp(
@@ -80,6 +95,8 @@ public class CcpController {
         }
     }
 
+    /** Partially updates a CCP. */
+    @Operation(summary = "Update CCP")
     @PatchMapping("/haccp/critical-control-points/{ccpId}")
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
     public ResponseEntity<?> updateCcp(
@@ -98,6 +115,8 @@ public class CcpController {
         }
     }
 
+    /** Deletes a CCP by ID. */
+    @Operation(summary = "Delete CCP")
     @DeleteMapping("/haccp/critical-control-points/{ccpId}")
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
     public ResponseEntity<?> deleteCcp(@PathVariable Long ccpId, Authentication authentication) {
@@ -110,6 +129,8 @@ public class CcpController {
         }
     }
 
+    /** Replaces all user assignments for a CCP. */
+    @Operation(summary = "Replace CCP assignments")
     @PutMapping("/haccp/critical-control-points/{ccpId}/assignments")
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
     public ResponseEntity<?> replaceAssignments(
@@ -128,6 +149,8 @@ public class CcpController {
         }
     }
 
+    /** Creates a corrective measure for a CCP. */
+    @Operation(summary = "Create corrective measure")
     @PostMapping("/haccp/critical-control-points/{ccpId}/corrective-measures")
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
     public ResponseEntity<?> createCorrectiveMeasure(
@@ -146,6 +169,8 @@ public class CcpController {
         }
     }
 
+    /** Partially updates a corrective measure. */
+    @Operation(summary = "Update corrective measure")
     @PatchMapping("/haccp/critical-control-points/corrective-measures/{measureId}")
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
     public ResponseEntity<?> updateCorrectiveMeasure(
@@ -164,6 +189,8 @@ public class CcpController {
         }
     }
 
+    /** Deletes a corrective measure by ID. */
+    @Operation(summary = "Delete corrective measure")
     @DeleteMapping("/haccp/critical-control-points/corrective-measures/{measureId}")
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
     public ResponseEntity<?> deleteCorrectiveMeasure(@PathVariable Long measureId, Authentication authentication) {

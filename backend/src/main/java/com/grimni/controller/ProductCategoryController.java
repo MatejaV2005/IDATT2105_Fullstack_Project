@@ -9,6 +9,13 @@ import org.springframework.web.bind.annotation.RestController;
 import com.grimni.security.JwtUserPrinciple;
 import com.grimni.service.ProductCategoryService;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
+/**
+ * Provides read access to product categories within an organization.
+ */
+@Tag(name = "Product Categories", description = "List product categories for the organization")
 @RestController
 public class ProductCategoryController {
 
@@ -18,6 +25,8 @@ public class ProductCategoryController {
         this.productCategoryService = productCategoryService;
     }
 
+    /** Returns all product categories for the caller's organization. */
+    @Operation(summary = "List product categories")
     @GetMapping("/api/product-categories")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> getAll(Authentication authentication) {

@@ -28,8 +28,16 @@ import com.grimni.service.OrganizationService;
 import com.grimni.service.RoutineLoggingService;
 import com.grimni.service.UserService;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
+/**
+ * Endpoints scoped to the currently authenticated user.
+ * Provides access to the user's own profile, organizations, certificates,
+ * assigned routines, assigned CCPs, and deviation reporting.
+ */
+@Tag(name = "Me", description = "Current user's profile, assignments, and actions")
 @RestController
 @RequestMapping("/me")
 public class MeController {
@@ -56,6 +64,8 @@ public class MeController {
         this.deviationService = deviationService;
     }
 
+    /** Returns all organizations the current user belongs to. */
+    @Operation(summary = "List my organizations")
     @GetMapping("/organizations")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> getMyOrganizations(Authentication authentication) {
@@ -67,6 +77,8 @@ public class MeController {
         return ResponseEntity.ok(orgs);
     }
 
+    /** Returns all certificates assigned to the current user. */
+    @Operation(summary = "List my certificates")
     @GetMapping("/certificates")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> getMyCertificates(Authentication authentication) {
@@ -78,6 +90,8 @@ public class MeController {
         return ResponseEntity.ok(certs);
     }
 
+    /** Returns the current user's profile. */
+    @Operation(summary = "Get my profile")
     @GetMapping
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> getMyProfile(Authentication authentication) {
@@ -86,6 +100,8 @@ public class MeController {
         return ResponseEntity.ok(UserResponse.fromEntity(user));
     }
 
+    /** Updates the current user's profile. */
+    @Operation(summary = "Update my profile")
     @PutMapping
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> updateMyProfile(
@@ -96,6 +112,8 @@ public class MeController {
         return ResponseEntity.ok(UserResponse.fromEntity(user));
     }
 
+    /** Returns all routines assigned to the current user. */
+    @Operation(summary = "List my assigned routines")
     @GetMapping("/routines")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> getMyAssignedRoutines(Authentication authentication) {
@@ -105,6 +123,8 @@ public class MeController {
         );
     }
 
+    /** Records a routine completion by the current user. */
+    @Operation(summary = "Complete a routine")
     @PostMapping("/routines/{routineId}/records")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> completeRoutine(
@@ -116,6 +136,8 @@ public class MeController {
         );
     }
 
+    /** Returns all CCPs assigned to the current user. */
+    @Operation(summary = "List my assigned CCPs")
     @GetMapping("/ccps")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> getMyAssignedCcps(Authentication authentication) {
@@ -125,6 +147,8 @@ public class MeController {
         );
     }
 
+    /** Creates a CCP measurement record for the current user. */
+    @Operation(summary = "Log CCP record")
     @PostMapping("/ccps/{ccpId}/records")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> createCcpRecord(
@@ -137,6 +161,8 @@ public class MeController {
         );
     }
 
+    /** Reports a deviation on behalf of the current user. */
+    @Operation(summary = "Report deviation (as me)")
     @PostMapping("/deviations")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> createDeviation(

@@ -24,8 +24,15 @@ import com.grimni.service.RefreshTokenService;
 import com.grimni.service.UserService;
 import com.grimni.util.JwtUtil;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
+/**
+ * Handles authentication operations: login, registration, token refresh, and logout.
+ * Uses POST for all endpoints to maintain REST idempotency guarantees.
+ */
+@Tag(name = "Authentication", description = "Login, registration, token refresh, and logout")
 @RestController
 @RequestMapping("/auth")
 public class AuthController {
@@ -48,6 +55,14 @@ public class AuthController {
     // TODO: Redundant DB hit — getUserByRefreshToken and rotateRefreshToken both call
     // validateRefreshToken internally. Refactor using RotationResult record to eliminate
     // duplicate hash + DB lookup in the refresh flow. See RefreshTokenService.rotateRefreshToken.
+    /**
+     * Rotates the refresh token and issues a new JWT access token.
+     * POST is used instead of GET to preserve REST idempotency, since this mutates server-side token state.
+     *
+     * @param cookie the refresh token from the HTTP-only cookie
+     * @return the new JWT access token in the response body, with a rotated refresh token cookie
+     */
+    @Operation(summary = "Refresh access token", description = "Rotates the refresh token cookie and returns a new JWT")
     @PostMapping("/refresh")
     public ResponseEntity<?> grantRefreshToken(@CookieValue("refresh_token") String cookie) {
         logger.info("Refresh token request received");
@@ -60,6 +75,13 @@ public class AuthController {
         return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, refToken.toString()).body(jwtToken);
     }
 
+    /**
+     * Logs the user out by invalidating their refresh token and expiring the cookie.
+     *
+     * @param cookie the refresh token cookie (optional, may already be absent)
+     * @return 200 OK with an expired Set-Cookie header
+     */
+    @Operation(summary = "Logout", description = "Invalidates the refresh token and clears the cookie")
     @PostMapping("/logout")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> logoutUser(@CookieValue(value = "refresh_token", required = false) String cookie) {
@@ -84,6 +106,13 @@ public class AuthController {
         return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, expired.toString()).build();
     }
 
+    /**
+     * Authenticates a user with email and password.
+     *
+     * @param request login credentials
+     * @return JWT access token in the body and a refresh token cookie
+     */
+    @Operation(summary = "Login", description = "Authenticates with email/password and returns a JWT + refresh cookie")
     @PostMapping("/login")
     public ResponseEntity<?> loginUser(@RequestBody LoginRequest request) {
         logger.info("Login attempt for user: {}", request.email());
@@ -98,6 +127,13 @@ public class AuthController {
         return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, refToken.toString()).body(jwtToken);
     }
 
+    /**
+     * Registers a new user account.
+     *
+     * @param request registration details (email, password, legal name)
+     * @return 201 Created on success
+     */
+    @Operation(summary = "Register", description = "Creates a new user account")
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@Valid @RequestBody RegisterRequest request) {
         User user = new User();

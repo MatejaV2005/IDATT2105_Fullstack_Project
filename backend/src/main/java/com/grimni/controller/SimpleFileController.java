@@ -28,12 +28,15 @@ import com.grimni.repository.UserRepository;
 import com.grimni.service.SimpleStorageService;
 import com.grimni.util.JwtUtil;
 
-/**
- * * Hey future person.
- * ! This file should not be a part of prod. It is simply an example / help we can use when developing.
- * It offers functionality to upload, read & delete files also utilizing access levels & mysql.
- */
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
+/**
+ * Development-only file controller for uploading, reading, and deleting files via S3.
+ * Not intended for production use — serves as a reference implementation for file operations
+ * with access-level enforcement and MySQL-backed metadata.
+ */
+@Tag(name = "Files (dev)", description = "Development file upload/download/delete via S3")
 @RestController
 @RequestMapping("/e-files")
 public class SimpleFileController {
@@ -56,6 +59,8 @@ public class SimpleFileController {
         this.bucket = bucket;
     }
 
+    /** Downloads a file by its ID, enforcing organization-level access. */
+    @Operation(summary = "Download file", description = "Returns the file bytes with correct content type")
     @GetMapping("/{fileObjectId}")
     public ResponseEntity<byte[]> read(@PathVariable Long fileObjectId) {
         User user = getCurrentUser();
@@ -75,6 +80,8 @@ public class SimpleFileController {
         }
     }
 
+    /** Deletes a file by its ID from both S3 and the database. */
+    @Operation(summary = "Delete file")
     @DeleteMapping("/{fileObjectId}")
     public ResponseEntity<Void> delete(@PathVariable Long fileObjectId) {
         User user = getCurrentUser();
@@ -89,6 +96,8 @@ public class SimpleFileController {
         }
     }
     
+    /** Uploads a file to S3 and stores its metadata, optionally linking it to a course. */
+    @Operation(summary = "Upload file", description = "Uploads a file to S3 and persists metadata in MySQL")
     @PostMapping
     public ResponseEntity<String> upload(
         @RequestParam("file") MultipartFile file,

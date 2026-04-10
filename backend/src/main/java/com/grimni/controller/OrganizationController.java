@@ -24,9 +24,16 @@ import com.grimni.domain.Organization;
 import com.grimni.security.JwtUserPrinciple;
 import com.grimni.service.OrganizationService;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
-
+/**
+ * Manages organizations and their members.
+ * Supports creating/updating organizations, listing users, adding/removing members,
+ * and retrieving danger-analysis collaborators.
+ */
+@Tag(name = "Organizations", description = "Organization CRUD and member management")
 @RestController
 @RequestMapping("/organizations")
 public class OrganizationController {
@@ -37,6 +44,8 @@ public class OrganizationController {
         this.organizationService = organizationService;
     }
 
+    /** Creates a new organization with the caller as OWNER. */
+    @Operation(summary = "Create organization")
     @PostMapping
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> createOrganization(
@@ -47,6 +56,8 @@ public class OrganizationController {
         return ResponseEntity.status(HttpStatus.CREATED).body(OrganizationResponse.fromEntity(org));
     }
 
+    /** Returns the caller's active organization. */
+    @Operation(summary = "Get organization")
     @GetMapping
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> getOrganization(Authentication authentication) {
@@ -55,6 +66,8 @@ public class OrganizationController {
         return ResponseEntity.ok(OrganizationResponse.fromEntity(org));
     }
 
+    /** Partially updates the caller's organization. */
+    @Operation(summary = "Update organization")
     @PatchMapping
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
     public ResponseEntity<?> updateOrganization(
@@ -65,6 +78,8 @@ public class OrganizationController {
         return ResponseEntity.ok(OrganizationResponse.fromEntity(org));
     }
 
+    /** Returns all users in the caller's organization. */
+    @Operation(summary = "List organization users")
     @GetMapping("/users")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> getAllUsersInOrg(Authentication authentication) {
@@ -72,6 +87,8 @@ public class OrganizationController {
         return ResponseEntity.ok(organizationService.getAllUsersInOrg(principal.orgId()));
     }
 
+    /** Adds a user to the organization with a specified role. OWNER only. */
+    @Operation(summary = "Add user to organization")
     @PostMapping("/users")
     @PreAuthorize("hasAuthority('OWNER')")
     public ResponseEntity<?> addUserToOrg(
@@ -82,6 +99,8 @@ public class OrganizationController {
                 organizationService.addUserToOrg(request.userId(), request.role(), principal.orgId()));
     }
 
+    /** Returns users eligible to collaborate on danger analysis. */
+    @Operation(summary = "List danger-analysis collaborators")
     @GetMapping("/danger-analysis-collaborators")
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
     public ResponseEntity<?> getDangerAnalysisCollaborators(Authentication authentication) {
@@ -91,6 +110,8 @@ public class OrganizationController {
         return ResponseEntity.ok(response);
     }
 
+    /** Removes a user from the organization. Cannot remove an OWNER. */
+    @Operation(summary = "Remove user from organization")
     @DeleteMapping("/users")
     @PreAuthorize("hasAuthority('OWNER')")
     public ResponseEntity<?> deleteUserFromOrg(

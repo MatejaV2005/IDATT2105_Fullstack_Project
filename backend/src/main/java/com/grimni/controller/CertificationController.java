@@ -22,8 +22,15 @@ import com.grimni.dto.UpdateCertificateRequest;
 import com.grimni.security.JwtUserPrinciple;
 import com.grimni.service.CertificateService;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
+/**
+ * Manages certificates within an organization.
+ * Supports CRUD operations on certificates and querying certificates by user.
+ */
+@Tag(name = "Certificates", description = "CRUD operations for organization certificates")
 @RestController
 @RequestMapping("/certificates")
 public class CertificationController {
@@ -34,6 +41,8 @@ public class CertificationController {
         this.certificateService = certificateService;
     }
 
+    /** Creates a new certificate for the authenticated user's organization. */
+    @Operation(summary = "Create certificate", description = "Creates a new certificate in the caller's organization")
     @PostMapping
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
     public ResponseEntity<?> createCertificate(
@@ -44,6 +53,8 @@ public class CertificationController {
         return ResponseEntity.status(HttpStatus.CREATED).body(CertificateResponse.fromEntity(cert));
     }
 
+    /** Returns all certificates belonging to the caller's organization. */
+    @Operation(summary = "List organization certificates")
     @GetMapping
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
     public ResponseEntity<?> getOrgCertificates(Authentication authentication) {
@@ -55,6 +66,8 @@ public class CertificationController {
         return ResponseEntity.ok(certs);
     }
 
+    /** Returns a single certificate by ID. */
+    @Operation(summary = "Get certificate by ID")
     @GetMapping("/{certId}")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> getCertificate(@PathVariable Long certId, Authentication authentication) {
@@ -63,6 +76,8 @@ public class CertificationController {
         return ResponseEntity.ok(CertificateResponse.fromEntity(cert));
     }
 
+    /** Returns all certificates assigned to a specific user within the organization. */
+    @Operation(summary = "List certificates for a user")
     @GetMapping("/user/{targetUserId}")
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
     public ResponseEntity<?> getUserCertificates(@PathVariable Long targetUserId, Authentication authentication) {
@@ -74,6 +89,8 @@ public class CertificationController {
         return ResponseEntity.ok(certs);
     }
 
+    /** Partially updates a certificate. */
+    @Operation(summary = "Update certificate", description = "Partially updates a certificate by ID")
     @PatchMapping("/{certId}")
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
     public ResponseEntity<?> updateCertificate(
@@ -85,6 +102,8 @@ public class CertificationController {
         return ResponseEntity.ok(CertificateResponse.fromEntity(cert));
     }
 
+    /** Deletes a certificate by ID. */
+    @Operation(summary = "Delete certificate")
     @DeleteMapping("/{certId}")
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER')")
     public ResponseEntity<Void> deleteCertificate(@PathVariable Long certId, Authentication authentication) {
