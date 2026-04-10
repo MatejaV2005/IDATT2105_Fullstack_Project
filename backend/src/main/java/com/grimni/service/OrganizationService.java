@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
 import com.grimni.domain.OrgDangerAnalysisCollaborator;
@@ -12,6 +13,7 @@ import com.grimni.domain.Organization;
 import com.grimni.domain.User;
 import com.grimni.domain.enums.OrgUserRole;
 import com.grimni.domain.ids.OrgUserBridgeId;
+import com.grimni.dto.AddOrganizationUserRequest;
 import com.grimni.dto.CollaboratorResponse;
 import com.grimni.dto.CreateOrganizationRequest;
 import com.grimni.dto.UpdateOrganizationRequest;
@@ -143,5 +145,43 @@ public class OrganizationService {
         .toList();
 
         return response;
+    }
+
+    public UserOrgResponse addUserToOrganization(Long orgId, Long requesterId, AddOrganizationUserRequest request) {
+        logger.info("Adding user {} to organization {} with role {} by requester {}", request.userId(), orgId, request.orgRole(), requesterId);
+
+        OrgUserBridge requesterBridge = orgUserBridgeRepository.findByOrganizationIdAndUserId(orgId, requesterId)
+                .orElseThrow(() -> {
+                    logger.warn("Add org user failed: organization {} not found for requester {}", orgId, requesterId);
+                    return new EntityNotFoundException("Organization not found");
+                });
+
+        if (requesterBridge.getUserRole() != OrgUserRole.OWNER) {
+            logger.warn("Add org user denied: requester {} is not OWNER in organization {}", requesterId, orgId);
+            throw new AccessDeniedException("Only owners can add users to the organization");
+        }
+
+        User user = userRepository.findById(request.userId())
+                .orElseThrow(() -> {
+                    logger.warn("Add org user failed: user {} not found", request.userId());
+                    return new EntityNotFoundException("User not found");
+                });
+
+        if (orgUserBridgeRepository.findByOrganizationIdAndUserId(orgId, request.userId()).isPresent()) {
+            logger.warn("Add org user failed: user {} already belongs to organization {}", request.userId(), orgId);
+            throw new IllegalArgumentException("User is already in the organization");
+        }
+
+        Organization organization = requesterBridge.getOrganization();
+
+        OrgUserBridge bridge = new OrgUserBridge();
+        bridge.setId(new OrgUserBridgeId(orgId, request.userId()));
+        bridge.setOrganization(organization);
+        bridge.setUser(user);
+        bridge.setUserRole(request.orgRole());
+
+        OrgUserBridge savedBridge = orgUserBridgeRepository.save(bridge);
+        logger.info("User {} added to organization {} with role {}", request.userId(), orgId, request.orgRole());
+        return UserOrgResponse.fromEntity(savedBridge);
     }
 }

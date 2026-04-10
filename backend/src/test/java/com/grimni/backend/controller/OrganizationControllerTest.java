@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.grimni.controller.OrganizationController;
 import com.grimni.domain.Organization;
 import com.grimni.domain.enums.OrgUserRole;
+import com.grimni.dto.AddOrganizationUserRequest;
 import com.grimni.dto.CreateOrganizationRequest;
 import com.grimni.dto.UpdateOrganizationRequest;
 import com.grimni.dto.UserOrgResponse;
@@ -35,6 +36,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.persistence.EntityNotFoundException;
 
 import java.util.List;
+
+import org.springframework.security.access.AccessDeniedException;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -95,6 +98,92 @@ public class OrganizationControllerTest {
         org.setAlcoholEnabled(false);
         org.setFoodEnabled(true);
         return org;
+    }
+
+    // -------------------------------------------------------------------------
+    // POST /organizations/users — success
+    // -------------------------------------------------------------------------
+    @Nested
+    @DisplayName("POST /organizations/users — success")
+    class AddOrganizationUserSuccessTests {
+
+        @Test
+        @DisplayName("returns HTTP 200 and the added organization user response")
+        void addOrganizationUser_success() throws Exception {
+            AddOrganizationUserRequest request = new AddOrganizationUserRequest(18L, OrgUserRole.MANAGER);
+            UserOrgResponse response = new UserOrgResponse(18L, "New Manager", "manager@example.com", OrgUserRole.MANAGER);
+
+            when(organizationService.addUserToOrganization(eq(10L), eq(1L), any(AddOrganizationUserRequest.class)))
+                    .thenReturn(response);
+
+            mockMvc.perform(post("/organizations/users")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request))
+                            .with(authentication(authWithRole("OWNER")))
+                            .with(csrf()))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.id").value(18))
+                    .andExpect(jsonPath("$.legalName").value("New Manager"))
+                    .andExpect(jsonPath("$.email").value("manager@example.com"))
+                    .andExpect(jsonPath("$.accessLevel").value("MANAGER"));
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // POST /organizations/users — failure
+    // -------------------------------------------------------------------------
+    @Nested
+    @DisplayName("POST /organizations/users — failure")
+    class AddOrganizationUserFailureTests {
+
+        @Test
+        @DisplayName("returns HTTP 403 when requester is not an owner")
+        void addOrganizationUser_managerForbidden() throws Exception {
+            AddOrganizationUserRequest request = new AddOrganizationUserRequest(18L, OrgUserRole.MANAGER);
+
+            mockMvc.perform(post("/organizations/users")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request))
+                            .with(authentication(authWithRole("MANAGER")))
+                            .with(csrf()))
+                    .andExpect(status().isForbidden());
+
+            verify(organizationService, never()).addUserToOrganization(anyLong(), anyLong(), any());
+        }
+
+        @Test
+        @DisplayName("returns HTTP 404 when target user does not exist")
+        void addOrganizationUser_userNotFound_returns404() throws Exception {
+            AddOrganizationUserRequest request = new AddOrganizationUserRequest(18L, OrgUserRole.MANAGER);
+
+            when(organizationService.addUserToOrganization(eq(10L), eq(1L), any(AddOrganizationUserRequest.class)))
+                    .thenThrow(new EntityNotFoundException("User not found"));
+
+            mockMvc.perform(post("/organizations/users")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request))
+                            .with(authentication(authWithRole("OWNER")))
+                            .with(csrf()))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.error").value("User not found"));
+        }
+
+        @Test
+        @DisplayName("returns HTTP 400 when user already belongs to the organization")
+        void addOrganizationUser_duplicate_returns400() throws Exception {
+            AddOrganizationUserRequest request = new AddOrganizationUserRequest(18L, OrgUserRole.MANAGER);
+
+            when(organizationService.addUserToOrganization(eq(10L), eq(1L), any(AddOrganizationUserRequest.class)))
+                    .thenThrow(new IllegalArgumentException("User is already in the organization"));
+
+            mockMvc.perform(post("/organizations/users")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request))
+                            .with(authentication(authWithRole("OWNER")))
+                            .with(csrf()))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.error").value("User is already in the organization"));
+        }
     }
 
     // -------------------------------------------------------------------------
