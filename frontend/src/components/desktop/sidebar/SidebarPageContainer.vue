@@ -57,12 +57,12 @@ defineProps<{
             :is-selected="activePage === '/desktop/bedrift-opplaering'"
             :icon="Brain"
           />
-          <SidebarMenuOption
+          <!-- <SidebarMenuOption
             to="/desktop/deviations"
             name="Avvikshåndtering"
             :is-selected="activePage === '/desktop/deviations'"
             :icon="AlertTriangle"
-          />
+          /> -->
         </div>
         <hr class="no-margin">
         <div>

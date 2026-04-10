@@ -178,7 +178,7 @@ async function deletePoint(payload: MappingPoint) {
     // const response = await fetch('/api/mapping-points', {
     //   method: 'DELETE',
     //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify(payload),
+    //   body: JSON.stringify({ mappingPointId: payload.id }),
     // })
     // if (!response.ok) {
     //   throw new Error(`Failed to complete request... (${response.status})`)

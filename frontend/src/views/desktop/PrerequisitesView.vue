@@ -1,82 +1,454 @@
 <script setup lang="ts">
+import PrerequisiteCategoryCard from '@/components/desktop/prerequisites/PrerequisiteCategoryCard.vue'
+import PrerequisiteCreateCategoryCard from '@/components/desktop/prerequisites/PrerequisiteCreateCategoryCard.vue'
 import DesktopButton from '@/components/desktop/shared/DesktopButton.vue'
 import Loading from '@/components/desktop/shared/Loading.vue'
 import Paginator from '@/components/desktop/shared/Paginator.vue'
-import UserBadge from '@/components/desktop/shared/UserBadge.vue'
+import { mockAllUsers } from '@/data/mockAllUsers'
 import type { PrerequisiteCategoryAllInfo } from '@/interfaces/api-interfaces'
 import { delay } from '@/utils'
-import { Edit2, Plus } from '@lucide/vue'
-import { onMounted, ref } from 'vue'
+import { Plus } from '@lucide/vue'
+import { computed, onMounted, ref } from 'vue'
 
-function sayHello() {
-  alert('Hello')
+type PrerequisitePoint = PrerequisiteCategoryAllInfo[number]['points'][number]
+type RoutinePoint = Extract<PrerequisitePoint, { type: 'routine' }>
+type StandardPoint = Extract<PrerequisitePoint, { type: 'standard' }>
+type PrerequisiteUser = RoutinePoint['performers'][number]
+
+type UpdateCategoryPayload = {
+  categoryId: number
+  categoryName: string
 }
 
+type UpdateRoutinePayload = {
+  categoryId: number
+  routineId: number
+  title: string
+  measures: string
+  interval_start: number
+  interval_repeat_time: number
+  performers: number[]
+  deputy: number[]
+}
+
+type UpdateStandardPayload = {
+  categoryId: number
+  standardId: number
+  title: string
+  description: string
+}
+
+type CreateCategoryPayload = {
+  categoryName: string
+}
+
+type CreateRoutinePayload = {
+  categoryId: number
+  title: string
+  measures: string
+  interval_start: number
+  interval_repeat_time: number
+  performers: number[]
+  deputy: number[]
+}
+
+type CreateStandardPayload = {
+  categoryId: number
+  title: string
+  description: string
+}
+
+const mockData: PrerequisiteCategoryAllInfo = [
+  {
+    categoryName: 'Renhold av lokaler og utstyr',
+    id: 1,
+    points: [
+      {
+        title: 'Vask gulvene',
+        type: 'routine',
+        measures: 'Terje må vaske gulvene ekstra godt neste gang og ta 50 push-ups',
+        repeatText: 'Hver mandag kl. 17:00',
+        routineId: 1,
+        deviationRecievers: [
+          { userId: 16, legalName: 'Kari Nessa Nordtun' },
+          { userId: 14, legalName: 'Ola Svenneby' },
+        ],
+        performers: [
+          { userId: 11, legalName: 'Mona Jul' },
+          { userId: 12, legalName: 'Jagland' },
+        ],
+        deputy: [
+          { userId: 14, legalName: 'Ola Svenneby' },
+          { userId: 16, legalName: 'Kari Nessa Nordtun' },
+        ],
+      },
+      {
+        title: 'Hold rent',
+        type: 'standard',
+        description:
+          'Vask 1 skal kun brukes for mat, mens vask 2 skal brukes for å vaske tallerkener',
+        resources: [],
+        standardId: 1,
+      },
+    ],
+  },
+  {
+    categoryName: 'God personlig hygiene hos ansatte ',
+    points: [],
+    id: 8,
+  },
+]
+
+const repeatIntervalOptions = [
+  { label: 'Hver dag', seconds: 86400 },
+  { label: 'Hver 7. dag (1 uke)', seconds: 604800 },
+  { label: 'Hver 14. dag (2 uker)', seconds: 1209600 },
+  { label: 'Hver 30. dag', seconds: 2592000 },
+]
+
+function clonePrerequisites(data: PrerequisiteCategoryAllInfo): PrerequisiteCategoryAllInfo {
+  return data.map((category) => ({
+    id: category.id,
+    categoryName: category.categoryName,
+    points: category.points.map((point) => {
+      if (point.type === 'routine') {
+        return {
+          ...point,
+          deviationRecievers: point.deviationRecievers.map((user) => ({ ...user })),
+          performers: point.performers.map((user) => ({ ...user })),
+          deputy: point.deputy.map((user) => ({ ...user })),
+        }
+      }
+
+      return { ...point }
+    }),
+  }))
+}
+
+const mockServerState = ref<PrerequisiteCategoryAllInfo>(clonePrerequisites(mockData))
 const resource = ref<PrerequisiteCategoryAllInfo>([])
 const loading = ref(true)
 const error = ref<boolean | null>(null)
 
+const isCreatingCategory = ref(false)
+const newCategoryName = ref('')
+const isCreatingCategoryRequest = ref(false)
+const createCategoryError = ref(false)
+
+const allSelectableUsers = computed<PrerequisiteUser[]>(() => {
+  const users = new Map<number, string>()
+
+  for (const user of mockAllUsers) {
+    users.set(user.id, user.legalName)
+  }
+
+  for (const category of mockServerState.value) {
+    for (const point of category.points) {
+      if (point.type === 'routine') {
+        for (const user of point.performers) {
+          users.set(user.userId, user.legalName)
+        }
+        for (const user of point.deputy) {
+          users.set(user.userId, user.legalName)
+        }
+      }
+    }
+  }
+
+  return Array.from(users.entries()).map(([userId, legalName]) => ({ userId, legalName }))
+})
+
+function formatRepeatTime(seconds: number): string {
+  if (seconds % 604800 === 0) {
+    const weeks = seconds / 604800
+    return weeks === 1 ? 'Hver uke' : `Hver ${weeks} uker`
+  }
+
+  if (seconds % 86400 === 0) {
+    const days = seconds / 86400
+    return days === 1 ? 'Hver dag' : `Hver ${days} dager`
+  }
+
+  if (seconds % 3600 === 0) {
+    const hours = seconds / 3600
+    return hours === 1 ? 'Hver time' : `Hver ${hours} timer`
+  }
+
+  if (seconds % 60 === 0) {
+    const minutes = seconds / 60
+    return minutes === 1 ? 'Hvert minutt' : `Hvert ${minutes}. minutt`
+  }
+
+  return `Hvert ${seconds}. sekund`
+}
+
+function formatIntervalText(intervalStart: number, intervalRepeatTime: number): string {
+  const dateLabel = new Date(intervalStart * 1000).toLocaleString('nb-NO')
+  return `${formatRepeatTime(intervalRepeatTime)} (start: ${dateLabel})`
+}
+
+function resolveUserById(userId: number): PrerequisiteUser {
+  const user = allSelectableUsers.value.find((candidate) => candidate.userId === userId)
+  if (user) {
+    return {
+      userId: user.userId,
+      legalName: user.legalName,
+    }
+  }
+
+  return {
+    userId,
+    legalName: `Bruker ${userId}`,
+  }
+}
+
+function mapIdsToUsers(userIds: number[]): PrerequisiteUser[] {
+  return userIds.map((userId) => resolveUserById(userId))
+}
+
+async function fetchPrerequisites() {
+  // const response = await fetch('/api/prerequisite-categories/get-all-info')
+  // if (!response.ok) {
+  //   throw new Error(`Failed to fetch prerequisites (${response.status})`)
+  // }
+  // const data: PrerequisiteCategoryAllInfo = await response.json()
+
+  await delay(500)
+  resource.value = clonePrerequisites(mockServerState.value)
+}
+
+async function mockUpdateCategory(payload: UpdateCategoryPayload) {
+  // await fetch('/api/prerequisite-categories/update-category', { method: 'PATCH', body: JSON.stringify(payload) })
+  await delay(700)
+
+  const categoryIndex = mockServerState.value.findIndex(
+    (category) => category.id === payload.categoryId,
+  )
+  if (categoryIndex === -1) {
+    throw new Error('Category not found')
+  }
+
+  const currentCategory = mockServerState.value[categoryIndex]
+  if (!currentCategory) {
+    throw new Error('Category not found')
+  }
+
+  mockServerState.value[categoryIndex] = {
+    ...currentCategory,
+    categoryName: payload.categoryName,
+  }
+}
+
+async function mockUpdateRoutine(payload: UpdateRoutinePayload) {
+  // await fetch('/api/prerequisite-categories/update-routine', { method: 'PATCH', body: JSON.stringify(payload) })
+  await delay(700)
+
+  const category = mockServerState.value.find((entry) => entry.id === payload.categoryId)
+  if (!category) {
+    throw new Error('Category not found')
+  }
+
+  const routineIndex = category.points.findIndex(
+    (point) => point.type === 'routine' && point.routineId === payload.routineId,
+  )
+  const routine = category.points[routineIndex] as RoutinePoint | undefined
+
+  if (!routine || routine.type !== 'routine') {
+    throw new Error('Routine not found')
+  }
+
+  category.points[routineIndex] = {
+    ...routine,
+    title: payload.title,
+    measures: payload.measures,
+    repeatText: formatIntervalText(payload.interval_start, payload.interval_repeat_time),
+    performers: mapIdsToUsers(payload.performers),
+    deputy: mapIdsToUsers(payload.deputy),
+  }
+}
+
+async function mockUpdateStandard(payload: UpdateStandardPayload) {
+  // await fetch('/api/prerequisite-categories/update-standard', { method: 'PATCH', body: JSON.stringify(payload) })
+  await delay(700)
+
+  const category = mockServerState.value.find((entry) => entry.id === payload.categoryId)
+  if (!category) {
+    throw new Error('Category not found')
+  }
+
+  const standardIndex = category.points.findIndex(
+    (point) => point.type === 'standard' && point.standardId === payload.standardId,
+  )
+  const standard = category.points[standardIndex] as StandardPoint | undefined
+
+  if (!standard || standard.type !== 'standard') {
+    throw new Error('Standard not found')
+  }
+
+  category.points[standardIndex] = {
+    ...standard,
+    title: payload.title,
+    description: payload.description,
+  }
+}
+
+async function mockCreateCategory(payload: CreateCategoryPayload) {
+  // await fetch('/api/prerequisite-categories/create-category', { method: 'POST', body: JSON.stringify(payload) })
+  await delay(700)
+
+  const nextId =
+    mockServerState.value.length === 0
+      ? 1
+      : Math.max(...mockServerState.value.map((category) => category.id)) + 1
+
+  mockServerState.value = [
+    ...mockServerState.value,
+    {
+      id: nextId,
+      categoryName: payload.categoryName,
+      points: [],
+    },
+  ]
+}
+
+async function mockCreateRoutine(payload: CreateRoutinePayload) {
+  // await fetch('/api/prerequisite-categories/create-routine', { method: 'POST', body: JSON.stringify(payload) })
+  await delay(700)
+
+  const category = mockServerState.value.find((entry) => entry.id === payload.categoryId)
+  if (!category) {
+    throw new Error('Category not found')
+  }
+
+  const nextRoutineId =
+    mockServerState.value
+      .flatMap((entry) => entry.points)
+      .filter((point): point is RoutinePoint => point.type === 'routine')
+      .reduce((maxId, point) => Math.max(maxId, point.routineId), 0) + 1
+
+  category.points = [
+    ...category.points,
+    {
+      type: 'routine',
+      routineId: nextRoutineId,
+      title: payload.title,
+      measures: payload.measures,
+      repeatText: formatIntervalText(payload.interval_start, payload.interval_repeat_time),
+      deviationRecievers: mapIdsToUsers(payload.deputy),
+      performers: mapIdsToUsers(payload.performers),
+      deputy: mapIdsToUsers(payload.deputy),
+    },
+  ]
+}
+
+async function mockCreateStandard(payload: CreateStandardPayload) {
+  // await fetch('/api/prerequisite-categories/create-standard', { method: 'POST', body: JSON.stringify(payload) })
+  await delay(700)
+
+  const category = mockServerState.value.find((entry) => entry.id === payload.categoryId)
+  if (!category) {
+    throw new Error('Category not found')
+  }
+
+  const nextStandardId =
+    mockServerState.value
+      .flatMap((entry) => entry.points)
+      .filter((point): point is StandardPoint => point.type === 'standard')
+      .reduce((maxId, point) => Math.max(maxId, point.standardId), 0) + 1
+
+  category.points = [
+    ...category.points,
+    {
+      type: 'standard',
+      standardId: nextStandardId,
+      title: payload.title,
+      description: payload.description,
+      resources: [],
+    },
+  ]
+}
+
+async function handleSaveCategory(payload: UpdateCategoryPayload) {
+  await mockUpdateCategory(payload)
+  await fetchPrerequisites()
+}
+
+async function handleUpdateRoutine(payload: UpdateRoutinePayload) {
+  await mockUpdateRoutine(payload)
+  await fetchPrerequisites()
+}
+
+async function handleUpdateStandard(payload: UpdateStandardPayload) {
+  await mockUpdateStandard(payload)
+  await fetchPrerequisites()
+}
+
+async function handleCreateRoutine(payload: CreateRoutinePayload) {
+  await mockCreateRoutine(payload)
+  await fetchPrerequisites()
+}
+
+async function handleCreateStandard(payload: CreateStandardPayload) {
+  await mockCreateStandard(payload)
+  await fetchPrerequisites()
+}
+
+function startCreatingCategory() {
+  if (isCreatingCategoryRequest.value) {
+    return
+  }
+
+  isCreatingCategory.value = true
+  createCategoryError.value = false
+  newCategoryName.value = ''
+}
+
+function cancelCreatingCategory() {
+  if (isCreatingCategoryRequest.value) {
+    return
+  }
+
+  isCreatingCategory.value = false
+  createCategoryError.value = false
+  newCategoryName.value = ''
+}
+
+async function createCategory() {
+  if (
+    !isCreatingCategory.value ||
+    isCreatingCategoryRequest.value ||
+    newCategoryName.value.trim().length === 0
+  ) {
+    return
+  }
+
+  isCreatingCategoryRequest.value = true
+  createCategoryError.value = false
+
+  try {
+    await mockCreateCategory({ categoryName: newCategoryName.value.trim() })
+    await fetchPrerequisites()
+    isCreatingCategory.value = false
+    newCategoryName.value = ''
+  } catch (err) {
+    if (err instanceof Error) {
+      console.error(err.message)
+    } else {
+      console.error('Unknown error occurred')
+    }
+    createCategoryError.value = true
+  } finally {
+    isCreatingCategoryRequest.value = false
+  }
+}
+
+function setNewCategoryName(value: string) {
+  newCategoryName.value = value
+}
+
 onMounted(async () => {
   try {
-    // const response = await fetch("/api/prerequisite-categories/get-all-info")
-    // const data = await response.json();
-    await delay(2000)
-    const data: PrerequisiteCategoryAllInfo = [
-      // This is mock data
-      {
-        categoryName: 'Renhold av lokaler og utstyr',
-        points: [
-          {
-            title: 'Vask gulvene',
-            type: 'routine',
-            measures: 'Terje må vaske gulvene ekstra godt neste gang og ta 50 push-ups',
-            repeatText: 'Hver mandag kl. 17:00',
-            deviationRecievers: [
-              {
-                userId: 1234,
-                legalName: 'Simen Velle',
-              },
-              {
-                userId: 5643,
-                legalName: 'Ola Svenneby',
-              },
-            ],
-            performers: [
-              {
-                userId: 1234,
-                legalName: 'Jonas Ghar Støre',
-              },
-              {
-                userId: 5643,
-                legalName: 'Jens Stoltenberg',
-              },
-            ],
-            deputy: [
-              {
-                userId: 1234,
-                legalName: 'Kårw Willoch',
-              },
-              {
-                userId: 5643,
-                legalName: 'Gro Harlem Brundtland',
-              },
-            ],
-          },
-          {
-            title: 'Hold rent',
-            type: 'standard',
-            description:
-              'Vask 1 skal kun brukes for mat, mens vask 2 skal brukes for å vaske tallerkener',
-          },
-        ],
-      },
-      {
-        categoryName: 'God personlig hygiene hos ansatte ',
-        points: [],
-      },
-    ]
-    resource.value = data
-    loading.value = false
+    await fetchPrerequisites()
     error.value = false
   } catch (err) {
     if (err instanceof Error) {
@@ -85,6 +457,8 @@ onMounted(async () => {
       console.error('Unknown error occurred')
     }
     error.value = true
+  } finally {
+    loading.value = false
   }
 })
 </script>
@@ -94,167 +468,52 @@ onMounted(async () => {
     <main>
       <div class="main-no-sidebar-container">
         <Paginator />
-        <h1 class="instrument-serif-regular no-margin">
-          Grunnforutsetninger
-        </h1>
-        <hr class="navy-hr">
-        <Loading v-if="loading" />
-        <div
-          v-for="prerequisite in resource"
-          :key="prerequisite.categoryName"
-          class="prerequisite-category"
-        >
-          <div class="prerequisite-category-header">
-            <h2 class="no-margin">
-              {{ prerequisite.categoryName }}
-            </h2>
-            <DesktopButton
-              :icon="Edit2"
-              content="Rediger"
-              :on-click="sayHello"
-            />
-          </div>
-          <div v-if="prerequisite.points.length === 0">
-            Oi... Her var det tomt
-          </div>
-          <div class="point-container">
-            <div
-              v-for="point in prerequisite.points"
-              :key="point.title"
-              class="point"
-            >
-              <div class="point-header">
-                <div>
-                  <div
-                    v-if="point.type === 'routine'"
-                    class="point-dot-routine"
-                  />
-                  <div
-                    v-if="point.type === 'standard'"
-                    class="point-dot-standard"
-                  />
-                  <h3 class="no-margin">
-                    {{ point.title }}
-                  </h3>
-                </div>
-                <div>
-                  <span v-if="point.type === 'routine'">
-                    {{ point.repeatText }}
-                  </span>
-                  <DesktopButton
-                    :icon="Edit2"
-                    content="Rediger"
-                    :on-click="sayHello"
-                  />
-                </div>
-              </div>
-              <span v-if="point.type === 'routine'"> Avvikstiltak: {{ point.measures }} </span>
-              <div v-if="point.type === 'routine'">
-                <span class="navy-subtitle">Vikarleder</span>
-                <div class="user-parent">
-                  <UserBadge
-                    v-for="deputy in point.deputy"
-                    :key="deputy.userId"
-                    :name="deputy.legalName"
-                    :user-id="123"
-                  />
-                </div>
-              </div>
-              <div v-if="point.type === 'routine'">
-                <span class="navy-subtitle">De som skal gjøre det</span>
-                <div class="user-parent">
-                  <UserBadge
-                    v-for="performer in point.performers"
-                    :key="performer.userId"
-                    :name="performer.legalName"
-                    :user-id="123"
-                  />
-                </div>
-              </div>
-              <span v-if="point.type === 'standard'">
-                {{ point.description }}
-              </span>
-            </div>
-          </div>
-          <div class="add-point-container">
-            <DesktopButton
-              :icon="Plus"
-              content="Legg til rutine"
-              :on-click="sayHello"
-              button-color="blue-decor"
-            />
-            <DesktopButton
-              button-color="cherry"
-              :icon="Plus"
-              content="Legg til standard"
-              :on-click="sayHello"
-            />
-          </div>
-        </div>
+        <h1 class="instrument-serif-regular no-margin">Grunnforutsetninger</h1>
+        <hr class="navy-hr" />
+
         <DesktopButton
+          v-if="!loading && !isCreatingCategory"
           :icon="Plus"
           content="kategori"
-          :on-click="sayHello"
+          :on-click="startCreatingCategory"
+          :disabled="isCreatingCategoryRequest"
+        />
+
+        <Loading v-if="loading" />
+
+        <PrerequisiteCreateCategoryCard
+          v-if="!loading && isCreatingCategory"
+          :new-category-name="newCategoryName"
+          :is-loading="isCreatingCategoryRequest"
+          :has-error="createCategoryError"
+          :set-new-category-name="setNewCategoryName"
+          :on-create="createCategory"
+          :on-cancel="cancelCreatingCategory"
+        />
+
+        <PrerequisiteCategoryCard
+          v-for="category in resource"
+          :key="`category-${category.id}`"
+          :category="category"
+          :repeat-interval-options="repeatIntervalOptions"
+          :disable-actions="isCreatingCategory || isCreatingCategoryRequest"
+          :on-save-category="handleSaveCategory"
+          :on-update-routine="handleUpdateRoutine"
+          :on-update-standard="handleUpdateStandard"
+          :on-create-routine="handleCreateRoutine"
+          :on-create-standard="handleCreateStandard"
         />
       </div>
     </main>
   </div>
 </template>
+
 <style scoped>
 .con {
   overflow: scroll;
 }
-.add-point-container {
-  display: flex;
-  width: 100%;
-  gap: 1rem;
-  > button {
-    width: 100%;
-  }
-}
-.user-parent {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-.prerequisite-category {
-  border-radius: 1rem;
-  padding: 1rem;
-  display: flex;
-  gap: 1rem;
-  flex-direction: column;
-  border: 1px solid var(--blue-decor);
-  background-color: var(--blue-decor-10);
-  .prerequisite-category-header {
-    display: flex;
-    justify-content: space-between;
-  }
-}
-.point-header {
-  display: flex;
-  gap: 0.5rem;
-  justify-content: space-between;
-  > div {
-    display: flex;
-    flex-direction: row;
-    justify-content: center;
-    align-items: center;
-    gap: 0.5rem;
-    /* background-color: red; */
-  }
-}
-.point-dot-routine {
-  width: 0.5rem;
-  height: 0.5rem;
-  background-color: var(--blue-decor);
-}
-.point-dot-standard {
-  width: 0.5rem;
-  height: 0.5rem;
-  background-color: var(--red-cherry);
-}
+
 main {
-  display: flex;
   margin-top: 5rem;
   padding-bottom: 5rem;
   padding-left: 2rem;
@@ -264,41 +523,18 @@ main {
   align-items: center;
   flex-direction: column;
   width: 100%;
-  .main-no-sidebar-container {
-    width: calc(3 / 5 * 100%);
-    /* background-color: var(--white-greek);
-        border-radius: 1rem;
-        padding: 1rem;
-        border: 1px solid var(--blue-navy-40); */
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
-  .point-container {
-    display: flex;
-    gap: 1rem;
-    flex-direction: column;
-    .point {
-      padding: 1rem;
-      border-radius: 0.5rem;
-      border: 1px solid var(--blue-navy-40);
-      background-color: var(--white-greek);
-    }
-  }
-}
-hr {
-  border-color: var(--blue-navy-40);
-  border-width: 1px;
-}
-@media (max-width: 768px) {
-  main > form {
-    width: 100%;
-  }
 }
 
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
+.main-no-sidebar-container {
+  width: calc(3 / 5 * 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+@media (max-width: 768px) {
+  .main-no-sidebar-container {
+    width: 100%;
   }
 }
 </style>

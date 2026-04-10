@@ -11,6 +11,8 @@ import UserBadge from './UserBadge.vue'
 
 const props = defineProps<{
   setUsers: (users: BasicUserWithAccessLevel[]) => void
+  initialUserIds?: number[]
+  initialUsers?: BasicUserWithAccessLevel[]
 }>()
 
 const allUsers = ref<BasicUserWithAccessLevel[]>([])
@@ -44,6 +46,56 @@ watch(
   { deep: true },
 )
 
+function syncInitialUsers() {
+  const initialIds = props.initialUserIds || []
+  const initialUsersById = new Map((props.initialUsers || []).map((user) => [user.id, user]))
+  const sortedInitialIds = [...initialIds].sort((a, b) => a - b)
+  const sortedSelectedIds = selectedUsers.value.map((user) => user.id).sort((a, b) => a - b)
+
+  const sameSelection =
+    sortedInitialIds.length === sortedSelectedIds.length &&
+    sortedInitialIds.every((id, index) => id === sortedSelectedIds[index])
+
+  if (sameSelection) {
+    return
+  }
+
+  selectedUsers.value = initialIds.map((id) => {
+    const explicitInitialUser = initialUsersById.get(id)
+    if (explicitInitialUser) {
+      return explicitInitialUser
+    }
+
+    const existingUser = allUsers.value.find((user) => user.id === id)
+    if (existingUser) {
+      return existingUser
+    }
+
+    return {
+      id,
+      legalName: `Bruker ${id}`,
+      email: '',
+      accessLevel: 'WORKER',
+    }
+  })
+}
+
+watch(
+  () => props.initialUserIds,
+  () => {
+    syncInitialUsers()
+  },
+  { deep: true },
+)
+
+watch(
+  () => props.initialUsers,
+  () => {
+    syncInitialUsers()
+  },
+  { deep: true },
+)
+
 onMounted(async () => {
   try {
     // const response = await fetch('/api/organizations/users')
@@ -53,6 +105,7 @@ onMounted(async () => {
     // const data = await response.json()
     await delay(400)
     allUsers.value = mockUsers
+    syncInitialUsers()
     isLoading.value = false
     errorMessage.value = ''
   } catch (err) {
@@ -120,30 +173,15 @@ function removeUser(userId: number) {
     </div>
 
     <Loading v-if="isLoading" />
-    <p
-      v-else-if="errorMessage"
-      class="error-message"
-    >
+    <p v-else-if="errorMessage" class="error-message">
       {{ errorMessage }}
     </p>
 
-    <p
-      v-else-if="availableUsers.length === 0"
-      class="empty-state"
-    >
-      Ingen brukere tilgjengelig.
-    </p>
+    <p v-else-if="availableUsers.length === 0" class="empty-state">Ingen brukere tilgjengelig.</p>
 
     <div class="selected-users">
-      <div
-        v-for="user in selectedUsers"
-        :key="user.id"
-        class="selected-user-row"
-      >
-        <UserBadge
-          :name="user.legalName"
-          :user-id="user.id"
-        />
+      <div v-for="user in selectedUsers" :key="user.id" class="selected-user-row">
+        <UserBadge :name="user.legalName" :user-id="user.id" />
         <DesktopButton
           :icon="X"
           content="Fjern"

@@ -9,6 +9,10 @@ defineProps<{
   ccp: CriticalControlPoint
 }>()
 
+const emit = defineEmits<{
+  edit: [ccpId: number]
+}>()
+
 const expandedMeasures = ref<Record<number, boolean>>({})
 
 function toggleMeasure(measureIndex: number) {
@@ -32,36 +36,24 @@ function getMeasureDescription(measureIndex: number, text: string) {
           {{ ccp.name }}
         </h2>
       </div>
-      <DesktopButton
-        :icon="Edit2"
-        content="Rediger"
-        disabled
-      />
+      <DesktopButton :icon="Edit2" content="Rediger" :on-click="() => emit('edit', ccp.id)" />
     </div>
 
     <div class="ccp-grid">
       <div class="info-card">
-        <h3 class="no-margin">
-          Hvordan overvåkes det
-        </h3>
+        <h3 class="no-margin">Hvordan overvåkes det</h3>
         <span>{{ ccp.how }}</span>
       </div>
       <div class="info-card">
-        <h3 class="no-margin">
-          Utstyr
-        </h3>
+        <h3 class="no-margin">Utstyr</h3>
         <span>{{ ccp.equipment }}</span>
       </div>
       <div class="info-card">
-        <h3 class="no-margin">
-          Instruks og kalibrering
-        </h3>
+        <h3 class="no-margin">Instruks og kalibrering</h3>
         <span>{{ ccp.instructionsAndCalibration }}</span>
       </div>
       <div class="info-card">
-        <h3 class="no-margin">
-          Umiddelbart avvikstiltak
-        </h3>
+        <h3 class="no-margin">Umiddelbart avvikstiltak</h3>
         <span>{{ ccp.immediateCorrectiveAction }}</span>
       </div>
     </div>
@@ -71,13 +63,8 @@ function getMeasureDescription(measureIndex: number, text: string) {
       <span>{{ ccp.criticalMin }} - {{ ccp.criticalMax }} {{ ccp.unit }}</span>
     </div>
 
-    <div
-      v-if="ccp.monitoredDescription"
-      class="info-card"
-    >
-      <h3 class="no-margin">
-        Hva overvåkes
-      </h3>
+    <div v-if="ccp.monitoredDescription" class="info-card">
+      <h3 class="no-margin">Hva overvåkes</h3>
       <span>{{ ccp.monitoredDescription }}</span>
     </div>
 

@@ -12,17 +12,25 @@ interface RoutinePrerequisitePoint {
   deviationRecievers: PrerequisiteUser[]
   performers: PrerequisiteUser[]
   deputy: PrerequisiteUser[]
+  routineId: number
 }
 
 interface StandardPrerequisitePoint {
   title: string
   type: 'standard'
   description: string
+  resources: {
+    id: number
+    name: string
+    type: 'link' | 'file'
+  }[]
+  standardId: number
 }
 
 export interface PrerequisiteCategory {
   categoryName: string
   points: (RoutinePrerequisitePoint | StandardPrerequisitePoint)[]
+  id: number
 }
 
 export type PrerequisiteCategoryAllInfo = PrerequisiteCategory[]
@@ -128,6 +136,7 @@ export type MappingPointAllInfo = MappingPoint[]
 interface LearningResource {
   name: string
   type: 'link' | 'file'
+  id: number
 }
 
 export interface LearningCourse {
@@ -145,7 +154,9 @@ interface LearningUserCourseProgress {
 }
 
 export interface LearningUserProgress {
-  name: string
+  id: number
+  legalName: string
+  email: string
   courses: LearningUserCourseProgress[]
 }
 
