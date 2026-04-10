@@ -209,6 +209,30 @@ export interface CreateLearningCoursePayload {
 }
 // #endregion
 
+// #region DangerAnalysisView
+export interface DangerRiskCombo {
+  id: number
+  danger: string
+  dangerCorrectiveMeasure: string
+  severityScore: number
+  likelihoodScore: number
+  createdAt: string
+}
+
+export interface DangerAnalysisProductCategory {
+  id: number
+  productName: string
+  productDescription: string
+  flowchartFileId: number | null
+  flowchartFileName: string | null
+  flowchartPreviewUrl: string | null
+  createdAt: string
+  dangerRiskCombos: DangerRiskCombo[]
+}
+
+export type DangerAnalysisAllInfo = DangerAnalysisProductCategory[]
+// #endregion
+
 // #region HaccpView
 export interface DangerAnalysisCollaborator {
   userId: number
