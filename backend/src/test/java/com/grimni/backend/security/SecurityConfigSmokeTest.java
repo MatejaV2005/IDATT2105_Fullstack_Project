@@ -1,9 +1,16 @@
 package com.grimni.backend.security;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +22,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import com.grimni.controller.AuthController;
 import com.grimni.repository.OrgUserBridgeRepository;
 import com.grimni.security.SecurityConfig;
+import com.grimni.service.OrganizationService;
 import com.grimni.service.RefreshTokenService;
 import com.grimni.service.UserService;
 import com.grimni.util.JwtAuthFilter;
@@ -53,6 +61,20 @@ public class SecurityConfigSmokeTest {
 
     @MockitoBean
     private OrgUserBridgeRepository orgUserBridgeRepository;
+
+    @MockitoBean
+    private OrganizationService organizationService;
+
+    @BeforeEach
+    void stubFilterPassthrough() throws Exception {
+        doAnswer(invocation -> {
+            HttpServletRequest req = invocation.getArgument(0);
+            HttpServletResponse res = invocation.getArgument(1);
+            FilterChain chain = invocation.getArgument(2);
+            chain.doFilter(req, res);
+            return null;
+        }).when(jwtAuthFilter).doFilter(any(HttpServletRequest.class), any(HttpServletResponse.class), any(FilterChain.class));
+    }
 
     @Test
     @DisplayName("/auth/login is publicly reachable (not 401/403)")
