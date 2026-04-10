@@ -5,6 +5,7 @@ import CreateOrgView from '@/views/desktop/CreateOrgView.vue'
 import CriticalControlPointsView from '@/views/desktop/CriticalControlPointsView.vue'
 import DeviationHandlingView from '@/views/desktop/DeviationHandlingView.vue'
 import DangerAnalysisView from '@/views/desktop/DangerAnalysisView.vue'
+import AnalView from '@/views/desktop/AnalView.vue'
 import DeviationLogsView from '@/views/desktop/DeviationLogsView.vue'
 import HaccpView from '@/views/desktop/HaccpView.vue'
 import LearningView from '@/views/desktop/LearningView.vue'
@@ -30,12 +31,20 @@ const router = createRouter({
       component: DesktopLayout,
       children: [
         {
+          path: '',
+          redirect: '/desktop/bedrift-analyse',
+        },
+        {
           path: 'create-org',
           component: CreateOrgView,
         },
         {
           path: 'bedrift-teamsammensetning',
           component: TeamView,
+        },
+        {
+          path: 'bedrift-analyse',
+          component: AnalView,
         },
         {
           path: 'sign-in',
