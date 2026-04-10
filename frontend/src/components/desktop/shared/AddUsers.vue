@@ -19,7 +19,6 @@ const allUsers = ref<BasicUserWithAccessLevel[]>([])
 const selectedUsers = ref<BasicUserWithAccessLevel[]>([])
 const selectedUserId = ref<number | null>(null)
 const isLoading = ref(true)
-const isSubmitting = ref(false)
 const errorMessage = ref('')
 
 const availableUsers = computed(() => {
@@ -135,23 +134,6 @@ onMounted(async () => {
   }
 })
 
-async function addUser(user: BasicUserWithAccessLevel) {
-  if (isSubmitting.value) {
-    return
-  }
-
-  try {
-    isSubmitting.value = true
-    await api.post('/organizations/users', { userId: user.id, role: user.accessLevel })
-    selectedUsers.value = [...selectedUsers.value, user]
-    selectedUserId.value = null
-  } catch {
-    errorMessage.value = 'Klarte ikke å legge til bruker.'
-  } finally {
-    isSubmitting.value = false
-  }
-}
-
 function setSelectedUserId(userId: number | null) {
   selectedUserId.value = userId
 }
@@ -166,14 +148,12 @@ function addSelectedUser() {
     return
   }
 
-  addUser(user)
+  errorMessage.value = ''
+  selectedUsers.value = [...selectedUsers.value, user]
+  selectedUserId.value = null
 }
 
 function removeUser(userId: number) {
-  if (isSubmitting.value) {
-    return
-  }
-
   selectedUsers.value = selectedUsers.value.filter((user) => user.id !== userId)
 }
 </script>
@@ -186,14 +166,13 @@ function removeUser(userId: number) {
         :selected-user-id="selectedUserId"
         :set-selected-user-id="setSelectedUserId"
         :excluded-user-ids="selectedUsers.map((user) => user.id)"
-        :disabled="isLoading || isSubmitting"
+        :disabled="isLoading"
       />
       <DesktopButton
         :icon="Plus"
         content="Legg til"
         :on-click="addSelectedUser"
-        :disabled="!canAddSelectedUser || isLoading || isSubmitting"
-        :is-loading="isSubmitting"
+        :disabled="!canAddSelectedUser || isLoading"
       />
     </div>
 
