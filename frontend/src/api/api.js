@@ -7,7 +7,11 @@ const api = axios.create({
 });
 
 function getLoginRoute() {
-    return '/auth';
+    if (typeof window === 'undefined') {
+        return '/auth';
+    }
+
+    return new URL('/auth', window.location.origin).toString();
 }
 
 api.interceptors.request.use((config) => {
