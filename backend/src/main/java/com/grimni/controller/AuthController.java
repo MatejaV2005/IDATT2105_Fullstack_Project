@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -16,10 +17,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.grimni.domain.OrgUserBridge;
+import com.grimni.domain.RefreshToken;
 import com.grimni.domain.User;
 import com.grimni.dto.LoginRequest;
 import com.grimni.dto.RegisterRequest;
-import com.grimni.repository.OrgUserBridgeRepository;
+import com.grimni.dto.SwitchOrganizationRequest;
+import com.grimni.security.JwtUserPrinciple;
+import com.grimni.service.OrganizationService;
 import com.grimni.service.RefreshTokenService;
 import com.grimni.service.UserService;
 import com.grimni.util.JwtUtil;
@@ -33,13 +37,13 @@ public class AuthController {
     private final RefreshTokenService refService;
     private final UserService userService;
     private final JwtUtil jwtUtil;
-    private final OrgUserBridgeRepository orgUserBridgeRepository;
+    private final OrganizationService organizationService;
 
-    public AuthController(RefreshTokenService refService, JwtUtil jwtUtil, UserService userService, OrgUserBridgeRepository orgUserBridgeRepository) {
+    public AuthController(RefreshTokenService refService, JwtUtil jwtUtil, UserService userService, OrganizationService organizationService) {
         this.jwtUtil = jwtUtil;
         this.refService = refService;
         this.userService = userService;
-        this.orgUserBridgeRepository = orgUserBridgeRepository;
+        this.organizationService = organizationService;
     }
 
 
@@ -52,9 +56,13 @@ public class AuthController {
     public ResponseEntity<?> grantRefreshToken(@CookieValue("refresh_token") String cookie) {
         logger.info("Refresh token request received");
 
-        User user = refService.getUserByRefreshToken(cookie);
-        ResponseCookie refToken = refService.rotateRefreshToken(user, cookie);
-        OrgUserBridge bridge = orgUserBridgeRepository.findFirstByUserId(user.getId()).orElse(null);
+        RefreshToken storedToken = refService.getStoredRefreshToken(cookie);
+        User user = storedToken.getUser();
+        OrgUserBridge bridge = organizationService.resolveRefreshMembership(
+            user.getId(),
+            storedToken.getOrganization() != null ? storedToken.getOrganization().getId() : null
+        );
+        ResponseCookie refToken = refService.rotateRefreshToken(storedToken, bridge.getOrganization());
         String jwtToken = jwtUtil.generateToken(user, bridge);
 
         return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, refToken.toString()).body(jwtToken);
@@ -89,13 +97,33 @@ public class AuthController {
         logger.info("Login attempt for user: {}", request.email());
 
         User user = userService.login(request.email(), request.password());
-        OrgUserBridge bridge = orgUserBridgeRepository.findFirstByUserId(user.getId()).orElse(null);
+        OrgUserBridge bridge = organizationService.findDefaultMembershipForUser(user.getId()).orElse(null);
         String jwtToken = jwtUtil.generateToken(user, bridge);
 
-        ResponseCookie refToken = refService.createAndStoreRefreshToken(user);
+        ResponseCookie refToken = refService.createAndStoreRefreshToken(
+            user,
+            bridge != null ? bridge.getOrganization() : null
+        );
 
         logger.info("Login successful for user: {}", request.email());
         return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, refToken.toString()).body(jwtToken);
+    }
+
+    @PostMapping("/switch-organization")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> switchOrganization(
+            @Valid @RequestBody SwitchOrganizationRequest request,
+            @CookieValue("refresh_token") String cookie,
+            Authentication authentication) {
+        JwtUserPrinciple principal = (JwtUserPrinciple) authentication.getPrincipal();
+        RefreshToken storedToken = refService.getStoredRefreshTokenForUser(cookie, principal.userId());
+        OrgUserBridge bridge = organizationService.getMembershipForUser(principal.userId(), request.organizationId());
+        String jwtToken = jwtUtil.generateToken(storedToken.getUser(), bridge);
+        ResponseCookie refToken = refService.rotateRefreshToken(storedToken, bridge.getOrganization());
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, refToken.toString())
+                .body(jwtToken);
     }
 
     @PostMapping("/register")

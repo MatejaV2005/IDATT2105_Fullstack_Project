@@ -1,38 +1,25 @@
 <script setup lang="ts">
-defineProps({
-  username: String,
-  userId: String,
-})
+withDefaults(
+  defineProps<{
+    username?: string
+    userId?: string
+    initials?: string
+    to?: string
+  }>(),
+  {
+    username: '',
+    userId: '',
+    initials: '?',
+    to: '/desktop/users/me',
+  },
+)
 </script>
 <template>
   <RouterLink
     class="me-button transition"
-    to="/desktop/users/me"
+    :to="to"
   >
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="2"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-      class="lucide lucide-circle-user-icon lucide-circle-user"
-    >
-      <circle
-        cx="12"
-        cy="12"
-        r="10"
-      />
-      <circle
-        cx="12"
-        cy="10"
-        r="3"
-      />
-      <path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662" />
-    </svg>
+    <span class="me-button__avatar">{{ initials }}</span>
     <div>
       {{ username }}
     </div>
@@ -48,6 +35,19 @@ defineProps({
   gap: 0.5rem;
   background-color: var(--red-cherry-20);
   border-radius: 1rem;
+  border: 1px solid var(--red-cherry-40);
+}
+
+.me-button__avatar {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: var(--red-cherry);
+  color: var(--white-greek);
+  font-weight: 700;
+  font-size: 0.75rem;
 }
 .me-button:hover {
   background-color: var(--red-cherry-40);

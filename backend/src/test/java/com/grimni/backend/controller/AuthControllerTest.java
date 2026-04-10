@@ -4,11 +4,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.grimni.controller.AuthController;
 import com.grimni.domain.OrgUserBridge;
 import com.grimni.domain.Organization;
+import com.grimni.domain.RefreshToken;
 import com.grimni.domain.User;
 import com.grimni.domain.enums.OrgUserRole;
 import com.grimni.dto.LoginRequest;
 import com.grimni.dto.RegisterRequest;
-import com.grimni.repository.OrgUserBridgeRepository;
+import com.grimni.service.OrganizationService;
 import com.grimni.service.RefreshTokenService;
 import com.grimni.service.UserService;
 import com.grimni.util.JwtUtil;
@@ -22,6 +23,8 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseCookie;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
@@ -31,12 +34,15 @@ import jakarta.servlet.http.Cookie;
 import org.springframework.security.authentication.BadCredentialsException;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.hamcrest.Matchers.containsString;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -58,13 +64,14 @@ public class AuthControllerTest {
     private JwtUtil jwtUtil;
 
     @MockitoBean
-    private OrgUserBridgeRepository orgUserBridgeRepository;
+    private OrganizationService organizationService;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     private User testUser;
     private OrgUserBridge testBridge;
     private ResponseCookie testCookie;
+    private RefreshToken storedToken;
 
     @BeforeEach
     void setUp() {
@@ -77,6 +84,7 @@ public class AuthControllerTest {
         testOrg.setId(10L);
         testBridge = new OrgUserBridge();
         testBridge.setOrganization(testOrg);
+        testBridge.setUser(testUser);
         testBridge.setUserRole(OrgUserRole.MANAGER);
 
         testCookie = ResponseCookie.from("refresh_token", "cookie-plaintext")
@@ -86,6 +94,18 @@ public class AuthControllerTest {
                 .maxAge(Duration.ofDays(7))
                 .sameSite("Strict")
                 .build();
+
+        storedToken = new RefreshToken();
+        storedToken.setUser(testUser);
+        storedToken.setOrganization(testOrg);
+    }
+
+    private static UsernamePasswordAuthenticationToken authWithRole(String role) {
+        return new UsernamePasswordAuthenticationToken(
+                new com.grimni.security.JwtUserPrinciple(1L, 10L, "Alice", role),
+                null,
+                List.of(new SimpleGrantedAuthority(role))
+        );
     }
 
     // -------------------------------------------------------------------------
@@ -201,9 +221,9 @@ public class AuthControllerTest {
         @DisplayName("returns HTTP 200 when valid credentials are provided")
         void login_validCredentials_returns200() throws Exception {
             when(userService.login("alice@example.com", "correctpass")).thenReturn(testUser);
-            when(orgUserBridgeRepository.findFirstByUserId(1L)).thenReturn(Optional.of(testBridge));
+            when(organizationService.findDefaultMembershipForUser(1L)).thenReturn(Optional.of(testBridge));
             when(jwtUtil.generateToken(eq(testUser), eq(testBridge))).thenReturn("jwt-token-abc");
-            when(refService.createAndStoreRefreshToken(testUser)).thenReturn(testCookie);
+            when(refService.createAndStoreRefreshToken(eq(testUser), eq(testBridge.getOrganization()))).thenReturn(testCookie);
 
             LoginRequest request = new LoginRequest("alice@example.com", "correctpass");
 
@@ -218,9 +238,9 @@ public class AuthControllerTest {
         @DisplayName("response body contains the JWT string")
         void login_responseBodyContainsJwt() throws Exception {
             when(userService.login("alice@example.com", "correctpass")).thenReturn(testUser);
-            when(orgUserBridgeRepository.findFirstByUserId(1L)).thenReturn(Optional.of(testBridge));
+            when(organizationService.findDefaultMembershipForUser(1L)).thenReturn(Optional.of(testBridge));
             when(jwtUtil.generateToken(eq(testUser), eq(testBridge))).thenReturn("jwt-token-abc");
-            when(refService.createAndStoreRefreshToken(testUser)).thenReturn(testCookie);
+            when(refService.createAndStoreRefreshToken(eq(testUser), eq(testBridge.getOrganization()))).thenReturn(testCookie);
 
             LoginRequest request = new LoginRequest("alice@example.com", "correctpass");
 
@@ -234,9 +254,9 @@ public class AuthControllerTest {
         @DisplayName("response headers contain Set-Cookie with the refresh token")
         void login_responseContainsSetCookieHeader() throws Exception {
             when(userService.login("alice@example.com", "correctpass")).thenReturn(testUser);
-            when(orgUserBridgeRepository.findFirstByUserId(1L)).thenReturn(Optional.of(testBridge));
+            when(organizationService.findDefaultMembershipForUser(1L)).thenReturn(Optional.of(testBridge));
             when(jwtUtil.generateToken(eq(testUser), eq(testBridge))).thenReturn("jwt-token-abc");
-            when(refService.createAndStoreRefreshToken(testUser)).thenReturn(testCookie);
+            when(refService.createAndStoreRefreshToken(eq(testUser), eq(testBridge.getOrganization()))).thenReturn(testCookie);
 
             LoginRequest request = new LoginRequest("alice@example.com", "correctpass");
 
@@ -259,9 +279,9 @@ public class AuthControllerTest {
         @DisplayName("returns HTTP 200 when user has no organization")
         void login_noOrg_returns200() throws Exception {
             when(userService.login("alice@example.com", "correctpass")).thenReturn(testUser);
-            when(orgUserBridgeRepository.findFirstByUserId(1L)).thenReturn(Optional.empty());
+            when(organizationService.findDefaultMembershipForUser(1L)).thenReturn(Optional.empty());
             when(jwtUtil.generateToken(eq(testUser), eq(null))).thenReturn("jwt-no-org");
-            when(refService.createAndStoreRefreshToken(testUser)).thenReturn(testCookie);
+            when(refService.createAndStoreRefreshToken(eq(testUser), eq(null))).thenReturn(testCookie);
 
             LoginRequest request = new LoginRequest("alice@example.com", "correctpass");
 
@@ -275,9 +295,9 @@ public class AuthControllerTest {
         @DisplayName("JWT is generated with null bridge when user has no org")
         void login_noOrg_generatesTokenWithNullBridge() throws Exception {
             when(userService.login("alice@example.com", "correctpass")).thenReturn(testUser);
-            when(orgUserBridgeRepository.findFirstByUserId(1L)).thenReturn(Optional.empty());
+            when(organizationService.findDefaultMembershipForUser(1L)).thenReturn(Optional.empty());
             when(jwtUtil.generateToken(eq(testUser), eq(null))).thenReturn("jwt-no-org");
-            when(refService.createAndStoreRefreshToken(testUser)).thenReturn(testCookie);
+            when(refService.createAndStoreRefreshToken(eq(testUser), eq(null))).thenReturn(testCookie);
 
             LoginRequest request = new LoginRequest("alice@example.com", "correctpass");
 
@@ -293,9 +313,9 @@ public class AuthControllerTest {
         @DisplayName("response body contains JWT even without org context")
         void login_noOrg_responseContainsJwt() throws Exception {
             when(userService.login("alice@example.com", "correctpass")).thenReturn(testUser);
-            when(orgUserBridgeRepository.findFirstByUserId(1L)).thenReturn(Optional.empty());
+            when(organizationService.findDefaultMembershipForUser(1L)).thenReturn(Optional.empty());
             when(jwtUtil.generateToken(eq(testUser), eq(null))).thenReturn("jwt-no-org");
-            when(refService.createAndStoreRefreshToken(testUser)).thenReturn(testCookie);
+            when(refService.createAndStoreRefreshToken(eq(testUser), eq(null))).thenReturn(testCookie);
 
             LoginRequest request = new LoginRequest("alice@example.com", "correctpass");
 
@@ -354,7 +374,7 @@ public class AuthControllerTest {
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isUnauthorized());
 
-            verify(refService, never()).createAndStoreRefreshToken(any());
+            verify(refService, never()).createAndStoreRefreshToken(any(), any());
         }
 
         @Test
@@ -384,9 +404,9 @@ public class AuthControllerTest {
         @Test
         @DisplayName("returns HTTP 200 when a valid refresh_token cookie is present")
         void refresh_validCookie_returns200() throws Exception {
-            when(refService.getUserByRefreshToken("old-token")).thenReturn(testUser);
-            when(refService.rotateRefreshToken(testUser, "old-token")).thenReturn(testCookie);
-            when(orgUserBridgeRepository.findFirstByUserId(1L)).thenReturn(Optional.of(testBridge));
+            when(refService.getStoredRefreshToken("old-token")).thenReturn(storedToken);
+            when(organizationService.resolveRefreshMembership(1L, 10L)).thenReturn(testBridge);
+            when(refService.rotateRefreshToken(storedToken, testBridge.getOrganization())).thenReturn(testCookie);
             when(jwtUtil.generateToken(eq(testUser), eq(testBridge))).thenReturn("new-jwt");
 
             mockMvc.perform(post("/auth/refresh")
@@ -398,9 +418,9 @@ public class AuthControllerTest {
         @Test
         @DisplayName("response body contains the new JWT string")
         void refresh_responseBodyContainsNewJwt() throws Exception {
-            when(refService.getUserByRefreshToken("old-token")).thenReturn(testUser);
-            when(refService.rotateRefreshToken(testUser, "old-token")).thenReturn(testCookie);
-            when(orgUserBridgeRepository.findFirstByUserId(1L)).thenReturn(Optional.of(testBridge));
+            when(refService.getStoredRefreshToken("old-token")).thenReturn(storedToken);
+            when(organizationService.resolveRefreshMembership(1L, 10L)).thenReturn(testBridge);
+            when(refService.rotateRefreshToken(storedToken, testBridge.getOrganization())).thenReturn(testCookie);
             when(jwtUtil.generateToken(eq(testUser), eq(testBridge))).thenReturn("new-jwt");
 
             mockMvc.perform(post("/auth/refresh")
@@ -411,9 +431,9 @@ public class AuthControllerTest {
         @Test
         @DisplayName("response headers contain a rotated Set-Cookie header")
         void refresh_responseContainsRotatedCookie() throws Exception {
-            when(refService.getUserByRefreshToken("old-token")).thenReturn(testUser);
-            when(refService.rotateRefreshToken(testUser, "old-token")).thenReturn(testCookie);
-            when(orgUserBridgeRepository.findFirstByUserId(1L)).thenReturn(Optional.of(testBridge));
+            when(refService.getStoredRefreshToken("old-token")).thenReturn(storedToken);
+            when(organizationService.resolveRefreshMembership(1L, 10L)).thenReturn(testBridge);
+            when(refService.rotateRefreshToken(storedToken, testBridge.getOrganization())).thenReturn(testCookie);
             when(jwtUtil.generateToken(eq(testUser), eq(testBridge))).thenReturn("new-jwt");
 
             mockMvc.perform(post("/auth/refresh")
@@ -423,17 +443,18 @@ public class AuthControllerTest {
         }
 
         @Test
-        @DisplayName("refresh works when user has no org (null bridge)")
-        void refresh_noOrg_returns200() throws Exception {
-            when(refService.getUserByRefreshToken("old-token")).thenReturn(testUser);
-            when(refService.rotateRefreshToken(testUser, "old-token")).thenReturn(testCookie);
-            when(orgUserBridgeRepository.findFirstByUserId(1L)).thenReturn(Optional.empty());
-            when(jwtUtil.generateToken(eq(testUser), eq(null))).thenReturn("jwt-no-org");
+        @DisplayName("refresh falls back to the resolved active membership")
+        void refresh_resolvesMembership_returns200() throws Exception {
+            storedToken.setOrganization(null);
+            when(refService.getStoredRefreshToken("old-token")).thenReturn(storedToken);
+            when(organizationService.resolveRefreshMembership(1L, null)).thenReturn(testBridge);
+            when(refService.rotateRefreshToken(storedToken, testBridge.getOrganization())).thenReturn(testCookie);
+            when(jwtUtil.generateToken(eq(testUser), eq(testBridge))).thenReturn("jwt-with-org");
 
             mockMvc.perform(post("/auth/refresh")
                             .cookie(new Cookie("refresh_token", "old-token")))
                     .andExpect(status().isOk())
-                    .andExpect(content().string("jwt-no-org"));
+                    .andExpect(content().string("jwt-with-org"));
         }
     }
 
@@ -447,7 +468,7 @@ public class AuthControllerTest {
         @Test
         @DisplayName("returns HTTP 401 when refresh token is invalid")
         void refresh_invalidToken_returns401() throws Exception {
-            when(refService.getUserByRefreshToken("bad-token"))
+            when(refService.getStoredRefreshToken("bad-token"))
                     .thenThrow(new BadCredentialsException("Invalid refresh token"));
 
             mockMvc.perform(post("/auth/refresh")
@@ -465,20 +486,20 @@ public class AuthControllerTest {
         @Test
         @DisplayName("rotateRefreshToken is never called when token lookup fails")
         void refresh_invalidToken_rotateNeverCalled() throws Exception {
-            when(refService.getUserByRefreshToken("bad-token"))
+            when(refService.getStoredRefreshToken("bad-token"))
                     .thenThrow(new BadCredentialsException("Invalid refresh token"));
 
             mockMvc.perform(post("/auth/refresh")
                             .cookie(new Cookie("refresh_token", "bad-token")))
                     .andExpect(status().isUnauthorized());
 
-            verify(refService, never()).rotateRefreshToken(any(), any());
+            verify(refService, never()).rotateRefreshToken(any(RefreshToken.class), any());
         }
 
         @Test
         @DisplayName("jwtUtil is never called when token lookup fails")
         void refresh_invalidToken_jwtUtilNeverCalled() throws Exception {
-            when(refService.getUserByRefreshToken("bad-token"))
+            when(refService.getStoredRefreshToken("bad-token"))
                     .thenThrow(new BadCredentialsException("Invalid refresh token"));
 
             mockMvc.perform(post("/auth/refresh")
@@ -486,6 +507,58 @@ public class AuthControllerTest {
                     .andExpect(status().isUnauthorized());
 
             verify(jwtUtil, never()).generateToken(any(), any());
+        }
+    }
+
+    @Nested
+    @DisplayName("POST /auth/switch-organization")
+    class SwitchOrganizationTests {
+
+        @Test
+        @DisplayName("returns HTTP 200 with a new JWT when the target org is accessible")
+        void switchOrganization_success() throws Exception {
+            Organization nextOrg = new Organization();
+            nextOrg.setId(25L);
+            testBridge.setOrganization(nextOrg);
+
+            when(refService.getStoredRefreshTokenForUser("old-token", 1L)).thenReturn(storedToken);
+            when(organizationService.getMembershipForUser(1L, 25L)).thenReturn(testBridge);
+            when(jwtUtil.generateToken(eq(testUser), eq(testBridge))).thenReturn("switched-jwt");
+            when(refService.rotateRefreshToken(storedToken, nextOrg)).thenReturn(testCookie);
+
+            mockMvc.perform(post("/auth/switch-organization")
+                            .with(authentication(authWithRole("WORKER")))
+                            .cookie(new Cookie("refresh_token", "old-token"))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                {
+                                  "organizationId": 25
+                                }
+                                """))
+                    .andExpect(status().isOk())
+                    .andExpect(content().string("switched-jwt"))
+                    .andExpect(header().string("Set-Cookie", containsString("refresh_token")));
+        }
+
+        @Test
+        @DisplayName("returns HTTP 401 when the refresh cookie belongs to another user")
+        void switchOrganization_wrongRefreshToken_returns401() throws Exception {
+            when(refService.getStoredRefreshTokenForUser("old-token", 1L))
+                    .thenThrow(new BadCredentialsException("Refresh token does not belong to the authenticated user"));
+
+            mockMvc.perform(post("/auth/switch-organization")
+                            .with(authentication(authWithRole("WORKER")))
+                            .cookie(new Cookie("refresh_token", "old-token"))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                {
+                                  "organizationId": 25
+                                }
+                                """))
+                    .andExpect(status().isUnauthorized())
+                    .andExpect(jsonPath("$.error").value("Refresh token does not belong to the authenticated user"));
+
+            verify(organizationService, never()).getMembershipForUser(anyLong(), anyLong());
         }
     }
 

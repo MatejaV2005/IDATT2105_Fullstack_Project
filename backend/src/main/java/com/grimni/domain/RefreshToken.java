@@ -17,6 +17,10 @@ public class RefreshToken extends CreatedAtEntity {
     @JoinColumn(name = "user_id")
     private User user;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "org_id")
+    private Organization organization;
+
     public RefreshToken() {} // no-args constructor
 
     public Long getId() {
@@ -28,6 +32,9 @@ public class RefreshToken extends CreatedAtEntity {
     public User getUser() {
         return this.user;
     }
+    public Organization getOrganization() {
+        return this.organization;
+    }
 
     public void setId(Long id) {
         this.id = id;
@@ -37,6 +44,9 @@ public class RefreshToken extends CreatedAtEntity {
     }
     public void setUser(User user) {
         this.user = user;
+    }
+    public void setOrganization(Organization organization) {
+        this.organization = organization;
     }
 
 }

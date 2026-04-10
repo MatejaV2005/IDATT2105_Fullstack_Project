@@ -1,16 +1,26 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
-import OrgSelector from './OrgSelector.vue'
-import ProfileNavbarButton from './ProfileNavbarButton.vue'
-import { ref } from 'vue'
+import { computed, onMounted } from 'vue'
 
-const username = ref('Jonas Ghar støre') // We should fetch this from the server
-const currentBusinessName = ref('Everest Sushi') // We should fetch this from the server
+import OrganizationSwitcher from '@/components/OrganizationSwitcher.vue'
+import { useOrgSession } from '@/composables/useOrgSession'
+
+import ProfileNavbarButton from './ProfileNavbarButton.vue'
+
+const { currentUserInitials, currentUserName, ensureOrgSessionLoaded, isAuthenticated } = useOrgSession()
+
+const profileRoute = computed(() => (isAuthenticated.value ? '/desktop/users/me' : '/desktop/sign-in'))
+const logoRoute = computed(() => (isAuthenticated.value ? '/desktop/users/me' : '/desktop/sign-in'))
+const profileLabel = computed(() => currentUserName.value || 'Logg inn')
+
+onMounted(() => {
+  void ensureOrgSessionLoaded()
+})
 </script>
 <template>
   <div id="navbar">
     <RouterLink
-      to="/desktop"
+      :to="logoRoute"
       class="logo-button"
     >
       <img
@@ -18,8 +28,15 @@ const currentBusinessName = ref('Everest Sushi') // We should fetch this from th
         alt="Logo"
       >
     </RouterLink>
-    <OrgSelector :current-business-name="currentBusinessName" />
-    <ProfileNavbarButton :username="username" />
+    <OrganizationSwitcher
+      variant="desktop"
+      redirect-to="/desktop/users/me"
+    />
+    <ProfileNavbarButton
+      :username="profileLabel"
+      :initials="currentUserInitials"
+      :to="profileRoute"
+    />
   </div>
 </template>
 <style scoped>

@@ -1,6 +1,7 @@
 package com.grimni.service;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,6 +17,7 @@ import com.grimni.domain.ids.OrgUserBridgeId;
 import com.grimni.dto.AddOrganizationUserRequest;
 import com.grimni.dto.CollaboratorResponse;
 import com.grimni.dto.CreateOrganizationRequest;
+import com.grimni.dto.MyOrganizationMembershipResponse;
 import com.grimni.dto.UpdateOrganizationRequest;
 import com.grimni.dto.UserOrgResponse;
 import com.grimni.repository.OrgDangerAnalysisCollaboratorRepository;
@@ -76,10 +78,48 @@ public class OrganizationService {
     public List<Organization> findOrganizationsByUserId(Long userId) {
         logger.info("Fetching organizations for user {}", userId);
         List<Organization> orgs = orgUserBridgeRepository.findByUserId(userId).stream()
+                .sorted((left, right) -> Long.compare(left.getOrganization().getId(), right.getOrganization().getId()))
                 .map(OrgUserBridge::getOrganization)
                 .toList();
         logger.info("Found {} organizations for user {}", orgs.size(), userId);
         return orgs;
+    }
+
+    public List<OrgUserBridge> findMembershipsByUserId(Long userId) {
+        return orgUserBridgeRepository.findByUserId(userId).stream()
+                .sorted((left, right) -> Long.compare(left.getOrganization().getId(), right.getOrganization().getId()))
+                .toList();
+    }
+
+    public Optional<OrgUserBridge> findDefaultMembershipForUser(Long userId) {
+        return findMembershipsByUserId(userId).stream().findFirst();
+    }
+
+    public OrgUserBridge getMembershipForUser(Long userId, Long orgId) {
+        return orgUserBridgeRepository.findByOrganizationIdAndUserId(orgId, userId)
+                .orElseThrow(() -> new AccessDeniedException("You do not have access to the selected organization"));
+    }
+
+    public OrgUserBridge resolveRefreshMembership(Long userId, Long requestedOrgId) {
+        List<OrgUserBridge> memberships = findMembershipsByUserId(userId);
+        if (memberships.isEmpty()) {
+            throw new org.springframework.security.authentication.BadCredentialsException("No accessible organizations for this session");
+        }
+
+        if (requestedOrgId == null) {
+            return memberships.getFirst();
+        }
+
+        return memberships.stream()
+                .filter(bridge -> bridge.getOrganization().getId().equals(requestedOrgId))
+                .findFirst()
+                .orElse(memberships.getFirst());
+    }
+
+    public List<MyOrganizationMembershipResponse> getMyOrganizationMemberships(Long userId, Long currentOrgId) {
+        return findMembershipsByUserId(userId).stream()
+                .map(bridge -> MyOrganizationMembershipResponse.fromEntity(bridge, currentOrgId))
+                .toList();
     }
 
     public Organization findOrganizationByIdAndUser(Long orgId, Long userId) {

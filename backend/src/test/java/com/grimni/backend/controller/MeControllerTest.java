@@ -8,6 +8,7 @@ import com.grimni.domain.enums.DeviationCategory;
 import com.grimni.domain.enums.ReviewStatus;
 import com.grimni.dto.AssignedCcpResponse;
 import com.grimni.dto.AssignedRoutineResponse;
+import com.grimni.dto.MyOrganizationMembershipResponse;
 import com.grimni.dto.SubmittedCcpRecordResponse;
 import com.grimni.security.JwtUserPrinciple;
 import com.grimni.security.SecurityConfig;
@@ -114,26 +115,30 @@ public class MeControllerTest {
     class GetMyOrganizationsSuccessTests {
 
         @Test
-        @DisplayName("returns HTTP 200 and list of organization responses")
+        @DisplayName("returns HTTP 200 and list of membership-aware organization responses")
         void getMyOrganizations_success() throws Exception {
-            Organization org1 = createOrg(1L, "Org A");
-            Organization org2 = createOrg(2L, "Org B");
-
-            when(organizationService.findOrganizationsByUserId(1L)).thenReturn(List.of(org1, org2));
+            when(organizationService.getMyOrganizationMemberships(1L, 10L)).thenReturn(List.of(
+                new MyOrganizationMembershipResponse(1L, "Org A", "123 Main St", 100, false, true, "OWNER", false),
+                new MyOrganizationMembershipResponse(10L, "Org B", "123 Main St", 100, false, true, "WORKER", true)
+            ));
 
             mockMvc.perform(get("/me/organizations")
                             .with(authentication(authWithRole("WORKER"))))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$[0].id").value(1))
                     .andExpect(jsonPath("$[0].orgName").value("Org A"))
-                    .andExpect(jsonPath("$[1].id").value(2))
-                    .andExpect(jsonPath("$[1].orgName").value("Org B"));
+                    .andExpect(jsonPath("$[0].orgRole").value("OWNER"))
+                    .andExpect(jsonPath("$[0].isCurrent").value(false))
+                    .andExpect(jsonPath("$[1].id").value(10))
+                    .andExpect(jsonPath("$[1].orgName").value("Org B"))
+                    .andExpect(jsonPath("$[1].orgRole").value("WORKER"))
+                    .andExpect(jsonPath("$[1].isCurrent").value(true));
         }
 
         @Test
         @DisplayName("returns HTTP 200 and empty list when user has no organizations")
         void getMyOrganizations_empty() throws Exception {
-            when(organizationService.findOrganizationsByUserId(1L)).thenReturn(List.of());
+            when(organizationService.getMyOrganizationMemberships(1L, 10L)).thenReturn(List.of());
 
             mockMvc.perform(get("/me/organizations")
                             .with(authentication(authWithRole("WORKER"))))
@@ -152,7 +157,7 @@ public class MeControllerTest {
         @Test
         @DisplayName("returns HTTP 404 when service throws EntityNotFoundException")
         void getMyOrganizations_serviceThrows_returns404() throws Exception {
-            when(organizationService.findOrganizationsByUserId(1L))
+            when(organizationService.getMyOrganizationMemberships(1L, 10L))
                     .thenThrow(new EntityNotFoundException("Not found"));
 
             mockMvc.perform(get("/me/organizations")
@@ -167,7 +172,7 @@ public class MeControllerTest {
             mockMvc.perform(get("/me/organizations"))
                     .andExpect(status().isForbidden());
 
-            verify(organizationService, never()).findOrganizationsByUserId(any());
+            verify(organizationService, never()).getMyOrganizationMemberships(any(), any());
         }
     }
 
