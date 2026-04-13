@@ -245,14 +245,14 @@ INSERT IGNORE INTO routine_user_bridge (user_id, routine_id, user_role, created_
 (11, 7, 'PERFORMER', DATE_SUB(UTC_TIMESTAMP(), INTERVAL 34 DAY)),
 (15, 7, 'DEPUTY', DATE_SUB(UTC_TIMESTAMP(), INTERVAL 25 DAY));
 
-INSERT IGNORE INTO product_category (id, product_name, product_description, org_id, flowchart_file_id, flowchart, created_at) VALUES
-(1, 'Seafood station', 'Ready-to-eat seafood', 1, NULL, '["Receive","Cold store","Prep","Service"]', DATE_SUB(UTC_TIMESTAMP(), INTERVAL 41 DAY)),
-(2, 'Chicken line', 'Chicken dishes', 1, NULL, '["Receive","Cold store","Cook","Hot hold","Service"]', DATE_SUB(UTC_TIMESTAMP(), INTERVAL 40 DAY)),
-(3, 'Dessert pass', 'Dairy desserts', 1, NULL, '["Receive","Cold store","Plate","Service"]', DATE_SUB(UTC_TIMESTAMP(), INTERVAL 39 DAY)),
-(4, 'Tap system', 'Draught beer and taps', 2, NULL, '["Open bar","Purge taps","Serve","Close line"]', DATE_SUB(UTC_TIMESTAMP(), INTERVAL 38 DAY)),
-(5, 'Cocktail service', 'Spirits and cocktails', 2, NULL, '["Open spirits","Check measures","Serve","Secure storage"]', DATE_SUB(UTC_TIMESTAMP(), INTERVAL 37 DAY)),
-(6, 'Pastry cream', 'Cream pastries', 3, NULL, '["Mix filling","Cool","Assemble","Chill display"]', DATE_SUB(UTC_TIMESTAMP(), INTERVAL 36 DAY)),
-(7, 'Cold fillings', 'Sandwich fillings', 3, NULL, '["Prep","Cool","Label","Cold store"]', DATE_SUB(UTC_TIMESTAMP(), INTERVAL 35 DAY));
+INSERT IGNORE INTO product_category (id, product_name, product_description, org_id, flowchart_file_id, created_at) VALUES
+(1, 'Seafood station', 'Ready-to-eat seafood', 1, NULL, DATE_SUB(UTC_TIMESTAMP(), INTERVAL 41 DAY)),
+(2, 'Chicken line', 'Chicken dishes', 1, NULL, DATE_SUB(UTC_TIMESTAMP(), INTERVAL 40 DAY)),
+(3, 'Dessert pass', 'Dairy desserts', 1, NULL, DATE_SUB(UTC_TIMESTAMP(), INTERVAL 39 DAY)),
+(4, 'Tap system', 'Draught beer and taps', 2, NULL, DATE_SUB(UTC_TIMESTAMP(), INTERVAL 38 DAY)),
+(5, 'Cocktail service', 'Spirits and cocktails', 2, NULL, DATE_SUB(UTC_TIMESTAMP(), INTERVAL 37 DAY)),
+(6, 'Pastry cream', 'Cream pastries', 3, NULL, DATE_SUB(UTC_TIMESTAMP(), INTERVAL 36 DAY)),
+(7, 'Cold fillings', 'Sandwich fillings', 3, NULL, DATE_SUB(UTC_TIMESTAMP(), INTERVAL 35 DAY));
 
 INSERT IGNORE INTO danger_risk_combo (id, danger, danger_corrective_measure, severity_score, likelihood_score, product_category_id, created_at) VALUES
 (1, 'Temperature abuse during cold holding.', 'Move product to backup cold storage and review door-opening practice.', 5, 3, 1, DATE_SUB(UTC_TIMESTAMP(), INTERVAL 30 DAY)),
