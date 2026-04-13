@@ -99,8 +99,8 @@ This starts:
 
 When the database starts for the first time, Docker mounts and applies:
 
-- [schema.sql](/Users/benjaminkvello-hansen/Projects/IDATT2105_Fullstack_Project/schema.sql)
-- [seed.sql](/Users/benjaminkvello-hansen/Projects/IDATT2105_Fullstack_Project/seed.sql)
+- [schema.sql](schema.sql)
+- [seed.sql](seed.sql)
 
 After backend startup, the `db_seed` service waits for the schema/backend to be ready and then applies the demo seed again to ensure the expected demo data exists.
 
@@ -109,6 +109,7 @@ After backend startup, the `db_seed` service waits for the schema/backend to be 
 - Frontend app: [http://localhost:8080](http://localhost:8080)
 - Health check: [http://localhost:8080/api/health](http://localhost:8080/api/health)
 - Swagger UI: [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html)
+- OpenAPI JSON: [http://localhost:8080/v3/api-docs](http://localhost:8080/v3/api-docs)
 
 ### Stop everything
 
@@ -137,7 +138,7 @@ Because `schema.sql` and `seed.sql` are mounted into MySQL init, a fresh databas
 
 ## Demo and test users
 
-The base Docker seed in [seed.sql](/Users/benjaminkvello-hansen/Projects/IDATT2105_Fullstack_Project/seed.sql) already creates several demo accounts for teachers, evaluators, and local testing.
+The base Docker seed in [seed.sql](seed.sql) already creates several demo accounts for teachers, evaluators, and local testing.
 
 All seeded demo users share the same password:
 
@@ -212,10 +213,12 @@ Frontend notes:
 
 ## Backend development
 
-Run backend locally from `backend/`:
+Run backend locally from `backend/`. The backend needs `db` and `seaweedfs` running, plus the `MYSQL_*`, `S3_*`, and `JWT_SECRET_KEY` values from `.env` exported into your shell (or set as an IDE run configuration):
 
 ```bash
+docker compose up -d db seaweedfs
 cd backend
+set -a && . ../.env && set +a
 ./mvnw spring-boot:run
 ```
 
@@ -338,4 +341,4 @@ This repository includes:
 
 For project delivery documentation, see:
 
-- [delivery-priorities.md](/Users/benjaminkvello-hansen/Projects/IDATT2105_Fullstack_Project/docs/delivery-priorities.md)
+- [delivery-priorities.md](docs/delivery-priorities.md)
