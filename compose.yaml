@@ -109,7 +109,7 @@ services:
               FROM information_schema.columns
               WHERE table_schema = DATABASE()
                 AND table_name = 'product_category'
-                AND column_name = 'flowchart'
+                AND column_name = 'flowchart_file_id'
             )
             AND EXISTS (
               SELECT 1
